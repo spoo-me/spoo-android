@@ -83,6 +83,8 @@ icon in all masks.
 - Nav2 imports; XML layouts; Fragments; AppCompat themes
 - `tween()`/hardcoded easing where a motion-scheme spring belongs
 - wavy indicators as generic spinners; ButtonGroup as a link list
-- chips/dots/status-badge chrome (zingzy taste: state = muted text or
-  affordance presence — see zingzy-design-taste skill, which stacks with this)
+- chips/dots/status-badge chrome for state a quieter affordance could carry
+  (NOTE: the zingzy-design-taste skill does NOT apply to this repo — zingzy's
+  ruling Aug 2026: it is web-only; this app is pure M3 Expressive, don't
+  pollute it. Never load that skill for spoo-android work.)
 - Vico default styling; charts with library watermark aesthetics
