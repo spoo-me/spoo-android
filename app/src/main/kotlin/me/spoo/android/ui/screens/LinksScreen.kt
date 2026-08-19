@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
@@ -59,6 +60,7 @@ import me.spoo.android.ui.screens.links.LinksViewModel
 fun LinksScreen(
     sharedText: String?,
     onOpenStats: (String) -> Unit,
+    onOpenAccount: () -> Unit,
     viewModel: LinksViewModel = viewModel(),
 ) {
     val links by viewModel.links.collectAsState()
@@ -82,6 +84,14 @@ fun LinksScreen(
                 title = { Text("spoo.me") },
                 subtitle = {
                     Text("${links.size} links · ${numbers.format(totalClicks)} clicks")
+                },
+                actions = {
+                    IconButton(onClick = onOpenAccount) {
+                        Icon(
+                            Icons.Outlined.AccountCircle,
+                            contentDescription = "Account",
+                        )
+                    }
                 },
                 scrollBehavior = scrollBehavior,
             )

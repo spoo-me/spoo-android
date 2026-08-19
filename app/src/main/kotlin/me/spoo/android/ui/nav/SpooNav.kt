@@ -6,6 +6,8 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.serialization.Serializable
+import me.spoo.android.auth.AuthState
+import me.spoo.android.ui.screens.AccountScreen
 import me.spoo.android.ui.screens.LinksScreen
 import me.spoo.android.ui.screens.StatsScreen
 
@@ -15,8 +17,16 @@ data object LinksKey : NavKey
 @Serializable
 data class StatsKey(val shortCode: String) : NavKey
 
+@Serializable
+data object AccountKey : NavKey
+
 @Composable
-fun SpooNav(sharedText: String?) {
+fun SpooNav(
+    sharedText: String?,
+    authState: AuthState,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
     val backStack = rememberNavBackStack(LinksKey)
 
     NavDisplay(
@@ -27,10 +37,19 @@ fun SpooNav(sharedText: String?) {
                 LinksScreen(
                     sharedText = sharedText,
                     onOpenStats = { code -> backStack.add(StatsKey(code)) },
+                    onOpenAccount = { backStack.add(AccountKey) },
                 )
             }
             entry<StatsKey> { key ->
                 StatsScreen(shortCode = key.shortCode)
+            }
+            entry<AccountKey> {
+                AccountScreen(
+                    authState = authState,
+                    onSignIn = onSignIn,
+                    onSignOut = onSignOut,
+                    onBack = { backStack.removeLastOrNull() },
+                )
             }
         },
     )

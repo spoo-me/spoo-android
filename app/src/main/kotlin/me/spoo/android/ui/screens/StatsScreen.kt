@@ -30,8 +30,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.text.NumberFormat
+import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
-import me.spoo.android.data.ServiceLocator
 import me.spoo.android.ui.components.WavyClicksChart
 
 /**
@@ -42,7 +42,7 @@ import me.spoo.android.ui.components.WavyClicksChart
 @Composable
 fun StatsScreen(shortCode: String) {
     val stats by produceState<LinkStats?>(initialValue = null, shortCode) {
-        value = ServiceLocator.linksRepository.stats(shortCode)
+        value = runCatching { SpooApp.graph.linksRepository.stats(shortCode) }.getOrNull()
     }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val numbers = NumberFormat.getIntegerInstance()

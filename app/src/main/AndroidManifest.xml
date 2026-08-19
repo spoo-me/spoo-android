@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".SpooApp"
         android:label="spoo.me"
         android:icon="@android:drawable/sym_def_app_icon"
         android:supportsRtl="true"
@@ -21,6 +22,23 @@
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- Device-auth redirect target. Custom scheme for local dev; the
+             verified https App Link variant lands with assetlinks.json. -->
+        <activity
+            android:name=".OAuthCallbackActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="spoo"
+                    android:host="oauth"
+                    android:path="/callback" />
             </intent-filter>
         </activity>
     </application>

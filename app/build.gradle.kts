@@ -18,6 +18,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
@@ -25,8 +26,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    defaultConfig.buildConfigField("String", "SPOO_APP_ID", "\"spoo-mobile\"")
+
     buildTypes {
+        debug {
+            // Local backend on the emulator host; see spoo-latest docker compose.
+            buildConfigField("String", "SPOO_BASE_URL", "\"http://10.0.2.2:8000\"")
+            buildConfigField("String", "SPOO_REDIRECT_URI", "\"spoo://oauth/callback\"")
+        }
         release {
+            buildConfigField("String", "SPOO_BASE_URL", "\"https://spoo.me\"")
+            // Placeholder until assetlinks.json + apps.yaml ship in prod.
+            buildConfigField("String", "SPOO_REDIRECT_URI", "\"https://spoo.me/oauth/android-callback\"")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -47,6 +58,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.compose.material.icons.extended)
+    implementation(libs.androidx.browser)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.ui)
     implementation(libs.kotlinx.serialization.json)

@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import me.spoo.android.SpooApp
 import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.LinksRepository
-import me.spoo.android.data.ServiceLocator
 import me.spoo.android.data.SpooLink
 
 enum class LinkSort { Recent, Clicks }
@@ -23,8 +23,12 @@ sealed interface CreateState {
 }
 
 class LinksViewModel(
-    private val repository: LinksRepository = ServiceLocator.linksRepository,
+    private val repository: LinksRepository = SpooApp.graph.linksRepository,
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch { runCatching { repository.refresh() } }
+    }
 
     val query = MutableStateFlow("")
     val sort = MutableStateFlow(LinkSort.Recent)

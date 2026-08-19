@@ -5,6 +5,7 @@ package me.spoo.android.data
  * SDK-backed repositories both map into this, keeping screens SDK-agnostic.
  */
 data class SpooLink(
+    val id: String,
     val shortCode: String,
     val originalUrl: String,
     val totalClicks: Int,

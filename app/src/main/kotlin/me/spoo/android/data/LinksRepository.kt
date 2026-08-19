@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.update
 
 interface LinksRepository {
     val links: StateFlow<List<SpooLink>>
+
+    /** Reload from the source of truth; clears on auth loss. */
+    suspend fun refresh()
     suspend fun create(request: CreateLinkRequest): SpooLink
     suspend fun stats(shortCode: String): LinkStats
 }
@@ -21,18 +24,20 @@ interface LinksRepository {
 class FakeLinksRepository : LinksRepository {
 
     private val seed = listOf(
-        SpooLink("ga1n", "https://github.com/spoo-me/spoo", 12_483, "Jul 2", hasPassword = false),
-        SpooLink("py-sdk", "https://pypi.org/project/spoo/", 4_207, "Jul 19"),
-        SpooLink("docs", "https://docs.spoo.me/getting-started/introduction", 2_954, "Jun 11"),
-        SpooLink("drop", "https://spoo.me/blog/self-hosting-guide", 1_310, "Aug 3", hasPassword = true),
-        SpooLink("yt", "https://www.youtube.com/watch?v=T2QDL9uAnQI", 862, "Aug 8"),
-        SpooLink("cli", "https://github.com/spoo-me/spoo-cli#installation", 415, "Aug 14"),
-        SpooLink("beta", "https://beta.spoo.me/onboarding", 96, "Aug 17"),
-        SpooLink("kmp", "https://central.sonatype.com/artifact/me.spoo/spoo", 12, "Aug 19"),
+        SpooLink("fake-ga1n", "ga1n", "https://github.com/spoo-me/spoo", 12_483, "Jul 2", hasPassword = false),
+        SpooLink("fake-py-sdk", "py-sdk", "https://pypi.org/project/spoo/", 4_207, "Jul 19"),
+        SpooLink("fake-docs", "docs", "https://docs.spoo.me/getting-started/introduction", 2_954, "Jun 11"),
+        SpooLink("fake-drop", "drop", "https://spoo.me/blog/self-hosting-guide", 1_310, "Aug 3", hasPassword = true),
+        SpooLink("fake-yt", "yt", "https://www.youtube.com/watch?v=T2QDL9uAnQI", 862, "Aug 8"),
+        SpooLink("fake-cli", "cli", "https://github.com/spoo-me/spoo-cli#installation", 415, "Aug 14"),
+        SpooLink("fake-beta", "beta", "https://beta.spoo.me/onboarding", 96, "Aug 17"),
+        SpooLink("fake-kmp", "kmp", "https://central.sonatype.com/artifact/me.spoo/spoo", 12, "Aug 19"),
     )
 
     private val _links = MutableStateFlow(seed)
     override val links: StateFlow<List<SpooLink>> = _links.asStateFlow()
+
+    override suspend fun refresh() = Unit
 
     override suspend fun create(request: CreateLinkRequest): SpooLink {
         delay(600)
@@ -42,6 +47,7 @@ class FakeLinksRepository : LinksRepository {
             else -> randomCode()
         }
         val link = SpooLink(
+            id = "fake-$code",
             shortCode = code,
             originalUrl = request.url,
             totalClicks = 0,
@@ -94,7 +100,3 @@ class FakeLinksRepository : LinksRepository {
     }
 }
 
-/** Single composition-wide graph; replaced by Hilt when real wiring lands. */
-object ServiceLocator {
-    val linksRepository: LinksRepository = FakeLinksRepository()
-}
