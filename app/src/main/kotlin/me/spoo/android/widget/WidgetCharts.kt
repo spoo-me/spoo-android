@@ -29,6 +29,8 @@ data class ChartPalette(
     val accent: Int,
     val onSurface: Int,
     val onSurfaceVariant: Int,
+    /** The widget's background, for compositing translucent fills. */
+    val surface: Int,
     /** Zero-value ground for the map. */
     val surfaceVariant: Int,
     /** Cold end of the choropleth ramp. */
@@ -71,18 +73,37 @@ object WidgetChartRenderer {
 
     private val numbers: NumberFormat = NumberFormat.getIntegerInstance()
 
-    private fun labelPaint(palette: ChartPalette, density: Float) =
+    private fun labelPaint(color: Int, density: Float) =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.onSurface
+            this.color = color
             textSize = 12f * density
         }
 
-    private fun countPaint(palette: ChartPalette, density: Float) =
+    private fun countPaint(color: Int, density: Float) =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.onSurfaceVariant
+            this.color = color
             textSize = 10.5f * density
             typeface = Typeface.MONOSPACE
         }
+
+    /**
+     * Text on an accent-tinted shape can't use the surface roles — a bright
+     * fill in dark theme (or a pale one in light) drowns them. Composite
+     * the fill over the surface and pick near-black or near-white.
+     */
+    private data class OnFill(val label: Int, val count: Int, val mark: Int)
+
+    private fun textOnFill(palette: ChartPalette, fillAlpha: Int): OnFill {
+        val fill = ColorUtils.compositeColors(
+            ColorUtils.setAlphaComponent(palette.accent, fillAlpha),
+            palette.surface,
+        )
+        return if (ColorUtils.calculateLuminance(fill) > 0.45) {
+            OnFill(label = 0xDE000000.toInt(), count = 0x99000000.toInt(), mark = 0xB3000000.toInt())
+        } else {
+            OnFill(label = 0xF5FFFFFF.toInt(), count = 0xB8FFFFFF.toInt(), mark = 0xC9FFFFFF.toInt())
+        }
+    }
 
     private fun display(dim: StatsDim, label: String) = when (dim) {
         StatsDim.Country -> countryDisplayName(label)
@@ -102,6 +123,7 @@ object WidgetChartRenderer {
         top: Float,
         size: Float,
         palette: ChartPalette,
+        monogramTint: Int = palette.onSurface,
     ) {
         if (dim == StatsDim.Country) {
             val emoji = flagEmoji(label)
@@ -129,14 +151,14 @@ object WidgetChartRenderer {
         canvas.drawCircle(
             left + size / 2, top + size / 2, size / 2,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ColorUtils.setAlphaComponent(palette.onSurface, 31)
+                color = ColorUtils.setAlphaComponent(monogramTint, 31)
             },
         )
         canvas.drawText(
             label.firstOrNull()?.uppercase() ?: "?",
             left + size / 2, top + size * 0.71f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = palette.onSurface
+                color = monogramTint
                 textSize = size * 0.56f
                 textAlign = Paint.Align.CENTER
             },
@@ -255,8 +277,6 @@ object WidgetChartRenderer {
             top.map { it.count.toFloat() },
             RectF(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat()),
         )
-        val labelP = labelPaint(palette, density)
-        val countP = countPaint(palette, density)
         val icon = 16f * density
 
         rects.forEachIndexed { i, rect ->
@@ -272,11 +292,14 @@ object WidgetChartRenderer {
                     color = ColorUtils.setAlphaComponent(palette.accent, alpha)
                 },
             )
+            val onFill = textOnFill(palette, alpha)
+            val labelP = labelPaint(onFill.label, density)
+            val countP = countPaint(onFill.count, density)
             val pad = 9f * density
             when {
                 // Wide: icon + name inline, count beneath.
                 inner.width() > 110f * density && inner.height() > 48f * density -> {
-                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette)
+                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette, onFill.mark)
                     val textLeft = inner.left + pad + icon + 6f * density
                     val name = display(dim, top[i].label)
                     val clipped = clipText(name, labelP, inner.right - pad - textLeft)
@@ -288,7 +311,7 @@ object WidgetChartRenderer {
                 }
                 // Narrow: identity + count only, like the dashboard's tail cells.
                 inner.width() > 40f * density && inner.height() > 48f * density -> {
-                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette)
+                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette, onFill.mark)
                     canvas.drawText(
                         numbers.format(top[i].count),
                         inner.left + pad, inner.top + pad + icon + 14f * density, countP,
@@ -297,7 +320,7 @@ object WidgetChartRenderer {
                 // Squat but wide enough: icon + count on one line.
                 inner.width() > 64f * density && inner.height() > 26f * density -> {
                     val small = 12f * density
-                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, small, palette)
+                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, small, palette, onFill.mark)
                     canvas.drawText(
                         numbers.format(top[i].count),
                         inner.left + pad + small + 5f * density,
@@ -407,8 +430,6 @@ object WidgetChartRenderer {
             // No room left: drop the tail bubble rather than overlap.
         }
 
-        val labelP = labelPaint(palette, density).apply { textAlign = Paint.Align.CENTER }
-        val countP = countPaint(palette, density).apply { textAlign = Paint.Align.CENTER }
         placed.forEachIndexed { i, b ->
             val alpha = (222 - i * 22).coerceAtLeast(56)
             canvas.drawCircle(
@@ -417,11 +438,14 @@ object WidgetChartRenderer {
                     color = ColorUtils.setAlphaComponent(palette.accent, alpha)
                 },
             )
+            val onFill = textOnFill(palette, alpha)
             when {
                 // Big: icon over name over count, all centered.
                 b.r > 30f * density -> {
+                    val labelP = labelPaint(onFill.label, density).apply { textAlign = Paint.Align.CENTER }
+                    val countP = countPaint(onFill.count, density).apply { textAlign = Paint.Align.CENTER }
                     val icon = 18f * density
-                    drawIcon(canvas, context, dim, b.slice.label, b.cx - icon / 2, b.cy - icon - 10f * density, icon, palette)
+                    drawIcon(canvas, context, dim, b.slice.label, b.cx - icon / 2, b.cy - icon - 10f * density, icon, palette, onFill.mark)
                     val name = clipText(display(dim, b.slice.label), labelP, b.r * 1.7f)
                     canvas.drawText(name, b.cx, b.cy + 5f * density, labelP)
                     canvas.drawText(numbers.format(b.slice.count), b.cx, b.cy + 18f * density, countP)
@@ -429,7 +453,7 @@ object WidgetChartRenderer {
                 // Medium: the identity mark alone, like the dashboard.
                 b.r > 12f * density -> {
                     val icon = minOf(16f * density, b.r * 0.95f)
-                    drawIcon(canvas, context, dim, b.slice.label, b.cx - icon / 2, b.cy - icon / 2, icon, palette)
+                    drawIcon(canvas, context, dim, b.slice.label, b.cx - icon / 2, b.cy - icon / 2, icon, palette, onFill.mark)
                 }
             }
         }

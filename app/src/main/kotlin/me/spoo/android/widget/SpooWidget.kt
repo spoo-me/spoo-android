@@ -98,6 +98,7 @@ class SpooWidget : GlanceAppWidget() {
             accent = GlanceTheme.colors.primary.getColor(context).toArgb(),
             onSurface = GlanceTheme.colors.onSurface.getColor(context).toArgb(),
             onSurfaceVariant = GlanceTheme.colors.onSurfaceVariant.getColor(context).toArgb(),
+            surface = GlanceTheme.colors.surface.getColor(context).toArgb(),
             surfaceVariant = GlanceTheme.colors.surfaceVariant.getColor(context).toArgb(),
             accentContainer = GlanceTheme.colors.primaryContainer.getColor(context).toArgb(),
         )

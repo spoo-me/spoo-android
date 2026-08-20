@@ -381,6 +381,7 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
         accent = MaterialTheme.colorScheme.primary.toArgb(),
         onSurface = MaterialTheme.colorScheme.onSurface.toArgb(),
         onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+        surface = MaterialTheme.colorScheme.surfaceContainerLow.toArgb(),
         surfaceVariant = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
         accentContainer = MaterialTheme.colorScheme.primaryContainer.toArgb(),
     )
