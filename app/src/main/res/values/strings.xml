@@ -10,4 +10,6 @@
     <string name="widget_bars_description">A big click count over daily bars. Pick metric, range, and a link.</string>
     <string name="widget_count_label">Click count</string>
     <string name="widget_count_description">Just the number. Pick metric, range, and a link.</string>
+    <string name="widget_treemap_label">Breakdown</string>
+    <string name="widget_treemap_description">Treemap, bubbles, or a world map of browsers, OS, referrers, or countries.</string>
 </resources>

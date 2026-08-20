@@ -139,7 +139,7 @@ fun countryDisplayName(code: String): String {
     return if (name.isNullOrBlank() || name == code.uppercase()) code else name
 }
 
-private fun flagEmoji(code: String): String? {
+internal fun flagEmoji(code: String): String? {
     if (code.length != 2 || !code.all { it.isLetter() }) return null
     val upper = code.uppercase()
     if (Locale("", upper).getDisplayCountry(Locale.ENGLISH) == upper) return null

@@ -6,11 +6,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,15 +26,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.BubbleChart
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Numbers
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -43,19 +56,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
+import java.text.NumberFormat
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
 import me.spoo.android.data.AppSettings
+import me.spoo.android.data.LinkStats
+import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsMetric
+import me.spoo.android.ui.components.BrandIcon
+import me.spoo.android.ui.components.CountryFlag
 import me.spoo.android.ui.components.Favicon
+import me.spoo.android.ui.components.Monogram
+import me.spoo.android.ui.components.countryDisplayName
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.theme.SpooTheme
 
@@ -105,10 +135,17 @@ class WidgetConfigActivity : ComponentActivity() {
 
     private fun save(appWidgetId: Int, config: WidgetConfig) {
         lifecycleScope.launch {
+            val graph = SpooApp.graph
             val glanceId = GlanceAppWidgetManager(this@WidgetConfigActivity)
                 .getGlanceIdBy(appWidgetId)
+            // Fetch here so the widget lands populated, not blank-then-fill.
+            val data = fetchWidgetData(graph, config)
+            val signedIn = graph.tokenStore.read() != null ||
+                graph.settingsRepository.settings.first().mockData
             updateAppWidgetState(this@WidgetConfigActivity, glanceId) {
                 it.writeWidgetConfig(config)
+                it[WidgetKeys.SIGNED_IN] = signedIn
+                data?.let(it::writeWidgetData)
             }
             SpooWidget().update(this@WidgetConfigActivity, glanceId)
             setResult(
@@ -128,19 +165,23 @@ private fun ConfigScreen(
     onSave: (WidgetConfig) -> Unit,
 ) {
     var config by remember { mutableStateOf(preset) }
+    var stats by remember { mutableStateOf<LinkStats?>(null) }
+    var saving by remember { mutableStateOf(false) }
 
     // Reconfigure: prefill from the instance's stored choices, if any.
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     LaunchedEffect(appWidgetId) {
         runCatching {
             val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
             val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
             if (WidgetKeys.STYLE in prefs) config = prefs.readWidgetConfig()
         }
-        runCatching {
-            val repo = SpooApp.graph.linksRepository
-            if (repo.links.value.isEmpty()) repo.refresh()
-        }
+    }
+
+    // Live data for the preview and the filter vocabularies; stale data
+    // stays up while the next query is in flight.
+    LaunchedEffect(config.metric, config.rangeDays, config.scope, config.filters) {
+        fetchWidgetStats(SpooApp.graph, config)?.let { stats = it }
     }
     val links by SpooApp.graph.linksRepository.links.collectAsState()
 
@@ -158,11 +199,20 @@ private fun ConfigScreen(
             Box(
                 Modifier
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             ) {
-                Button(onClick = { onSave(config) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Save widget")
+                Button(
+                    onClick = { saving = true; onSave(config) },
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (saving) {
+                        LoadingIndicator(Modifier.height(24.dp))
+                    } else {
+                        Text("Save widget")
+                    }
                 }
             }
         },
@@ -171,24 +221,52 @@ private fun ConfigScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = padding,
         ) {
-            item { SectionLabel("Style") }
+            item { WidgetPreview(config, stats?.toWidgetData(config)) }
+            item { SectionLabel("Chart") }
             item {
                 ToggleRow(
                     options = listOf(
-                        Triple(WidgetStyle.Wave, "Wave", Icons.Outlined.ShowChart),
-                        Triple(WidgetStyle.Bars, "Bars", Icons.Outlined.BarChart),
-                        Triple(WidgetStyle.Number, "Number", Icons.Outlined.Numbers),
+                        Triple(WidgetChart.Wave, "Wave", Icons.Outlined.ShowChart),
+                        Triple(WidgetChart.Bars, "Bars", Icons.Outlined.BarChart),
+                        Triple(WidgetChart.Number, "Number", Icons.Outlined.Numbers),
                     ),
-                    selected = config.style,
-                    onSelect = { config = config.copy(style = it) },
+                    selected = config.chart,
+                    onSelect = { config = config.copy(chart = it) },
                 )
+            }
+            item { Spacer(Modifier.height(6.dp)) }
+            item {
+                ToggleRow(
+                    options = listOf(
+                        Triple(WidgetChart.Treemap, "Treemap", Icons.Outlined.GridView),
+                        Triple(WidgetChart.Bubbles, "Bubbles", Icons.Outlined.BubbleChart),
+                        Triple(WidgetChart.Map, "Map", Icons.Outlined.Public),
+                    ),
+                    selected = config.chart,
+                    onSelect = { config = config.copy(chart = it) },
+                )
+            }
+            if (config.chart == WidgetChart.Treemap || config.chart == WidgetChart.Bubbles) {
+                item { SectionLabel("Dimension") }
+                item {
+                    ToggleRow(
+                        options = listOf(
+                            Triple<StatsDim, String, ImageVector?>(StatsDim.Browser, "Browser", null),
+                            Triple<StatsDim, String, ImageVector?>(StatsDim.Os, "OS", null),
+                            Triple<StatsDim, String, ImageVector?>(StatsDim.Referrer, "Referrer", null),
+                            Triple<StatsDim, String, ImageVector?>(StatsDim.Country, "Country", null),
+                        ),
+                        selected = config.dimension,
+                        onSelect = { config = config.copy(dimension = it) },
+                    )
+                }
             }
             item { SectionLabel("Metric") }
             item {
                 ToggleRow(
                     options = listOf(
-                        Triple(StatsMetric.Clicks, "Clicks", null),
-                        Triple(StatsMetric.UniqueClicks, "Unique clicks", null),
+                        Triple<StatsMetric, String, ImageVector?>(StatsMetric.Clicks, "Clicks", null),
+                        Triple<StatsMetric, String, ImageVector?>(StatsMetric.UniqueClicks, "Unique clicks", null),
                     ),
                     selected = config.metric,
                     onSelect = { config = config.copy(metric = it) },
@@ -236,7 +314,134 @@ private fun ConfigScreen(
                     )
                 }
             }
+            item { SectionLabel("Filters") }
+            item {
+                FilterGroup(
+                    "Country", stats?.countries, StatsDim.Country, config,
+                    onConfigChange = { config = it },
+                    labelFor = ::countryDisplayName,
+                    icon = { CountryFlag(it, size = 18.dp) },
+                )
+            }
+            item {
+                FilterGroup(
+                    "Browser", stats?.browsers, StatsDim.Browser, config,
+                    onConfigChange = { config = it },
+                    labelFor = { it },
+                    icon = { BrandIcon(it, size = 18.dp) },
+                )
+            }
+            item {
+                FilterGroup(
+                    "Operating system", stats?.os, StatsDim.Os, config,
+                    onConfigChange = { config = it },
+                    labelFor = { it },
+                    icon = { BrandIcon(it, size = 18.dp) },
+                )
+            }
+            item {
+                FilterGroup(
+                    "Referrer", stats?.referrers, StatsDim.Referrer, config,
+                    onConfigChange = { config = it },
+                    labelFor = { it },
+                    icon = { value ->
+                        if (value.contains('.')) Favicon(value, size = 18.dp) else Monogram(value, size = 18.dp)
+                    },
+                )
+            }
             item { Spacer(Modifier.height(16.dp)) }
+        }
+    }
+}
+
+/** The widget, verbatim: same renderer, same layout grammar, real data. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
+    val palette = ChartPalette(
+        accent = MaterialTheme.colorScheme.primary.toArgb(),
+        onSurface = MaterialTheme.colorScheme.onSurface.toArgb(),
+        onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+        surfaceVariant = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
+        accentContainer = MaterialTheme.colorScheme.primaryContainer.toArgb(),
+    )
+    val context = LocalContext.current
+    val density = LocalDensity.current.density
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .aspectRatio(2.1f)
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(24.dp),
+            ),
+    ) {
+        val widthDp = maxWidth
+        val heightDp = maxHeight
+        val chartHeight = if (config.chart.timeChart) heightDp * 0.68f else heightDp - 26.dp
+        val hasChart = data != null && config.chart != WidgetChart.Number &&
+            (if (config.chart.timeChart) data.series.size >= 2 else data.slices.isNotEmpty())
+
+        if (data == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                LoadingIndicator()
+            }
+            return@BoxWithConstraints
+        }
+        if (hasChart) {
+            val bitmap = remember(config, data, widthDp, chartHeight) {
+                WidgetChartRenderer.render(
+                    context = context,
+                    config = config,
+                    data = data,
+                    width = (widthDp.value * density).toInt(),
+                    height = (chartHeight.value * density).toInt(),
+                    density = density,
+                    palette = palette,
+                )
+            }
+            androidx.compose.foundation.Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(chartHeight)
+                    .align(Alignment.BottomStart),
+                contentScale = ContentScale.FillBounds,
+            )
+        }
+        Column(
+            modifier = Modifier
+                .padding(horizontal = if (config.chart.timeChart) 18.dp else 14.dp)
+                .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
+                .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
+            verticalArrangement = if (config.chart == WidgetChart.Number) {
+                Arrangement.Center
+            } else {
+                Arrangement.Top
+            },
+        ) {
+            Text(
+                config.label,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+            if (config.chart.timeChart) {
+                Text(
+                    NumberFormat.getIntegerInstance().format(data.total),
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -289,7 +494,7 @@ private fun <T> ToggleRow(
 private fun ScopeRow(
     selected: Boolean,
     onClick: () -> Unit,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -301,5 +506,46 @@ private fun ScopeRow(
         RadioButton(selected = selected, onClick = null)
         Spacer(Modifier.width(14.dp))
         content()
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FilterGroup(
+    title: String,
+    slices: List<LinkStats.Slice>?,
+    dim: StatsDim,
+    config: WidgetConfig,
+    onConfigChange: (WidgetConfig) -> Unit,
+    labelFor: (String) -> String,
+    icon: @Composable (String) -> Unit,
+) {
+    val values = slices.orEmpty().take(6)
+    if (values.isEmpty()) return
+    Column(Modifier.padding(horizontal = 20.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            values.forEach { slice ->
+                val selectedValue = config.filters[dim] == slice.label
+                FilterChip(
+                    selected = selectedValue,
+                    onClick = {
+                        val filters = if (selectedValue) {
+                            config.filters - dim
+                        } else {
+                            config.filters + (dim to slice.label)
+                        }
+                        onConfigChange(config.copy(filters = filters))
+                    },
+                    leadingIcon = { icon(slice.label) },
+                    label = { Text(labelFor(slice.label)) },
+                )
+            }
+        }
     }
 }
