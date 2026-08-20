@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -473,8 +475,8 @@ private fun LinksFilterSheet(
                         leadingIcon = {
                             Box(
                                 Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
+                                    .size(10.dp)
+                                    .clip(RoundedCornerShape(3.dp))
                                     .background(status.dotColor()),
                             )
                         },
@@ -494,11 +496,25 @@ private fun LinksFilterSheet(
                     onClick = {
                         onFilterChange(filter.copy(passwordProtected = !filter.passwordProtected))
                     },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
                     label = { Text("Password protected") },
                 )
                 FilterChip(
                     selected = filter.clickLimited,
                     onClick = { onFilterChange(filter.copy(clickLimited = !filter.clickLimited)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Speed,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
                     label = { Text("Click-limited") },
                 )
             }
