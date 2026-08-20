@@ -6,18 +6,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -50,6 +55,7 @@ data object SettingsKey : NavKey
 
 private data class Tab(val key: NavKey, val label: String)
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SpooNav(
     prefillText: String?,
@@ -68,6 +74,8 @@ fun SpooNav(
     val backStack = rememberNavBackStack(LinksKey)
     val scope = rememberCoroutineScope()
     val settingsRepo = SpooApp.graph.settingsRepository
+    // Bumped by the pill's FAB; LinksScreen opens the create sheet on change.
+    var createRequests by remember { mutableIntStateOf(0) }
 
     val tabs = listOf(
         Tab(LinksKey, "Links"),
@@ -93,6 +101,7 @@ fun SpooNav(
                         LinksScreen(
                             prefillText = prefillText,
                             startInCreate = startInCreate,
+                            createRequests = createRequests,
                             showShareInMenu = settings.showShareInMenu,
                             onOpenStats = { code -> backStack.add(StatsKey(code)) },
                         )
@@ -118,39 +127,50 @@ fun SpooNav(
                 },
             )
         }
-        // Floating icon-only tab bar: content scrolls behind it.
+        // Floating icon-only tab bar; on Links it carries the create FAB.
         if (atRoot) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 12.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shadowElevation = 6.dp,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    tabs.forEach { tab ->
-                        val selected = currentRoot == tab.key
-                        val icon = when (tab.key) {
-                            LinksKey -> Icons.Outlined.Link
-                            AnalyticsKey -> Icons.Outlined.Insights
-                            else -> Icons.Outlined.Settings
+            val tabItems: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
+                tabs.forEach { tab ->
+                    val selected = currentRoot == tab.key
+                    val icon = when (tab.key) {
+                        LinksKey -> Icons.Outlined.Link
+                        AnalyticsKey -> Icons.Outlined.Insights
+                        else -> Icons.Outlined.Settings
+                    }
+                    if (selected) {
+                        FilledIconButton(onClick = { switchTab(tab.key) }) {
+                            Icon(icon, contentDescription = tab.label)
                         }
-                        if (selected) {
-                            FilledIconButton(onClick = { switchTab(tab.key) }) {
-                                Icon(icon, contentDescription = tab.label)
-                            }
-                        } else {
-                            IconButton(onClick = { switchTab(tab.key) }) {
-                                Icon(icon, contentDescription = tab.label)
-                            }
+                    } else {
+                        IconButton(onClick = { switchTab(tab.key) }) {
+                            Icon(icon, contentDescription = tab.label)
                         }
                     }
                 }
+            }
+            val barModifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 12.dp)
+            if (currentRoot == LinksKey) {
+                HorizontalFloatingToolbar(
+                    expanded = true,
+                    floatingActionButton = {
+                        FloatingToolbarDefaults.VibrantFloatingActionButton(
+                            onClick = { createRequests++ },
+                        ) {
+                            Icon(Icons.Outlined.Add, contentDescription = "Shorten a link")
+                        }
+                    },
+                    modifier = barModifier,
+                    content = tabItems,
+                )
+            } else {
+                HorizontalFloatingToolbar(
+                    expanded = true,
+                    modifier = barModifier,
+                    content = tabItems,
+                )
             }
         }
     }
