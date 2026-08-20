@@ -93,6 +93,9 @@ fun BrandIcon(name: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
     )
 }
 
+/** Vendor domain for a browser/OS name, null when unknown. */
+internal fun brandDomain(name: String): String? = BRAND_DOMAINS[name.lowercase()]
+
 private val BRAND_DOMAINS = mapOf(
     "chrome" to "www.google.com/chrome",
     "safari" to "www.apple.com",

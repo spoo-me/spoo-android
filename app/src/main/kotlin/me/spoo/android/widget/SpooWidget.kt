@@ -69,6 +69,14 @@ class SpooWidget : GlanceAppWidget() {
             it[WidgetKeys.SIGNED_IN] = signedIn
             fresh?.let(it::writeWidgetData) // fetch failed: keep the cache
         }
+        if (!config.chart.timeChart) {
+            val slices = (fresh ?: getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
+                .readWidgetData()).slices
+            WidgetIconCache.prefetch(
+                context, config.effectiveDimension,
+                slices.sortedByDescending { s -> s.count }.take(9).map { s -> s.label },
+            )
+        }
 
         provideContent {
             GlanceTheme {
@@ -99,9 +107,9 @@ class SpooWidget : GlanceAppWidget() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
 
-        // Time charts underlay the bottom two-thirds; breakdowns run
-        // (nearly) full-bleed under the micro-label.
-        val chartHeight = if (config.chart.timeChart) size.height * 0.68f else size.height - 26.dp
+        // Time charts underlay the bottom two-thirds beneath the label and
+        // count; breakdown charts ARE the widget, full-bleed and unlabeled.
+        val chartHeight = if (config.chart.timeChart) size.height * 0.68f else size.height
         val hasChart = config.chart != WidgetChart.Number &&
             (if (config.chart.timeChart) data.series.size >= 2 else data.slices.isNotEmpty())
 
@@ -135,27 +143,27 @@ class SpooWidget : GlanceAppWidget() {
                     )
                 }
             }
-            Column(
-                modifier = GlanceModifier
-                    .padding(horizontal = if (config.chart.timeChart) 18.dp else 14.dp)
-                    .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
-                    .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
-                verticalAlignment = if (config.chart == WidgetChart.Number) {
-                    Alignment.CenterVertically
-                } else {
-                    Alignment.Top
-                },
-            ) {
-                Text(
-                    config.label,
-                    style = TextStyle(
-                        color = GlanceTheme.colors.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                    ),
-                    maxLines = 1,
-                )
-                if (config.chart.timeChart) {
+            if (config.chart.timeChart) {
+                Column(
+                    modifier = GlanceModifier
+                        .padding(horizontal = 18.dp)
+                        .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
+                        .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
+                    verticalAlignment = if (config.chart == WidgetChart.Number) {
+                        Alignment.CenterVertically
+                    } else {
+                        Alignment.Top
+                    },
+                ) {
+                    Text(
+                        config.label,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                        maxLines = 1,
+                    )
                     val label = NumberFormat.getIntegerInstance().format(data.total)
                     val compact = size.width.value < 220f || size.height.value < 100f
                     Text(
@@ -170,6 +178,16 @@ class SpooWidget : GlanceAppWidget() {
                             fontWeight = FontWeight.Bold,
                         ),
                         maxLines = 1,
+                    )
+                }
+            } else if (!hasChart) {
+                Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        "No data in this range",
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 12.sp,
+                        ),
                     )
                 }
             }

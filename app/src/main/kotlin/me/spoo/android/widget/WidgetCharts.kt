@@ -60,9 +60,9 @@ object WidgetChartRenderer {
             WidgetChart.Wave -> drawWave(canvas, data.series, palette, density)
             WidgetChart.Bars -> drawBars(canvas, data.series, palette, density)
             WidgetChart.Treemap ->
-                drawTreemap(canvas, data.slices, config.effectiveDimension, palette, density)
+                drawTreemap(context, canvas, data.slices, config.effectiveDimension, palette, density)
             WidgetChart.Bubbles ->
-                drawBubbles(canvas, data.slices, config.effectiveDimension, palette, density)
+                drawBubbles(context, canvas, data.slices, config.effectiveDimension, palette, density)
             WidgetChart.Map -> drawMap(context, canvas, data.slices, palette)
             WidgetChart.Number -> Unit
         }
@@ -85,9 +85,62 @@ object WidgetChartRenderer {
         }
 
     private fun display(dim: StatsDim, label: String) = when (dim) {
-        StatsDim.Country -> listOfNotNull(flagEmoji(label), countryDisplayName(label))
-            .joinToString(" ")
+        StatsDim.Country -> countryDisplayName(label)
         else -> label
+    }
+
+    /**
+     * Identity mark for a dimension value: prefetched favicon (rounded),
+     * flag emoji for countries, monogram circle when neither exists.
+     */
+    private fun drawIcon(
+        canvas: Canvas,
+        context: Context,
+        dim: StatsDim,
+        label: String,
+        left: Float,
+        top: Float,
+        size: Float,
+        palette: ChartPalette,
+    ) {
+        if (dim == StatsDim.Country) {
+            val emoji = flagEmoji(label)
+            if (emoji != null) {
+                canvas.drawText(
+                    emoji, left, top + size * 0.85f,
+                    Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = size },
+                )
+                return
+            }
+        }
+        val icon = WidgetIconCache.hostFor(dim, label)
+            ?.let { WidgetIconCache.get(context, it) }
+        if (icon != null) {
+            val rect = RectF(left, top, left + size, top + size)
+            val clip = Path().apply {
+                addRoundRect(rect, size * 0.22f, size * 0.22f, Path.Direction.CW)
+            }
+            canvas.save()
+            canvas.clipPath(clip)
+            canvas.drawBitmap(icon, null, rect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+            canvas.restore()
+            return
+        }
+        canvas.drawCircle(
+            left + size / 2, top + size / 2, size / 2,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = ColorUtils.setAlphaComponent(palette.onSurface, 31)
+            },
+        )
+        canvas.drawText(
+            label.firstOrNull()?.uppercase() ?: "?",
+            left + size / 2, top + size * 0.71f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = palette.onSurface
+                textSize = size * 0.56f
+                textAlign = Paint.Align.CENTER
+            },
+        )
     }
 
     // ---- time charts --------------------------------------------------
@@ -187,6 +240,7 @@ object WidgetChartRenderer {
     // ---- breakdown charts ---------------------------------------------
 
     private fun drawTreemap(
+        context: Context,
         canvas: Canvas,
         slices: List<LinkStats.Slice>,
         dim: StatsDim,
@@ -203,6 +257,7 @@ object WidgetChartRenderer {
         )
         val labelP = labelPaint(palette, density)
         val countP = countPaint(palette, density)
+        val icon = 16f * density
 
         rects.forEachIndexed { i, rect ->
             val inner = RectF(
@@ -217,15 +272,38 @@ object WidgetChartRenderer {
                     color = ColorUtils.setAlphaComponent(palette.accent, alpha)
                 },
             )
-            val pad = 8f * density
-            if (inner.width() > 64f * density && inner.height() > 40f * density) {
-                val name = display(dim, top[i].label)
-                val clipped = clipText(name, labelP, inner.width() - pad * 2)
-                canvas.drawText(clipped, inner.left + pad, inner.top + pad + 11f * density, labelP)
-                canvas.drawText(
-                    numbers.format(top[i].count),
-                    inner.left + pad, inner.top + pad + 25f * density, countP,
-                )
+            val pad = 9f * density
+            when {
+                // Wide: icon + name inline, count beneath.
+                inner.width() > 110f * density && inner.height() > 48f * density -> {
+                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette)
+                    val textLeft = inner.left + pad + icon + 6f * density
+                    val name = display(dim, top[i].label)
+                    val clipped = clipText(name, labelP, inner.right - pad - textLeft)
+                    canvas.drawText(clipped, textLeft, inner.top + pad + 12.5f * density, labelP)
+                    canvas.drawText(
+                        numbers.format(top[i].count),
+                        inner.left + pad, inner.top + pad + icon + 14f * density, countP,
+                    )
+                }
+                // Narrow: identity + count only, like the dashboard's tail cells.
+                inner.width() > 40f * density && inner.height() > 48f * density -> {
+                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette)
+                    canvas.drawText(
+                        numbers.format(top[i].count),
+                        inner.left + pad, inner.top + pad + icon + 14f * density, countP,
+                    )
+                }
+                // Squat but wide enough: icon + count on one line.
+                inner.width() > 64f * density && inner.height() > 26f * density -> {
+                    val small = 12f * density
+                    drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, small, palette)
+                    canvas.drawText(
+                        numbers.format(top[i].count),
+                        inner.left + pad + small + 5f * density,
+                        inner.top + pad + small - 1.5f * density, countP,
+                    )
+                }
             }
         }
     }
@@ -288,6 +366,7 @@ object WidgetChartRenderer {
     }
 
     private fun drawBubbles(
+        context: Context,
         canvas: Canvas,
         slices: List<LinkStats.Slice>,
         dim: StatsDim,
@@ -338,12 +417,20 @@ object WidgetChartRenderer {
                     color = ColorUtils.setAlphaComponent(palette.accent, alpha)
                 },
             )
-            if (b.r > 26f * density) {
-                val name = clipText(display(dim, b.slice.label), labelP, b.r * 1.7f)
-                canvas.drawText(name, b.cx, b.cy - 1f * density, labelP)
-                canvas.drawText(numbers.format(b.slice.count), b.cx, b.cy + 12f * density, countP)
-            } else if (b.r > 14f * density) {
-                canvas.drawText(numbers.format(b.slice.count), b.cx, b.cy + 3.5f * density, countP)
+            when {
+                // Big: icon over name over count, all centered.
+                b.r > 30f * density -> {
+                    val icon = 18f * density
+                    drawIcon(canvas, context, dim, b.slice.label, b.cx - icon / 2, b.cy - icon - 10f * density, icon, palette)
+                    val name = clipText(display(dim, b.slice.label), labelP, b.r * 1.7f)
+                    canvas.drawText(name, b.cx, b.cy + 5f * density, labelP)
+                    canvas.drawText(numbers.format(b.slice.count), b.cx, b.cy + 18f * density, countP)
+                }
+                // Medium: the identity mark alone, like the dashboard.
+                b.r > 12f * density -> {
+                    val icon = minOf(16f * density, b.r * 0.95f)
+                    drawIcon(canvas, context, dim, b.slice.label, b.cx - icon / 2, b.cy - icon / 2, icon, palette)
+                }
             }
         }
     }

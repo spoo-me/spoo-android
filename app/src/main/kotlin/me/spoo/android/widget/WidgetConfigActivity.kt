@@ -140,6 +140,12 @@ class WidgetConfigActivity : ComponentActivity() {
                 .getGlanceIdBy(appWidgetId)
             // Fetch here so the widget lands populated, not blank-then-fill.
             val data = fetchWidgetData(graph, config)
+            if (data != null && !config.chart.timeChart) {
+                WidgetIconCache.prefetch(
+                    this@WidgetConfigActivity, config.effectiveDimension,
+                    data.slices.sortedByDescending { it.count }.take(9).map { it.label },
+                )
+            }
             val signedIn = graph.tokenStore.read() != null ||
                 graph.settingsRepository.settings.first().mockData
             updateAppWidgetState(this@WidgetConfigActivity, glanceId) {
@@ -179,9 +185,22 @@ private fun ConfigScreen(
     }
 
     // Live data for the preview and the filter vocabularies; stale data
-    // stays up while the next query is in flight.
+    // stays up while the next query is in flight. Icons for every dimension
+    // are prefetched up front so switching chart/dimension never renders
+    // monogram placeholders that a fetched favicon would replace.
     LaunchedEffect(config.metric, config.rangeDays, config.scope, config.filters) {
-        fetchWidgetStats(SpooApp.graph, config)?.let { stats = it }
+        val fetched = fetchWidgetStats(SpooApp.graph, config) ?: return@LaunchedEffect
+        listOf(
+            StatsDim.Browser to fetched.browsers,
+            StatsDim.Os to fetched.os,
+            StatsDim.Referrer to fetched.referrers,
+        ).forEach { (dim, slices) ->
+            WidgetIconCache.prefetch(
+                context, dim,
+                slices.sortedByDescending { it.count }.take(9).map { it.label },
+            )
+        }
+        stats = fetched
     }
     val links by SpooApp.graph.linksRepository.links.collectAsState()
 
@@ -383,7 +402,7 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
     ) {
         val widthDp = maxWidth
         val heightDp = maxHeight
-        val chartHeight = if (config.chart.timeChart) heightDp * 0.68f else heightDp - 26.dp
+        val chartHeight = if (config.chart.timeChart) heightDp * 0.68f else heightDp
         val hasChart = data != null && config.chart != WidgetChart.Number &&
             (if (config.chart.timeChart) data.series.size >= 2 else data.slices.isNotEmpty())
 
@@ -415,31 +434,39 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
                 contentScale = ContentScale.FillBounds,
             )
         }
-        Column(
-            modifier = Modifier
-                .padding(horizontal = if (config.chart.timeChart) 18.dp else 14.dp)
-                .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
-                .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
-            verticalArrangement = if (config.chart == WidgetChart.Number) {
-                Arrangement.Center
-            } else {
-                Arrangement.Top
-            },
-        ) {
-            Text(
-                config.label,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-            if (config.chart.timeChart) {
+        if (config.chart.timeChart) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 18.dp)
+                    .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
+                    .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
+                verticalArrangement = if (config.chart == WidgetChart.Number) {
+                    Arrangement.Center
+                } else {
+                    Arrangement.Top
+                },
+            ) {
+                Text(
+                    config.label,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
                 Text(
                     NumberFormat.getIntegerInstance().format(data.total),
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
+                )
+            }
+        } else if (!hasChart) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "No data in this range",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
