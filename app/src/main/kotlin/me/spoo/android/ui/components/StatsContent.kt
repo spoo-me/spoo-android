@@ -16,7 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +65,7 @@ fun StatsContent(
     onParamsChange: (StatsParams) -> Unit,
     contentPadding: PaddingValues,
     filterable: Boolean = true,
+    onOpenFilters: (() -> Unit)? = null,
 ) {
     val numbers = NumberFormat.getIntegerInstance()
     var showRangePicker by remember { mutableStateOf(false) }
@@ -102,6 +107,7 @@ fun StatsContent(
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -126,6 +132,20 @@ fun StatsContent(
                             Icons.Outlined.DateRange,
                             contentDescription = "Custom date range",
                         )
+                    }
+                    if (onOpenFilters != null) {
+                        Spacer(Modifier.weight(1f))
+                        IconButton(onClick = onOpenFilters) {
+                            BadgedBox(
+                                badge = {
+                                    if (params.filters.isNotEmpty()) {
+                                        Badge { Text("${params.filters.size}") }
+                                    }
+                                },
+                            ) {
+                                Icon(Icons.Outlined.FilterList, contentDescription = "Filters")
+                            }
+                        }
                     }
                 }
                 Spacer(Modifier.height(20.dp))

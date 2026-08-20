@@ -72,19 +72,6 @@ fun AnalyticsScreen() {
             LargeFlexibleTopAppBar(
                 title = { Text("Analytics") },
                 subtitle = { Text("All your links") },
-                actions = {
-                    IconButton(onClick = { showFilters = true }) {
-                        BadgedBox(
-                            badge = {
-                                if (params.filters.isNotEmpty()) {
-                                    Badge { Text("${params.filters.size}") }
-                                }
-                            },
-                        ) {
-                            Icon(Icons.Outlined.FilterList, contentDescription = "Filters")
-                        }
-                    }
-                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -104,6 +91,7 @@ fun AnalyticsScreen() {
                 stats = loaded,
                 params = params,
                 onParamsChange = { params = it },
+                onOpenFilters = { showFilters = true },
                 contentPadding = PaddingValues(
                     start = 20.dp,
                     end = 20.dp,
