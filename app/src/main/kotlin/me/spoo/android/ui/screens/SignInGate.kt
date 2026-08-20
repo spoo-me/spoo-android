@@ -1,5 +1,6 @@
 package me.spoo.android.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
@@ -16,8 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import me.spoo.android.R
 import me.spoo.android.auth.AuthState
 
 /** The app is authed-only: this full-screen gate is the signed-out state. */
@@ -36,6 +41,14 @@ fun SignInGate(
             verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // The real brand glyph, unboxed: white on dark, black on light.
+            val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+            Image(
+                painter = painterResource(if (dark) R.drawable.logo_white else R.drawable.logo_black),
+                contentDescription = null,
+                modifier = Modifier.size(88.dp),
+            )
+            Spacer(Modifier.height(24.dp))
             Text("spoo.me", style = MaterialTheme.typography.displayMedium)
             Spacer(Modifier.height(8.dp))
             Text(
