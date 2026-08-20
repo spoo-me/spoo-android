@@ -19,6 +19,8 @@ data class AppSettings(
     val useDeviceColors: Boolean = true,
     val seedColor: Long = DEFAULT_SEED,
     val showShareInMenu: Boolean = true,
+    /** Debug-only: fixture links + stats for design work, no backend. */
+    val mockData: Boolean = false,
 ) {
     companion object {
         /** spoo violet. */
@@ -44,6 +46,7 @@ class SettingsRepository(private val context: Context) {
             useDeviceColors = p[USE_DEVICE_COLORS] ?: true,
             seedColor = p[SEED_COLOR] ?: AppSettings.DEFAULT_SEED,
             showShareInMenu = p[SHOW_SHARE] ?: true,
+            mockData = p[MOCK_DATA] ?: false,
         )
     }
 
@@ -59,10 +62,14 @@ class SettingsRepository(private val context: Context) {
     suspend fun setShowShareInMenu(value: Boolean) =
         context.settingsDataStore.edit { it[SHOW_SHARE] = value }
 
+    suspend fun setMockData(value: Boolean) =
+        context.settingsDataStore.edit { it[MOCK_DATA] = value }
+
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val USE_DEVICE_COLORS = booleanPreferencesKey("use_device_colors")
         val SEED_COLOR = longPreferencesKey("seed_color")
         val SHOW_SHARE = booleanPreferencesKey("show_share_in_menu")
+        val MOCK_DATA = booleanPreferencesKey("mock_data")
     }
 }

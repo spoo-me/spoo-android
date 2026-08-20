@@ -1,9 +1,23 @@
 package me.spoo.android.ui.nav
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -13,7 +27,7 @@ import kotlinx.serialization.Serializable
 import me.spoo.android.SpooApp
 import me.spoo.android.auth.AuthState
 import me.spoo.android.data.AppSettings
-import me.spoo.android.ui.screens.AccountStatsScreen
+import me.spoo.android.ui.screens.AnalyticsScreen
 import me.spoo.android.ui.screens.LinksScreen
 import me.spoo.android.ui.screens.SettingsScreen
 import me.spoo.android.ui.screens.SignInGate
@@ -26,10 +40,12 @@ data object LinksKey : NavKey
 data class StatsKey(val shortCode: String) : NavKey
 
 @Serializable
-data object AccountStatsKey : NavKey
+data object AnalyticsKey : NavKey
 
 @Serializable
 data object SettingsKey : NavKey
+
+private data class Tab(val key: NavKey, val label: String)
 
 @Composable
 fun SpooNav(
@@ -40,8 +56,8 @@ fun SpooNav(
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    // Authed-only: no anonymous surface at all.
-    if (authState !is AuthState.SignedIn) {
+    // Authed-only — except mock mode, which exists to explore the design.
+    if (authState !is AuthState.SignedIn && !settings.mockData) {
         SignInGate(authState = authState, onSignIn = onSignIn)
         return
     }
@@ -50,38 +66,82 @@ fun SpooNav(
     val scope = rememberCoroutineScope()
     val settingsRepo = SpooApp.graph.settingsRepository
 
-    NavDisplay(
-        backStack = backStack,
-        onBack = { backStack.removeLastOrNull() },
-        entryProvider = entryProvider {
-            entry<LinksKey> {
-                LinksScreen(
-                    prefillText = prefillText,
-                    startInCreate = startInCreate,
-                    showShareInMenu = settings.showShareInMenu,
-                    onOpenStats = { code -> backStack.add(StatsKey(code)) },
-                    onOpenInsights = { backStack.add(AccountStatsKey) },
-                    onOpenSettings = { backStack.add(SettingsKey) },
-                )
-            }
-            entry<StatsKey> { key ->
-                StatsScreen(shortCode = key.shortCode)
-            }
-            entry<AccountStatsKey> {
-                AccountStatsScreen(onBack = { backStack.removeLastOrNull() })
-            }
-            entry<SettingsKey> {
-                SettingsScreen(
-                    username = authState.username,
-                    settings = settings,
-                    onSetThemeMode = { scope.launch { settingsRepo.setThemeMode(it) } },
-                    onSetUseDeviceColors = { scope.launch { settingsRepo.setUseDeviceColors(it) } },
-                    onSetSeedColor = { scope.launch { settingsRepo.setSeedColor(it) } },
-                    onSetShowShare = { scope.launch { settingsRepo.setShowShareInMenu(it) } },
-                    onSignOut = onSignOut,
-                    onBack = { backStack.removeLastOrNull() },
-                )
-            }
-        },
+    val tabs = listOf(
+        Tab(LinksKey, "Links"),
+        Tab(AnalyticsKey, "Analytics"),
+        Tab(SettingsKey, "Settings"),
     )
+    val currentRoot = backStack.firstOrNull()
+    val atRoot = backStack.size == 1
+
+    fun switchTab(key: NavKey) {
+        if (currentRoot == key && atRoot) return
+        backStack.clear()
+        backStack.add(key)
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    // The tab bar owns the bottom inset while it is visible.
+                    if (atRoot) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier,
+                ),
+        ) {
+            NavDisplay(
+                backStack = backStack,
+                onBack = { backStack.removeLastOrNull() },
+                entryProvider = entryProvider {
+                    entry<LinksKey> {
+                        LinksScreen(
+                            prefillText = prefillText,
+                            startInCreate = startInCreate,
+                            showShareInMenu = settings.showShareInMenu,
+                            onOpenStats = { code -> backStack.add(StatsKey(code)) },
+                        )
+                    }
+                    entry<StatsKey> { key ->
+                        StatsScreen(shortCode = key.shortCode)
+                    }
+                    entry<AnalyticsKey> {
+                        AnalyticsScreen()
+                    }
+                    entry<SettingsKey> {
+                        SettingsScreen(
+                            username = (authState as? AuthState.SignedIn)?.username ?: "mock mode",
+                            settings = settings,
+                            onSetThemeMode = { scope.launch { settingsRepo.setThemeMode(it) } },
+                            onSetUseDeviceColors = { scope.launch { settingsRepo.setUseDeviceColors(it) } },
+                            onSetSeedColor = { scope.launch { settingsRepo.setSeedColor(it) } },
+                            onSetShowShare = { scope.launch { settingsRepo.setShowShareInMenu(it) } },
+                            onSetMockData = { scope.launch { settingsRepo.setMockData(it) } },
+                            onSignOut = onSignOut,
+                        )
+                    }
+                },
+            )
+        }
+        if (atRoot) {
+            NavigationBar(modifier = Modifier.fillMaxWidth()) {
+                tabs.forEach { tab ->
+                    NavigationBarItem(
+                        selected = currentRoot == tab.key,
+                        onClick = { switchTab(tab.key) },
+                        icon = {
+                            Icon(
+                                when (tab.key) {
+                                    LinksKey -> Icons.Outlined.Link
+                                    AnalyticsKey -> Icons.Outlined.Insights
+                                    else -> Icons.Outlined.Settings
+                                },
+                                contentDescription = null,
+                            )
+                        },
+                        label = { Text(tab.label) },
+                    )
+                }
+            }
+        }
+    }
 }

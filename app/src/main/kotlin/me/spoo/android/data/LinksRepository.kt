@@ -11,6 +11,10 @@ interface LinksRepository {
     suspend fun update(id: String, edit: LinkEdit): SpooLink
     suspend fun delete(id: String)
     suspend fun bulkDelete(ids: List<String>)
+    suspend fun bulkSetStatus(ids: List<String>, active: Boolean)
+
+    /** null clears the expiry. */
+    suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?)
     suspend fun stats(shortCode: String, params: StatsParams): LinkStats
     suspend fun accountStats(params: StatsParams): LinkStats
 }

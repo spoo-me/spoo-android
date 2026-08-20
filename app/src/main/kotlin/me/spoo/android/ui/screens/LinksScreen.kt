@@ -19,14 +19,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.HorizontalFloatingToolbar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -89,8 +94,6 @@ fun LinksScreen(
     startInCreate: Boolean,
     showShareInMenu: Boolean,
     onOpenStats: (String) -> Unit,
-    onOpenInsights: () -> Unit,
-    onOpenSettings: () -> Unit,
     viewModel: LinksViewModel = viewModel(),
 ) {
     val links by viewModel.links.collectAsState()
@@ -98,7 +101,7 @@ fun LinksScreen(
     val sort by viewModel.sort.collectAsState()
     val createState by viewModel.createState.collectAsState()
     val editState by viewModel.editState.collectAsState()
-    val actionError by viewModel.actionError.collectAsState()
+    val actionMessage by viewModel.actionMessage.collectAsState()
     val selection by viewModel.selection.collectAsState()
 
     var showCreateSheet by rememberSaveable { mutableStateOf(startInCreate) }
@@ -108,12 +111,13 @@ fun LinksScreen(
     var editFor by remember { mutableStateOf<SpooLink?>(null) }
     var deleteFor by remember { mutableStateOf<SpooLink?>(null) }
     var confirmBulkDelete by remember { mutableStateOf(false) }
+    var showExpiryPicker by remember { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
-    LaunchedEffect(actionError) {
-        actionError?.let {
+    LaunchedEffect(actionMessage) {
+        actionMessage?.let {
             snackbar.showSnackbar(it)
-            viewModel.actionError.value = null
+            viewModel.actionMessage.value = null
         }
     }
 
@@ -134,25 +138,12 @@ fun LinksScreen(
                             Icon(Icons.Outlined.Close, contentDescription = "Clear selection")
                         }
                     },
-                    actions = {
-                        IconButton(onClick = { confirmBulkDelete = true }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Delete selected")
-                        }
-                    },
                 )
             } else {
                 LargeFlexibleTopAppBar(
                     title = { Text("spoo.me") },
                     subtitle = {
                         Text("${links.size} links · ${numbers.format(totalClicks)} clicks")
-                    },
-                    actions = {
-                        IconButton(onClick = onOpenInsights) {
-                            Icon(Icons.Outlined.Insights, contentDescription = "Insights")
-                        }
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-                        }
                     },
                     scrollBehavior = scrollBehavior,
                 )
@@ -166,6 +157,7 @@ fun LinksScreen(
             }
         },
     ) { padding ->
+        Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -235,6 +227,34 @@ fun LinksScreen(
                 }
             }
         }
+
+        // The webapp's floating bulk-action bar, in its M3E form.
+        if (selecting) {
+            HorizontalFloatingToolbar(
+                expanded = true,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = padding.calculateBottomPadding() + 20.dp),
+            ) {
+                IconButton(onClick = { viewModel.setSelectedStatus(true) }) {
+                    Icon(Icons.Outlined.CheckCircle, contentDescription = "Enable selected")
+                }
+                IconButton(onClick = { viewModel.setSelectedStatus(false) }) {
+                    Icon(Icons.Outlined.Block, contentDescription = "Disable selected")
+                }
+                IconButton(onClick = { showExpiryPicker = true }) {
+                    Icon(Icons.Outlined.Schedule, contentDescription = "Set expiry for selected")
+                }
+                IconButton(onClick = { confirmBulkDelete = true }) {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = "Delete selected",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
+        }
     }
 
     if (showCreateSheet) {
@@ -280,6 +300,30 @@ fun LinksScreen(
                 TextButton(onClick = { deleteFor = null }) { Text("Cancel") }
             },
         )
+    }
+
+    if (showExpiryPicker) {
+        val pickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showExpiryPicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.setSelectedExpiry(pickerState.selectedDateMillis)
+                        showExpiryPicker = false
+                    },
+                    enabled = pickerState.selectedDateMillis != null,
+                ) { Text("Set expiry") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.setSelectedExpiry(null)
+                    showExpiryPicker = false
+                }) { Text("Clear expiry") }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
     }
 
     if (confirmBulkDelete) {
@@ -339,6 +383,11 @@ private fun LinkRow(
                 Text(
                     text = link.shortUrl,
                     style = MaterialTheme.typography.titleMedium,
+                    color = if (link.active) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
                 if (link.hasPassword) {
                     Spacer(Modifier.width(6.dp))
@@ -360,7 +409,10 @@ private fun LinkRow(
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "${numbers.format(link.totalClicks)} clicks · ${link.createdLabel}",
+                text = buildString {
+                    if (!link.active) append("disabled · ")
+                    append("${numbers.format(link.totalClicks)} clicks · ${link.createdLabel}")
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

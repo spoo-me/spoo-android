@@ -11,9 +11,13 @@ import me.spoo.SpooConfig
 import me.spoo.android.auth.AuthManager
 import me.spoo.android.auth.TokenStore
 import androidx.glance.appwidget.updateAll
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import me.spoo.android.data.LinksRepository
+import me.spoo.android.data.MockLinksRepository
 import me.spoo.android.data.SdkLinksRepository
 import me.spoo.android.data.SettingsRepository
+import me.spoo.android.data.SwitchingLinksRepository
 import me.spoo.android.widget.SpooWidget
 import me.spoo.oauth.Session
 
@@ -41,7 +45,15 @@ class AppGraph(context: Context) {
     val tokenStore = TokenStore(context)
     val settingsRepository = SettingsRepository(context)
     val authManager = AuthManager(tokenStore, anonClient, scope)
-    val linksRepository: LinksRepository = SdkLinksRepository { currentClient }
+    val linksRepository: LinksRepository = SwitchingLinksRepository(
+        real = SdkLinksRepository(
+            clientProvider = { currentClient },
+            onSessionExpired = { authManager.signOut() },
+        ),
+        mock = MockLinksRepository(),
+        scope = scope,
+        mockEnabled = settingsRepository.settings.map { it.mockData }.distinctUntilChanged(),
+    )
 
     init {
         scope.launch {

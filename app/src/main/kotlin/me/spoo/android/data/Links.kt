@@ -11,6 +11,8 @@ data class SpooLink(
     val totalClicks: Int,
     val createdLabel: String,
     val hasPassword: Boolean = false,
+    /** False when the owner disabled redirects (INACTIVE). */
+    val active: Boolean = true,
 ) {
     val shortUrl: String get() = "spoo.me/$shortCode"
 }

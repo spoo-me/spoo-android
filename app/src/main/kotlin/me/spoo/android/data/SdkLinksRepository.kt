@@ -20,8 +20,11 @@ import me.spoo.AuthenticationException
 import me.spoo.Dimension
 import me.spoo.FilterDimension
 import me.spoo.LinkItem
+import me.spoo.LinkStatus
 import me.spoo.ListLinksRequest
+import me.spoo.SessionExpiredException
 import me.spoo.Metric
+import me.spoo.SettableStatus
 import me.spoo.SpooClient
 import me.spoo.StatsQuery
 
@@ -32,6 +35,8 @@ import me.spoo.StatsQuery
  */
 class SdkLinksRepository(
     private val clientProvider: () -> SpooClient,
+    /** The refresh token is dead: the user must sign in again. */
+    private val onSessionExpired: () -> Unit = {},
 ) : LinksRepository {
 
     private val _links = MutableStateFlow<List<SpooLink>>(emptyList())
@@ -45,6 +50,13 @@ class SdkLinksRepository(
                 .map { it.toUi() }
         } catch (_: AuthenticationException) {
             emptyList() // signed out: no owned links to show
+        } catch (e: SessionExpiredException) {
+            android.util.Log.w("SpooRepo", "session expired during refresh", e)
+            onSessionExpired()
+            emptyList()
+        } catch (e: Exception) {
+            android.util.Log.w("SpooRepo", "refresh failed", e)
+            throw e
         }
     }
 
@@ -99,6 +111,22 @@ class SdkLinksRepository(
     override suspend fun bulkDelete(ids: List<String>) {
         clientProvider().links.bulkDelete(ids)
         // Partial failure is data, not an exception: resync with the server.
+        refresh()
+    }
+
+    override suspend fun bulkSetStatus(ids: List<String>, active: Boolean) {
+        clientProvider().links.bulkSetStatus(
+            ids,
+            if (active) SettableStatus.ACTIVE else SettableStatus.INACTIVE,
+        )
+        refresh()
+    }
+
+    override suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?) {
+        clientProvider().links.bulkSetExpiry(
+            ids,
+            expireAtMillis?.let { Instant.fromEpochMilliseconds(it) },
+        )
         refresh()
     }
 
@@ -159,6 +187,7 @@ class SdkLinksRepository(
         totalClicks = (totalClicks ?: 0L).toInt(),
         createdLabel = createdAt?.toDayLabel() ?: "",
         hasPassword = passwordSet,
+        active = status == null || status == LinkStatus.ACTIVE,
     )
 
     private fun Instant.toDayLabel(): String =

@@ -4,11 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.Scaffold
@@ -29,10 +25,10 @@ import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.components.StatsContent
 
-/** Account-wide analytics: every link, same body as per-link stats. */
+/** Account-wide analytics tab — same vocabulary as the web dashboard. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AccountStatsScreen(onBack: () -> Unit) {
+fun AnalyticsScreen() {
     var params by remember { mutableStateOf(StatsParams()) }
     var stats by remember { mutableStateOf<LinkStats?>(null) }
 
@@ -48,13 +44,8 @@ fun AccountStatsScreen(onBack: () -> Unit) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text("Insights") },
+                title = { Text("Analytics") },
                 subtitle = { Text("All your links") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-                    }
-                },
                 scrollBehavior = scrollBehavior,
             )
         },

@@ -90,15 +90,15 @@ class LinksViewModel(
         _editState.value = EditState.Idle
     }
 
-    /** One-shot error line for fire-and-forget actions (delete). */
-    val actionError = MutableStateFlow<String?>(null)
+    /** One-shot snackbar line for fire-and-forget actions. */
+    val actionMessage = MutableStateFlow<String?>(null)
 
     fun deleteLink(id: String) {
         viewModelScope.launch {
             try {
                 repository.delete(id)
             } catch (e: Exception) {
-                actionError.value = e.message ?: "Could not delete the link"
+                actionMessage.value = e.message ?: "Could not delete the link"
             }
         }
     }
@@ -114,15 +114,26 @@ class LinksViewModel(
         selection.value = emptySet()
     }
 
-    fun deleteSelected() {
+    fun deleteSelected() = bulk("deleted") { repository.bulkDelete(it) }
+
+    fun setSelectedStatus(active: Boolean) =
+        bulk(if (active) "enabled" else "disabled") { repository.bulkSetStatus(it, active) }
+
+    fun setSelectedExpiry(millis: Long?) =
+        bulk(if (millis == null) "expiry cleared" else "set to expire") {
+            repository.bulkSetExpiry(it, millis)
+        }
+
+    private fun bulk(pastTense: String, op: suspend (List<String>) -> Unit) {
         val ids = selection.value.toList()
         if (ids.isEmpty()) return
         viewModelScope.launch {
             try {
-                repository.bulkDelete(ids)
+                op(ids)
                 selection.value = emptySet()
+                actionMessage.value = "${ids.size} ${if (ids.size == 1) "link" else "links"} $pastTense"
             } catch (e: Exception) {
-                actionError.value = e.message ?: "Could not delete the selected links"
+                actionMessage.value = e.message ?: "Bulk action failed"
             }
         }
     }
