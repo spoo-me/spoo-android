@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import me.spoo.android.data.AppSettings
 import me.spoo.android.ui.nav.SpooNav
 import me.spoo.android.ui.theme.SpooTheme
 
@@ -24,12 +25,15 @@ class MainActivity : ComponentActivity() {
         val authManager = SpooApp.graph.authManager
 
         setContent {
-            SpooTheme {
+            val settings by SpooApp.graph.settingsRepository.settings
+                .collectAsState(initial = AppSettings())
+            SpooTheme(settings = settings) {
                 val authState by authManager.state.collectAsState()
                 SpooNav(
                     prefillText = prefillText,
                     startInCreate = startInCreate,
                     authState = authState,
+                    settings = settings,
                     onSignIn = { authManager.startSignIn(this) },
                     onSignOut = authManager::signOut,
                 )

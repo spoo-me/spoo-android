@@ -36,8 +36,20 @@ data class LinkEdit(
     val clearMaxClicks: Boolean = false,
 )
 
+/** A dimension the stats screens can filter by. */
+enum class StatsDim { Country, Browser, Referrer }
+
+/** Stats query surface: preset date window + tap-to-filter selections. */
+data class StatsParams(
+    /** Look-back window in days; null = all time. */
+    val days: Int? = 30,
+    /** Raw dimension values, exactly as the API stored them. */
+    val filters: Map<StatsDim, String> = emptyMap(),
+)
+
 data class LinkStats(
-    val link: SpooLink,
+    /** Null for account-wide stats. */
+    val link: SpooLink?,
     val dailyClicks: List<Int>,
     val countries: List<Slice>,
     val referrers: List<Slice>,

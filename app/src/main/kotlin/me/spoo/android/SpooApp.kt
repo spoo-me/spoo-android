@@ -13,6 +13,7 @@ import me.spoo.android.auth.TokenStore
 import androidx.glance.appwidget.updateAll
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SdkLinksRepository
+import me.spoo.android.data.SettingsRepository
 import me.spoo.android.widget.SpooWidget
 import me.spoo.oauth.Session
 
@@ -38,6 +39,7 @@ class AppGraph(context: Context) {
     private var currentClient: SpooClient = anonClient
 
     val tokenStore = TokenStore(context)
+    val settingsRepository = SettingsRepository(context)
     val authManager = AuthManager(tokenStore, anonClient, scope)
     val linksRepository: LinksRepository = SdkLinksRepository { currentClient }
 

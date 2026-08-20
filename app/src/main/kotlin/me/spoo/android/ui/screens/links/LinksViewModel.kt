@@ -102,4 +102,28 @@ class LinksViewModel(
             }
         }
     }
+
+    /** Long-press multi-select. Non-empty set = selection mode. */
+    val selection = MutableStateFlow<Set<String>>(emptySet())
+
+    fun toggleSelected(id: String) {
+        selection.value = if (id in selection.value) selection.value - id else selection.value + id
+    }
+
+    fun clearSelection() {
+        selection.value = emptySet()
+    }
+
+    fun deleteSelected() {
+        val ids = selection.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                repository.bulkDelete(ids)
+                selection.value = emptySet()
+            } catch (e: Exception) {
+                actionError.value = e.message ?: "Could not delete the selected links"
+            }
+        }
+    }
 }

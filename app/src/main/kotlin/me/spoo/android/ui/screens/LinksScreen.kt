@@ -1,6 +1,9 @@
 package me.spoo.android.ui.screens
 
 import android.content.Intent
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,21 +19,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFloatingActionButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -39,6 +45,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,10 +57,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,23 +70,27 @@ import java.text.NumberFormat
 import me.spoo.android.data.SpooLink
 import me.spoo.android.ui.components.CreateLinkSheet
 import me.spoo.android.ui.components.EditLinkSheet
+import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.QrDialog
+import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
 
 /**
- * Home: link list with search + sort, create sheet via FAB, per-link
- * actions, and the share-target hero flow — ACTION_SEND text, the QS tile,
- * and the launcher shortcut all land in the create sheet via [prefillText]/
- * [startInCreate].
+ * Home: link list with search + sort, favicons, create sheet via FAB,
+ * long-press multi-select with bulk delete, and the share-target hero flow
+ * (ACTION_SEND, QS tile, and the shortcut land here via [prefillText]/
+ * [startInCreate]).
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LinksScreen(
     prefillText: String?,
     startInCreate: Boolean,
+    showShareInMenu: Boolean,
     onOpenStats: (String) -> Unit,
-    onOpenAccount: () -> Unit,
+    onOpenInsights: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: LinksViewModel = viewModel(),
 ) {
     val links by viewModel.links.collectAsState()
@@ -86,6 +99,7 @@ fun LinksScreen(
     val createState by viewModel.createState.collectAsState()
     val editState by viewModel.editState.collectAsState()
     val actionError by viewModel.actionError.collectAsState()
+    val selection by viewModel.selection.collectAsState()
 
     var showCreateSheet by rememberSaveable { mutableStateOf(startInCreate) }
     val sharedUrl = prefillText?.let { Regex("""https?://\S+""").find(it)?.value ?: it }
@@ -93,6 +107,7 @@ fun LinksScreen(
     var qrFor by remember { mutableStateOf<SpooLink?>(null) }
     var editFor by remember { mutableStateOf<SpooLink?>(null) }
     var deleteFor by remember { mutableStateOf<SpooLink?>(null) }
+    var confirmBulkDelete by remember { mutableStateOf(false) }
 
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(actionError) {
@@ -105,30 +120,49 @@ fun LinksScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val totalClicks = links.sumOf { it.totalClicks }
     val numbers = NumberFormat.getIntegerInstance()
+    val selecting = selection.isNotEmpty()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            LargeFlexibleTopAppBar(
-                title = { Text("spoo.me") },
-                subtitle = {
-                    Text("${links.size} links · ${numbers.format(totalClicks)} clicks")
-                },
-                actions = {
-                    IconButton(onClick = onOpenAccount) {
-                        Icon(
-                            Icons.Outlined.AccountCircle,
-                            contentDescription = "Account",
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-            )
+            if (selecting) {
+                TopAppBar(
+                    title = { Text("${selection.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = viewModel::clearSelection) {
+                            Icon(Icons.Outlined.Close, contentDescription = "Clear selection")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { confirmBulkDelete = true }) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete selected")
+                        }
+                    },
+                )
+            } else {
+                LargeFlexibleTopAppBar(
+                    title = { Text("spoo.me") },
+                    subtitle = {
+                        Text("${links.size} links · ${numbers.format(totalClicks)} clicks")
+                    },
+                    actions = {
+                        IconButton(onClick = onOpenInsights) {
+                            Icon(Icons.Outlined.Insights, contentDescription = "Insights")
+                        }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            }
         },
         floatingActionButton = {
-            MediumFloatingActionButton(onClick = { showCreateSheet = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Shorten a link")
+            if (!selecting) {
+                MediumFloatingActionButton(onClick = { showCreateSheet = true }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Shorten a link")
+                }
             }
         },
     ) { padding ->
@@ -175,7 +209,13 @@ fun LinksScreen(
             items(links, key = { it.id }) { link ->
                 LinkRow(
                     link = link,
-                    onClick = { onOpenStats(link.shortCode) },
+                    selecting = selecting,
+                    selected = link.id in selection,
+                    showShare = showShareInMenu,
+                    onClick = {
+                        if (selecting) viewModel.toggleSelected(link.id) else onOpenStats(link.shortCode)
+                    },
+                    onLongClick = { viewModel.toggleSelected(link.id) },
                     onQr = { qrFor = link },
                     onEdit = { editFor = link },
                     onDelete = { deleteFor = link },
@@ -188,7 +228,7 @@ fun LinksScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 48.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -241,12 +281,34 @@ fun LinksScreen(
             },
         )
     }
+
+    if (confirmBulkDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmBulkDelete = false },
+            title = { Text("Delete ${selection.size} links?") },
+            text = { Text("The short links stop working immediately. Their stats are deleted with them.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteSelected()
+                    confirmBulkDelete = false
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmBulkDelete = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LinkRow(
     link: SpooLink,
+    selecting: Boolean,
+    selected: Boolean,
+    showShare: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onQr: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -256,55 +318,54 @@ private fun LinkRow(
     var menuOpen by remember { mutableStateOf(false) }
     val numbers = NumberFormat.getIntegerInstance()
 
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+    Row(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.large)
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+            )
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = link.shortUrl,
-                        style = MaterialTheme.typography.titleMedium,
+        Favicon(host = faviconHost(link.originalUrl), size = 22.dp)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = link.shortUrl,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (link.hasPassword) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        Icons.Outlined.Lock,
+                        contentDescription = "Password protected",
+                        modifier = Modifier.height(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (link.hasPassword) {
-                        Spacer(Modifier.width(6.dp))
-                        Icon(
-                            Icons.Outlined.Lock,
-                            contentDescription = "Password protected",
-                            modifier = Modifier.height(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${numbers.format(link.totalClicks)} clicks · ${link.createdLabel}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
-            IconButton(onClick = {
-                clipboard.setText(AnnotatedString("https://${link.shortUrl}"))
-            }) {
-                Icon(
-                    Icons.Outlined.ContentCopy,
-                    contentDescription = "Copy https://${link.shortUrl}",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "${numbers.format(link.totalClicks)} clicks · ${link.createdLabel}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (!selecting) {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
@@ -315,16 +376,25 @@ private fun LinkRow(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text("Share") },
+                        text = { Text("Copy") },
                         onClick = {
                             menuOpen = false
-                            val send = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "https://${link.shortUrl}")
-                            }
-                            context.startActivity(Intent.createChooser(send, null))
+                            clipboard.setText(AnnotatedString("https://${link.shortUrl}"))
                         },
                     )
+                    if (showShare) {
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            onClick = {
+                                menuOpen = false
+                                val send = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, "https://${link.shortUrl}")
+                                }
+                                context.startActivity(Intent.createChooser(send, null))
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("QR code") },
                         onClick = { menuOpen = false; onQr() },

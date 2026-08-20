@@ -74,8 +74,9 @@ class SpooWidget : GlanceAppWidget() {
             )
             Spacer(GlanceModifier.height(10.dp))
             if (links.isEmpty()) {
+                val signedIn = SpooApp.graph.authManager.state.value is me.spoo.android.auth.AuthState.SignedIn
                 Text(
-                    "No links yet",
+                    if (signedIn) "No links yet" else "Open the app to sign in",
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
                 )
             } else {

@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.Scaffold
@@ -19,24 +23,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.components.StatsContent
 
-/** Per-link stats: hero chart, choropleth, filterable breakdowns. */
+/** Account-wide analytics: every link, same body as per-link stats. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun StatsScreen(shortCode: String) {
+fun AccountStatsScreen(onBack: () -> Unit) {
     var params by remember { mutableStateOf(StatsParams()) }
     var stats by remember { mutableStateOf<LinkStats?>(null) }
 
-    // Keep showing the previous result while a param change refetches.
-    LaunchedEffect(shortCode, params) {
+    LaunchedEffect(params) {
         stats = runCatching {
-            SpooApp.graph.linksRepository.stats(shortCode, params)
+            SpooApp.graph.linksRepository.accountStats(params)
         }.getOrNull() ?: stats
     }
 
@@ -46,14 +48,11 @@ fun StatsScreen(shortCode: String) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text("/$shortCode") },
-                subtitle = {
-                    stats?.link?.let {
-                        Text(
-                            it.originalUrl.removePrefix("https://").removePrefix("http://"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                title = { Text("Insights") },
+                subtitle = { Text("All your links") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
                 scrollBehavior = scrollBehavior,

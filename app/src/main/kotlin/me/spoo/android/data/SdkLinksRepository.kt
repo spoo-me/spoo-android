@@ -14,9 +14,11 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
+import me.spoo.AccountStatsRequest
 import me.spoo.AliasKind
 import me.spoo.AuthenticationException
 import me.spoo.Dimension
+import me.spoo.FilterDimension
 import me.spoo.LinkItem
 import me.spoo.ListLinksRequest
 import me.spoo.Metric
@@ -94,26 +96,45 @@ class SdkLinksRepository(
         _links.update { list -> list.filterNot { it.id == id } }
     }
 
-    override suspend fun stats(shortCode: String): LinkStats {
-        val link = _links.value.first { it.shortCode == shortCode }
-        val report = clientProvider().stats.forLink(
-            urlId = link.id,
-            query = StatsQuery(
-                startDate = Clock.System.now() - 30.days,
-                groupBy = listOf(Dimension.TIME, Dimension.COUNTRY, Dimension.REFERRER, Dimension.BROWSER),
-                metrics = listOf(Metric.CLICKS),
-            ),
-        )
-        return LinkStats(
-            link = link,
-            dailyClicks = report.rows("clicks_by_time").map { it.second },
-            countries = report.slices("clicks_by_country"),
-            referrers = report.slices("clicks_by_referrer"),
-            browsers = report.slices("clicks_by_browser"),
-        )
+    override suspend fun bulkDelete(ids: List<String>) {
+        clientProvider().links.bulkDelete(ids)
+        // Partial failure is data, not an exception: resync with the server.
+        refresh()
     }
 
-    private fun me.spoo.LinkStatsReport.slices(key: String): List<LinkStats.Slice> =
+    override suspend fun stats(shortCode: String, params: StatsParams): LinkStats {
+        val link = _links.value.first { it.shortCode == shortCode }
+        val report = clientProvider().stats.forLink(urlId = link.id, query = params.toQuery())
+        return report.metrics.toLinkStats(link)
+    }
+
+    override suspend fun accountStats(params: StatsParams): LinkStats {
+        val report = clientProvider().stats.account(AccountStatsRequest(query = params.toQuery()))
+        return report.metrics.toLinkStats(link = null)
+    }
+
+    private fun StatsParams.toQuery() = StatsQuery(
+        startDate = days?.let { Clock.System.now() - it.days },
+        groupBy = listOf(Dimension.TIME, Dimension.COUNTRY, Dimension.REFERRER, Dimension.BROWSER),
+        metrics = listOf(Metric.CLICKS),
+        filters = filters.entries.associate { (dim, value) ->
+            when (dim) {
+                StatsDim.Country -> FilterDimension.COUNTRY
+                StatsDim.Browser -> FilterDimension.BROWSER
+                StatsDim.Referrer -> FilterDimension.REFERRER
+            } to listOf(value)
+        },
+    )
+
+    private fun Map<String, List<JsonObject>>.toLinkStats(link: SpooLink?) = LinkStats(
+        link = link,
+        dailyClicks = rows("clicks_by_time").map { it.second },
+        countries = slices("clicks_by_country"),
+        referrers = slices("clicks_by_referrer"),
+        browsers = slices("clicks_by_browser"),
+    )
+
+    private fun Map<String, List<JsonObject>>.slices(key: String): List<LinkStats.Slice> =
         rows(key).map { (label, count) -> LinkStats.Slice(label, count) }
 
     /**
@@ -121,11 +142,10 @@ class SdkLinksRepository(
      * each row carries the dimension value plus the metric counts. Parsed
      * defensively: label = first non-metric string field, count = `clicks`.
      */
-    private fun me.spoo.LinkStatsReport.rows(key: String): List<Pair<String, Int>> =
-        metrics[key].orEmpty().mapNotNull { row ->
-            val obj = row as? JsonObject ?: return@mapNotNull null
-            val count = obj["clicks"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
-            val label = obj.entries
+    private fun Map<String, List<JsonObject>>.rows(key: String): List<Pair<String, Int>> =
+        this[key].orEmpty().mapNotNull { row ->
+            val count = row["clicks"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
+            val label = row.entries
                 .firstOrNull { it.key != "clicks" && it.key != "unique_clicks" }
                 ?.value?.jsonPrimitive?.contentOrNull
                 ?: "(unknown)"
