@@ -52,6 +52,21 @@ object WidgetChartRenderer {
         density: Float,
         palette: ChartPalette,
     ): Bitmap {
+        // RemoteViews caps total bitmap bytes at 1.5x the screen (and holds
+        // portrait + landscape renders), so a big resized widget at 1:1
+        // pixels gets the whole update rejected ("Can't show content").
+        // Cap the pixel budget and let ContentScale.FillBounds stretch;
+        // density scales along so strokes, text, and icons keep proportion.
+        val maxPixels = 1_200_000f
+        val scale = if (width * height > maxPixels) {
+            kotlin.math.sqrt(maxPixels / (width * height))
+        } else {
+            1f
+        }
+        @Suppress("NAME_SHADOWING") val width = (width * scale).toInt()
+        @Suppress("NAME_SHADOWING") val height = (height * scale).toInt()
+        @Suppress("NAME_SHADOWING") val density = density * scale
+
         val bitmap = Bitmap.createBitmap(
             width.coerceAtLeast(2),
             height.coerceAtLeast(2),
