@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -140,13 +140,13 @@ fun SpooNav(
                             Icon(
                                 when (tab.key) {
                                     LinksKey -> Icons.Outlined.Link
-                                    AnalyticsKey -> Icons.Outlined.Insights
+                                    AnalyticsKey -> Icons.Outlined.BarChart
                                     else -> Icons.Outlined.Settings
                                 },
-                                contentDescription = null,
+                                contentDescription = tab.label,
                             )
                         },
-                        label = { Text(tab.label) },
+                        label = null,
                     )
                 }
             }
