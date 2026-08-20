@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
@@ -143,10 +144,13 @@ fun SpooNav(
                                     AnalyticsKey -> Icons.Outlined.BarChart
                                     else -> Icons.Outlined.Settings
                                 },
-                                contentDescription = tab.label,
+                                contentDescription = null,
                             )
                         },
-                        label = null,
+                        label = { Text(tab.label) },
+                        // The signature M3E look: label beside the icon,
+                        // selection pill wrapping both.
+                        iconPosition = NavigationItemIconPosition.Start,
                     )
                 }
             }
