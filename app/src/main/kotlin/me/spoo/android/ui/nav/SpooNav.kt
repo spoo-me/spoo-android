@@ -6,23 +6,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -74,8 +72,6 @@ fun SpooNav(
     val backStack = rememberNavBackStack(LinksKey)
     val scope = rememberCoroutineScope()
     val settingsRepo = SpooApp.graph.settingsRepository
-    // Bumped by the pill's FAB; LinksScreen opens the create sheet on change.
-    var createRequests by remember { mutableIntStateOf(0) }
 
     val tabs = listOf(
         Tab(LinksKey, "Links"),
@@ -91,8 +87,15 @@ fun SpooNav(
         backStack.add(key)
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    // The bar owns the bottom inset while it is visible.
+                    if (atRoot) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier,
+                ),
+        ) {
             NavDisplay(
                 backStack = backStack,
                 onBack = { backStack.removeLastOrNull() },
@@ -101,7 +104,6 @@ fun SpooNav(
                         LinksScreen(
                             prefillText = prefillText,
                             startInCreate = startInCreate,
-                            createRequests = createRequests,
                             showShareInMenu = settings.showShareInMenu,
                             onOpenStats = { code -> backStack.add(StatsKey(code)) },
                         )
@@ -127,50 +129,26 @@ fun SpooNav(
                 },
             )
         }
-        // Floating icon-only tab bar; on Links it carries the create FAB.
+        // The M3 Expressive navigation bar (the shorter redesign).
         if (atRoot) {
-            val tabItems: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
+            ShortNavigationBar {
                 tabs.forEach { tab ->
-                    val selected = currentRoot == tab.key
-                    val icon = when (tab.key) {
-                        LinksKey -> Icons.Outlined.Link
-                        AnalyticsKey -> Icons.Outlined.Insights
-                        else -> Icons.Outlined.Settings
-                    }
-                    if (selected) {
-                        FilledIconButton(onClick = { switchTab(tab.key) }) {
-                            Icon(icon, contentDescription = tab.label)
-                        }
-                    } else {
-                        IconButton(onClick = { switchTab(tab.key) }) {
-                            Icon(icon, contentDescription = tab.label)
-                        }
-                    }
+                    ShortNavigationBarItem(
+                        selected = currentRoot == tab.key,
+                        onClick = { switchTab(tab.key) },
+                        icon = {
+                            Icon(
+                                when (tab.key) {
+                                    LinksKey -> Icons.Outlined.Link
+                                    AnalyticsKey -> Icons.Outlined.Insights
+                                    else -> Icons.Outlined.Settings
+                                },
+                                contentDescription = null,
+                            )
+                        },
+                        label = { Text(tab.label) },
+                    )
                 }
-            }
-            val barModifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 12.dp)
-            if (currentRoot == LinksKey) {
-                HorizontalFloatingToolbar(
-                    expanded = true,
-                    floatingActionButton = {
-                        FloatingToolbarDefaults.VibrantFloatingActionButton(
-                            onClick = { createRequests++ },
-                        ) {
-                            Icon(Icons.Outlined.Add, contentDescription = "Shorten a link")
-                        }
-                    },
-                    modifier = barModifier,
-                    content = tabItems,
-                )
-            } else {
-                HorizontalFloatingToolbar(
-                    expanded = true,
-                    modifier = barModifier,
-                    content = tabItems,
-                )
             }
         }
     }

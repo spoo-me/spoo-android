@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Link
@@ -95,7 +96,6 @@ import me.spoo.android.ui.screens.links.StatusFilter
 fun LinksScreen(
     prefillText: String?,
     startInCreate: Boolean,
-    createRequests: Int,
     showShareInMenu: Boolean,
     onOpenStats: (String) -> Unit,
     viewModel: LinksViewModel = viewModel(),
@@ -111,11 +111,6 @@ fun LinksScreen(
 
     var showCreateSheet by rememberSaveable { mutableStateOf(startInCreate) }
     val sharedUrl = prefillText?.let { Regex("""https?://\S+""").find(it)?.value ?: it }
-
-    // The nav pill's FAB bumps this counter.
-    LaunchedEffect(createRequests) {
-        if (createRequests > 0) showCreateSheet = true
-    }
 
     var qrFor by remember { mutableStateOf<SpooLink?>(null) }
     var editFor by remember { mutableStateOf<SpooLink?>(null) }
@@ -157,6 +152,13 @@ fun LinksScreen(
                     },
                     scrollBehavior = scrollBehavior,
                 )
+            }
+        },
+        floatingActionButton = {
+            if (!selecting) {
+                MediumFloatingActionButton(onClick = { showCreateSheet = true }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Shorten a link")
+                }
             }
         },
     ) { padding ->
@@ -253,8 +255,7 @@ fun LinksScreen(
                 colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    // Stacks above the nav pill, which stays visible in selection.
-                    .padding(bottom = padding.calculateBottomPadding() + 96.dp),
+                    .padding(bottom = padding.calculateBottomPadding() + 20.dp),
             ) {
                 IconButton(onClick = { viewModel.setSelectedStatus(true) }) {
                     Icon(Icons.Outlined.Link, contentDescription = "Enable selected")
