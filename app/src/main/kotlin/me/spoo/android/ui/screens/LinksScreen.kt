@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,17 +21,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.ButtonGroupDefaults
@@ -80,6 +83,7 @@ import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
+import me.spoo.android.ui.screens.links.StatusFilter
 
 /**
  * Home: link list with search + sort, favicons, create sheet via FAB,
@@ -103,6 +107,7 @@ fun LinksScreen(
     val editState by viewModel.editState.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
     val selection by viewModel.selection.collectAsState()
+    val statusFilter by viewModel.statusFilter.collectAsState()
 
     var showCreateSheet by rememberSaveable { mutableStateOf(startInCreate) }
     val sharedUrl = prefillText?.let { Regex("""https?://\S+""").find(it)?.value ?: it }
@@ -183,7 +188,9 @@ fun LinksScreen(
             }
             item(key = "sort") {
                 Row(
-                    modifier = Modifier.padding(vertical = 4.dp),
+                    modifier = Modifier
+                        .padding(vertical = 4.dp)
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     ToggleButton(
@@ -196,6 +203,19 @@ fun LinksScreen(
                         onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                     ) { Text("Top clicks") }
+                    Spacer(Modifier.width(10.dp))
+                    StatusFilter.entries.forEachIndexed { i, status ->
+                        ToggleButton(
+                            checked = statusFilter == status,
+                            onCheckedChange = { viewModel.statusFilter.value = status },
+                            shapes = when (i) {
+                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                StatusFilter.entries.lastIndex ->
+                                    ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                            },
+                        ) { Text(status.name) }
+                    }
                 }
             }
             items(links, key = { it.id }) { link ->
@@ -232,18 +252,19 @@ fun LinksScreen(
         if (selecting) {
             HorizontalFloatingToolbar(
                 expanded = true,
+                colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = padding.calculateBottomPadding() + 20.dp),
             ) {
                 IconButton(onClick = { viewModel.setSelectedStatus(true) }) {
-                    Icon(Icons.Outlined.CheckCircle, contentDescription = "Enable selected")
+                    Icon(Icons.Outlined.Link, contentDescription = "Enable selected")
                 }
                 IconButton(onClick = { viewModel.setSelectedStatus(false) }) {
-                    Icon(Icons.Outlined.Block, contentDescription = "Disable selected")
+                    Icon(Icons.Outlined.LinkOff, contentDescription = "Disable selected")
                 }
                 IconButton(onClick = { showExpiryPicker = true }) {
-                    Icon(Icons.Outlined.Schedule, contentDescription = "Set expiry for selected")
+                    Icon(Icons.Outlined.Timer, contentDescription = "Set expiry for selected")
                 }
                 IconButton(onClick = { confirmBulkDelete = true }) {
                     Icon(

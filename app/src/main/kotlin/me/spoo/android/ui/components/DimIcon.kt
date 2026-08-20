@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import java.util.Locale
 
 /**
@@ -69,6 +70,49 @@ fun CountryFlag(code: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/**
+ * Brand mark for a browser or OS name: the vendor domain's favicon, with a
+ * monogram fallback when the value is unknown or the icon can't load.
+ */
+@Composable
+fun BrandIcon(name: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
+    val domain = BRAND_DOMAINS[name.lowercase()]
+    if (domain == null) {
+        Monogram(name, size, modifier)
+        return
+    }
+    SubcomposeAsyncImage(
+        model = "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON" +
+            "&fallback_opts=TYPE,SIZE&url=https://$domain&size=64",
+        contentDescription = null,
+        modifier = modifier
+            .size(size)
+            .clip(MaterialTheme.shapes.extraSmall),
+        error = { Monogram(name, size) },
+    )
+}
+
+private val BRAND_DOMAINS = mapOf(
+    "chrome" to "www.google.com/chrome",
+    "safari" to "www.apple.com",
+    "mobile safari" to "www.apple.com",
+    "firefox" to "www.mozilla.org",
+    "edge" to "www.microsoft.com/edge",
+    "samsung internet" to "www.samsung.com",
+    "opera" to "www.opera.com",
+    "brave" to "brave.com",
+    "vivaldi" to "vivaldi.com",
+    "duckduckgo" to "duckduckgo.com",
+    "android" to "www.android.com",
+    "windows" to "www.microsoft.com/windows",
+    "ios" to "www.apple.com",
+    "macos" to "www.apple.com",
+    "mac os x" to "www.apple.com",
+    "linux" to "www.kernel.org",
+    "ubuntu" to "ubuntu.com",
+    "chrome os" to "chromeos.google",
+)
 
 /** Neutral monogram circle for values with no natural artwork (browsers). */
 @Composable

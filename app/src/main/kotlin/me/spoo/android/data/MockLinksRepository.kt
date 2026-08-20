@@ -108,7 +108,9 @@ class MockLinksRepository : LinksRepository {
 
     private fun generate(params: StatsParams, base: Int, seed: Int, link: SpooLink?): LinkStats {
         val rng = Random(seed * 31 + params.hashCode())
-        val days = params.days ?: 120
+        val days = params.customRange
+            ?.let { ((it.second - it.first) / 86_400_000L).toInt().coerceAtLeast(1) }
+            ?: params.days ?: 120
 
         // The whole history is ~120 days; a window sees its share of it.
         var total = base * (days.coerceAtMost(120) / 120f)
@@ -120,6 +122,7 @@ class MockLinksRepository : LinksRepository {
         share(COUNTRIES, params.filters[StatsDim.Country])?.let { total *= it }
         share(REFERRERS, params.filters[StatsDim.Referrer])?.let { total *= it }
         share(BROWSERS, params.filters[StatsDim.Browser])?.let { total *= it }
+        share(OSES, params.filters[StatsDim.Os])?.let { total *= it }
 
         val points = days.coerceIn(7, 120)
         val weights = List(points) { i ->
@@ -143,8 +146,9 @@ class MockLinksRepository : LinksRepository {
             link = link,
             dailyClicks = daily,
             countries = slices(COUNTRIES, params.filters[StatsDim.Country]),
-            referrers = slices(REFERRERS, params.filters[StatsDim.Referrer]),
             browsers = slices(BROWSERS, params.filters[StatsDim.Browser]),
+            os = slices(OSES, params.filters[StatsDim.Os]),
+            referrers = slices(REFERRERS, params.filters[StatsDim.Referrer]),
         )
     }
 
@@ -172,6 +176,10 @@ class MockLinksRepository : LinksRepository {
         val BROWSERS = listOf(
             "Chrome" to 0.52f, "Safari" to 0.18f, "Firefox" to 0.12f,
             "Edge" to 0.08f, "Samsung Internet" to 0.06f, "Opera" to 0.04f,
+        )
+        val OSES = listOf(
+            "Android" to 0.38f, "Windows" to 0.27f, "iOS" to 0.14f,
+            "macOS" to 0.12f, "Linux" to 0.09f,
         )
     }
 }

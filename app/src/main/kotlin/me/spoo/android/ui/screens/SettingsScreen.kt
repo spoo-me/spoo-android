@@ -22,7 +22,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Share
@@ -37,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -89,20 +92,47 @@ fun SettingsScreen(
         ) {
             Group("Appearance") {
                 GroupRow(0, rowCountAppearance(settings)) {
-                    RowScaffold(Icons.Outlined.DarkMode, "Theme") {
-                        Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Outlined.DarkMode,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            "Theme",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             ThemeMode.entries.forEachIndexed { i, mode ->
                                 ToggleButton(
                                     checked = settings.themeMode == mode,
                                     onCheckedChange = { onSetThemeMode(mode) },
+                                    colors = ToggleButtonDefaults.toggleButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    ),
                                     shapes = when (i) {
                                         0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                         ThemeMode.entries.lastIndex ->
                                             ButtonGroupDefaults.connectedTrailingButtonShapes()
                                         else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                                     },
-                                ) { Text(mode.name) }
+                                ) {
+                                    Icon(
+                                        when (mode) {
+                                            ThemeMode.System -> Icons.Outlined.BrightnessAuto
+                                            ThemeMode.Light -> Icons.Outlined.LightMode
+                                            ThemeMode.Dark -> Icons.Outlined.DarkMode
+                                        },
+                                        contentDescription = mode.name,
+                                    )
+                                }
                             }
                         }
                     }

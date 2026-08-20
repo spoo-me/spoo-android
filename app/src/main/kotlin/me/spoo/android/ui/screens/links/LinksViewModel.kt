@@ -16,6 +16,8 @@ import me.spoo.android.data.SpooLink
 
 enum class LinkSort { Recent, Clicks }
 
+enum class StatusFilter { All, Active, Disabled }
+
 sealed interface CreateState {
     data object Idle : CreateState
     data object Submitting : CreateState
@@ -40,10 +42,16 @@ class LinksViewModel(
 
     val query = MutableStateFlow("")
     val sort = MutableStateFlow(LinkSort.Recent)
+    val statusFilter = MutableStateFlow(StatusFilter.All)
 
     val links: StateFlow<List<SpooLink>> =
-        combine(repository.links, query, sort) { all, q, sort ->
-            val filtered = if (q.isBlank()) all else all.filter {
+        combine(repository.links, query, sort, statusFilter) { all, q, sort, status ->
+            val byStatus = when (status) {
+                StatusFilter.All -> all
+                StatusFilter.Active -> all.filter { it.active }
+                StatusFilter.Disabled -> all.filterNot { it.active }
+            }
+            val filtered = if (q.isBlank()) byStatus else byStatus.filter {
                 it.shortCode.contains(q, ignoreCase = true) ||
                     it.originalUrl.contains(q, ignoreCase = true)
             }

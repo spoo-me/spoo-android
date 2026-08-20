@@ -1,23 +1,26 @@
 package me.spoo.android.ui.nav
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -80,15 +83,8 @@ fun SpooNav(
         backStack.add(key)
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .then(
-                    // The tab bar owns the bottom inset while it is visible.
-                    if (atRoot) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier,
-                ),
-        ) {
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize()) {
             NavDisplay(
                 backStack = backStack,
                 onBack = { backStack.removeLastOrNull() },
@@ -122,24 +118,38 @@ fun SpooNav(
                 },
             )
         }
+        // Floating icon-only tab bar: content scrolls behind it.
         if (atRoot) {
-            NavigationBar(modifier = Modifier.fillMaxWidth()) {
-                tabs.forEach { tab ->
-                    NavigationBarItem(
-                        selected = currentRoot == tab.key,
-                        onClick = { switchTab(tab.key) },
-                        icon = {
-                            Icon(
-                                when (tab.key) {
-                                    LinksKey -> Icons.Outlined.Link
-                                    AnalyticsKey -> Icons.Outlined.Insights
-                                    else -> Icons.Outlined.Settings
-                                },
-                                contentDescription = null,
-                            )
-                        },
-                        label = { Text(tab.label) },
-                    )
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = 6.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    tabs.forEach { tab ->
+                        val selected = currentRoot == tab.key
+                        val icon = when (tab.key) {
+                            LinksKey -> Icons.Outlined.Link
+                            AnalyticsKey -> Icons.Outlined.Insights
+                            else -> Icons.Outlined.Settings
+                        }
+                        if (selected) {
+                            FilledIconButton(onClick = { switchTab(tab.key) }) {
+                                Icon(icon, contentDescription = tab.label)
+                            }
+                        } else {
+                            IconButton(onClick = { switchTab(tab.key) }) {
+                                Icon(icon, contentDescription = tab.label)
+                            }
+                        }
+                    }
                 }
             }
         }

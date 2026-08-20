@@ -142,13 +142,22 @@ class SdkLinksRepository(
     }
 
     private fun StatsParams.toQuery() = StatsQuery(
-        startDate = days?.let { Clock.System.now() - it.days },
-        groupBy = listOf(Dimension.TIME, Dimension.COUNTRY, Dimension.REFERRER, Dimension.BROWSER),
+        startDate = customRange?.first?.let { Instant.fromEpochMilliseconds(it) }
+            ?: days?.let { Clock.System.now() - it.days },
+        endDate = customRange?.second?.let { Instant.fromEpochMilliseconds(it) },
+        groupBy = listOf(
+            Dimension.TIME,
+            Dimension.COUNTRY,
+            Dimension.BROWSER,
+            Dimension.OS,
+            Dimension.REFERRER,
+        ),
         metrics = listOf(Metric.CLICKS),
         filters = filters.entries.associate { (dim, value) ->
             when (dim) {
                 StatsDim.Country -> FilterDimension.COUNTRY
                 StatsDim.Browser -> FilterDimension.BROWSER
+                StatsDim.Os -> FilterDimension.OS
                 StatsDim.Referrer -> FilterDimension.REFERRER
             } to listOf(value)
         },
@@ -158,8 +167,9 @@ class SdkLinksRepository(
         link = link,
         dailyClicks = rows("clicks_by_time").map { it.second },
         countries = slices("clicks_by_country"),
-        referrers = slices("clicks_by_referrer"),
         browsers = slices("clicks_by_browser"),
+        os = slices("clicks_by_os"),
+        referrers = slices("clicks_by_referrer"),
     )
 
     private fun Map<String, List<JsonObject>>.slices(key: String): List<LinkStats.Slice> =

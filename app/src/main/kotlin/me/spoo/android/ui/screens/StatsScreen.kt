@@ -75,6 +75,7 @@ fun StatsScreen(shortCode: String) {
                 stats = loaded,
                 params = params,
                 onParamsChange = { params = it },
+                filterable = false,
                 contentPadding = PaddingValues(
                     start = 20.dp,
                     end = 20.dp,
