@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+    implementation(libs.work.runtime)
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.ui)
     implementation(libs.kotlinx.serialization.json)

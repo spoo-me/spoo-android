@@ -77,6 +77,7 @@ class SpooApp : Application() {
     override fun onCreate() {
         super.onCreate()
         graph = AppGraph(this)
+        runCatching { me.spoo.android.widget.WidgetRefreshWorker.schedule(this) }
     }
 
     companion object {

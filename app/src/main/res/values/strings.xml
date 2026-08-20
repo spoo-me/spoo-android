@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">spoo.me</string>
-    <string name="widget_description">Shorten a link and see your recent links</string>
     <string name="tile_shorten">Shorten clipboard URL</string>
     <string name="shortcut_shorten">Shorten a link</string>
+
+    <string name="widget_wave_label">Clicks wave</string>
+    <string name="widget_wave_description">A big click count over a wavy chart. Pick metric, range, and a link.</string>
+    <string name="widget_bars_label">Clicks bars</string>
+    <string name="widget_bars_description">A big click count over daily bars. Pick metric, range, and a link.</string>
+    <string name="widget_count_label">Click count</string>
+    <string name="widget_count_description">Just the number. Pick metric, range, and a link.</string>
 </resources>

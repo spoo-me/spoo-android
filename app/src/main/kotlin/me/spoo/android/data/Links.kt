@@ -72,6 +72,9 @@ data class LinkEdit(
 /** A dimension the stats screens can filter by. */
 enum class StatsDim { Country, Browser, Os, Referrer }
 
+/** The countable thing a stats query asks for. */
+enum class StatsMetric { Clicks, UniqueClicks }
+
 /** Stats query surface: date window + dimension filters. */
 data class StatsParams(
     /** Look-back window in days; null = all time. Ignored with [customRange]. */
@@ -80,6 +83,7 @@ data class StatsParams(
     val customRange: Pair<Long, Long>? = null,
     /** Raw dimension values, exactly as the API stored them. */
     val filters: Map<StatsDim, String> = emptyMap(),
+    val metric: StatsMetric = StatsMetric.Clicks,
 )
 
 data class LinkStats(

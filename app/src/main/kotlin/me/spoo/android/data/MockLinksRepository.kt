@@ -118,6 +118,9 @@ class MockLinksRepository : LinksRepository {
         // The whole history is ~120 days; a window sees its share of it.
         var total = base * (days.coerceAtMost(120) / 120f)
 
+        // Unique visitors are a stable-ish fraction of raw clicks.
+        if (params.metric == StatsMetric.UniqueClicks) total *= 0.72f
+
         // Filters cut the total by the value's share and pin its dimension.
         fun share(pool: List<Pair<String, Float>>, value: String?) =
             value?.let { v -> pool.firstOrNull { it.first == v }?.second ?: 0.02f }

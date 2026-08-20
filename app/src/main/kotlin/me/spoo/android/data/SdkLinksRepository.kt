@@ -133,12 +133,17 @@ class SdkLinksRepository(
     override suspend fun stats(shortCode: String, params: StatsParams): LinkStats {
         val link = _links.value.first { it.shortCode == shortCode }
         val report = clientProvider().stats.forLink(urlId = link.id, query = params.toQuery())
-        return report.metrics.toLinkStats(link)
+        return report.metrics.toLinkStats(link, params.metric.wire())
     }
 
     override suspend fun accountStats(params: StatsParams): LinkStats {
         val report = clientProvider().stats.account(AccountStatsRequest(query = params.toQuery()))
-        return report.metrics.toLinkStats(link = null)
+        return report.metrics.toLinkStats(link = null, params.metric.wire())
+    }
+
+    private fun StatsMetric.wire() = when (this) {
+        StatsMetric.Clicks -> "clicks"
+        StatsMetric.UniqueClicks -> "unique_clicks"
     }
 
     private fun StatsParams.toQuery() = StatsQuery(
@@ -152,7 +157,12 @@ class SdkLinksRepository(
             Dimension.OS,
             Dimension.REFERRER,
         ),
-        metrics = listOf(Metric.CLICKS),
+        metrics = listOf(
+            when (metric) {
+                StatsMetric.Clicks -> Metric.CLICKS
+                StatsMetric.UniqueClicks -> Metric.UNIQUE_CLICKS
+            },
+        ),
         filters = filters.entries.associate { (dim, value) ->
             when (dim) {
                 StatsDim.Country -> FilterDimension.COUNTRY
@@ -163,26 +173,27 @@ class SdkLinksRepository(
         },
     )
 
-    private fun Map<String, List<JsonObject>>.toLinkStats(link: SpooLink?) = LinkStats(
-        link = link,
-        dailyClicks = rows("clicks_by_time").map { it.second },
-        countries = slices("clicks_by_country"),
-        browsers = slices("clicks_by_browser"),
-        os = slices("clicks_by_os"),
-        referrers = slices("clicks_by_referrer"),
-    )
+    private fun Map<String, List<JsonObject>>.toLinkStats(link: SpooLink?, metricKey: String) =
+        LinkStats(
+            link = link,
+            dailyClicks = rows("${metricKey}_by_time", metricKey).map { it.second },
+            countries = slices("${metricKey}_by_country", metricKey),
+            browsers = slices("${metricKey}_by_browser", metricKey),
+            os = slices("${metricKey}_by_os", metricKey),
+            referrers = slices("${metricKey}_by_referrer", metricKey),
+        )
 
-    private fun Map<String, List<JsonObject>>.slices(key: String): List<LinkStats.Slice> =
-        rows(key).map { (label, count) -> LinkStats.Slice(label, count) }
+    private fun Map<String, List<JsonObject>>.slices(key: String, metricKey: String): List<LinkStats.Slice> =
+        rows(key, metricKey).map { (label, count) -> LinkStats.Slice(label, count) }
 
     /**
      * Breakdown rows arrive as raw JSON objects keyed `{metric}_by_{dim}`;
      * each row carries the dimension value plus the metric counts. Parsed
-     * defensively: label = first non-metric string field, count = `clicks`.
+     * defensively: label = first non-metric string field, count = [metricKey].
      */
-    private fun Map<String, List<JsonObject>>.rows(key: String): List<Pair<String, Int>> =
+    private fun Map<String, List<JsonObject>>.rows(key: String, metricKey: String): List<Pair<String, Int>> =
         this[key].orEmpty().mapNotNull { row ->
-            val count = row["clicks"]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
+            val count = row[metricKey]?.jsonPrimitive?.longOrNull ?: return@mapNotNull null
             val label = row.entries
                 .firstOrNull { it.key != "clicks" && it.key != "unique_clicks" }
                 ?.value?.jsonPrimitive?.contentOrNull

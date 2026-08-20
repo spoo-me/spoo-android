@@ -10,4 +10,4 @@
     android:configure="me.spoo.android.widget.WidgetConfigActivity"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:description="@string/widget_wave_description" />
+    android:description="@string/widget_bars_description" />
