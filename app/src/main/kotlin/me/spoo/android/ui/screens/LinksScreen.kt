@@ -19,10 +19,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Lock
@@ -30,9 +35,16 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.ButtonGroupDefaults
@@ -66,6 +78,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -75,6 +88,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
+import me.spoo.android.data.LinkUiStatus
+import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.SpooLink
 import me.spoo.android.ui.components.CreateLinkSheet
 import me.spoo.android.ui.components.EditLinkSheet
@@ -83,7 +98,6 @@ import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
-import me.spoo.android.ui.screens.links.StatusFilter
 
 /**
  * Home: link list with search + sort, favicons, create sheet via FAB,
@@ -111,7 +125,9 @@ fun LinksScreen(
     val editState by viewModel.editState.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
     val selection by viewModel.selection.collectAsState()
-    val statusFilter by viewModel.statusFilter.collectAsState()
+    val filter by viewModel.filter.collectAsState()
+    var showLinkFilters by remember { mutableStateOf(false) }
+    var showCreatedPicker by remember { mutableStateOf(false) }
 
     var showCreateSheet by rememberSaveable { mutableStateOf(startInCreate) }
     val sharedUrl = prefillText?.let { Regex("""https?://\S+""").find(it)?.value ?: it }
@@ -191,36 +207,41 @@ fun LinksScreen(
                 )
             }
             item(key = "sort") {
-                // The two groups wrap as units so every filter stays visible.
-                FlowRow(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        ToggleButton(
-                            checked = sort == LinkSort.Recent,
-                            onCheckedChange = { viewModel.sort.value = LinkSort.Recent },
-                            shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                        ) { Text("Recent") }
-                        ToggleButton(
-                            checked = sort == LinkSort.Clicks,
-                            onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
-                            shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                        ) { Text("Top clicks") }
+                    ToggleButton(
+                        checked = sort == LinkSort.Recent,
+                        onCheckedChange = { viewModel.sort.value = LinkSort.Recent },
+                        shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                    ) { Text("Recent") }
+                    ToggleButton(
+                        checked = sort == LinkSort.Clicks,
+                        onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
+                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                    ) { Text("Top clicks") }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { showLinkFilters = true }) {
+                        BadgedBox(
+                            badge = {
+                                if (filter.count > 0) Badge { Text("${filter.count}") }
+                            },
+                        ) {
+                            Icon(Icons.Outlined.FilterList, contentDescription = "Filters")
+                        }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        StatusFilter.entries.forEachIndexed { i, status ->
-                            ToggleButton(
-                                checked = statusFilter == status,
-                                onCheckedChange = { viewModel.statusFilter.value = status },
-                                shapes = when (i) {
-                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                    StatusFilter.entries.lastIndex ->
-                                        ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                                },
-                            ) { Text(status.name) }
+                    IconButton(onClick = { showCreatedPicker = true }) {
+                        BadgedBox(
+                            badge = { if (filter.createdRange != null) Badge() },
+                        ) {
+                            Icon(
+                                Icons.Outlined.DateRange,
+                                contentDescription = "Created date range",
+                            )
                         }
                     }
                 }
@@ -330,6 +351,42 @@ fun LinksScreen(
         )
     }
 
+    if (showLinkFilters) {
+        LinksFilterSheet(
+            filter = filter,
+            onFilterChange = { viewModel.filter.value = it },
+            onDismiss = { showLinkFilters = false },
+        )
+    }
+
+    if (showCreatedPicker) {
+        val pickerState = rememberDateRangePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showCreatedPicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val from = pickerState.selectedStartDateMillis
+                        val to = pickerState.selectedEndDateMillis
+                        if (from != null && to != null) {
+                            viewModel.filter.value = filter.copy(createdRange = from to to)
+                        }
+                        showCreatedPicker = false
+                    },
+                    enabled = pickerState.selectedEndDateMillis != null,
+                ) { Text("Apply") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.filter.value = filter.copy(createdRange = null)
+                    showCreatedPicker = false
+                }) { Text("All time") }
+            },
+        ) {
+            DateRangePicker(state = pickerState, showModeToggle = false)
+        }
+    }
+
     if (showExpiryPicker) {
         val pickerState = rememberDatePickerState()
         DatePickerDialog(
@@ -370,6 +427,91 @@ fun LinksScreen(
             },
         )
     }
+}
+
+/** Status + protections + clear, mirroring the webapp's links filters. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun LinksFilterSheet(
+    filter: LinksFilter,
+    onFilterChange: (LinksFilter) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .navigationBarsPadding(),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Filters",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                if (filter.count > 0) {
+                    TextButton(onClick = { onFilterChange(LinksFilter()) }) {
+                        Text("Clear all")
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Status",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LinkUiStatus.entries.forEach { status ->
+                    FilterChip(
+                        selected = filter.status == status,
+                        onClick = {
+                            onFilterChange(
+                                filter.copy(status = if (filter.status == status) null else status),
+                            )
+                        },
+                        leadingIcon = {
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(status.dotColor()),
+                            )
+                        },
+                        label = { Text(status.name) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Protections",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = filter.passwordProtected,
+                    onClick = {
+                        onFilterChange(filter.copy(passwordProtected = !filter.passwordProtected))
+                    },
+                    label = { Text("Password protected") },
+                )
+                FilterChip(
+                    selected = filter.clickLimited,
+                    onClick = { onFilterChange(filter.copy(clickLimited = !filter.clickLimited)) },
+                    label = { Text("Click-limited") },
+                )
+            }
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+private fun LinkUiStatus.dotColor() = when (this) {
+    LinkUiStatus.Active -> Color(0xFF4ADE80)
+    LinkUiStatus.Inactive -> Color(0xFF9CA3AF)
+    LinkUiStatus.Expired -> Color(0xFFF59E0B)
+    LinkUiStatus.Blocked -> Color(0xFFEF4444)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -438,7 +580,7 @@ private fun LinkRow(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = buildString {
-                    if (!link.active) append("disabled · ")
+                    if (!link.active) append("${link.status.name.lowercase()} · ")
                     append("${numbers.format(link.totalClicks)} clicks · ${link.createdLabel}")
                 },
                 style = MaterialTheme.typography.labelSmall,

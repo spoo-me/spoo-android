@@ -197,7 +197,14 @@ class SdkLinksRepository(
         totalClicks = (totalClicks ?: 0L).toInt(),
         createdLabel = createdAt?.toDayLabel() ?: "",
         hasPassword = passwordSet,
-        active = status == null || status == LinkStatus.ACTIVE,
+        status = when (status) {
+            LinkStatus.INACTIVE -> LinkUiStatus.Inactive
+            LinkStatus.EXPIRED -> LinkUiStatus.Expired
+            LinkStatus.BLOCKED -> LinkUiStatus.Blocked
+            else -> LinkUiStatus.Active
+        },
+        clickLimited = maxClicks != null,
+        createdAtMillis = createdAt?.toEpochMilliseconds(),
     )
 
     private fun Instant.toDayLabel(): String =

@@ -18,16 +18,18 @@ import kotlinx.coroutines.flow.update
 class MockLinksRepository : LinksRepository {
 
     private val seed = listOf(
-        link("m1", "ga1n", "https://github.com/spoo-me/spoo", 48_211, "Jul 2"),
-        link("m2", "launch", "https://spoo.me/blog/android-app", 21_874, "Jul 9"),
-        link("m3", "🚀🔗", "https://play.google.com/store/apps/details?id=me.spoo.android", 9_454, "Jul 14"),
-        link("m4", "docs", "https://docs.spoo.me/getting-started/introduction", 6_120, "Jun 11"),
-        link("m5", "yt-demo", "https://www.youtube.com/watch?v=T2QDL9uAnQI", 4_082, "Jul 21"),
-        link("m6", "drop", "https://spoo.me/blog/self-hosting-guide", 2_310, "Aug 3", password = true),
-        link("m7", "api", "https://docs.spoo.me/api-reference/shorten", 1_207, "Aug 8"),
-        link("m8", "promo", "https://spoo.me/pricing", 640, "Aug 11", active = false),
-        link("m9", "blog", "https://spoo.me/blog", 214, "Aug 15"),
-        link("m10", "beta", "https://beta.spoo.me/onboarding", 37, "Aug 18"),
+        link("m1", "ga1n", "https://github.com/spoo-me/spoo", 48_211, "Jul 2", ageDays = 49),
+        link("m2", "launch", "https://spoo.me/blog/android-app", 21_874, "Jul 9", ageDays = 42),
+        link("m3", "🚀🔗", "https://play.google.com/store/apps/details?id=me.spoo.android", 9_454, "Jul 14", ageDays = 37),
+        link("m4", "docs", "https://docs.spoo.me/getting-started/introduction", 6_120, "Jun 11", ageDays = 70),
+        link("m5", "yt-demo", "https://www.youtube.com/watch?v=T2QDL9uAnQI", 4_082, "Jul 21", ageDays = 30),
+        link("m6", "drop", "https://spoo.me/blog/self-hosting-guide", 2_310, "Aug 3", ageDays = 17, password = true, clickLimited = true),
+        link("m7", "api", "https://docs.spoo.me/api-reference/shorten", 1_207, "Aug 8", ageDays = 12),
+        link("m8", "promo", "https://spoo.me/pricing", 640, "Aug 11", ageDays = 9, status = LinkUiStatus.Inactive),
+        link("m9", "flash", "https://spoo.me/blog/flash-sale", 512, "Aug 12", ageDays = 8, status = LinkUiStatus.Expired, clickLimited = true),
+        link("m10", "blog", "https://spoo.me/blog", 214, "Aug 15", ageDays = 5),
+        link("m11", "sus", "https://example-flagged.net/dl", 88, "Aug 16", ageDays = 4, status = LinkUiStatus.Blocked),
+        link("m12", "beta", "https://beta.spoo.me/onboarding", 37, "Aug 18", ageDays = 2),
     )
 
     private val _links = MutableStateFlow(seed)
@@ -83,7 +85,8 @@ class MockLinksRepository : LinksRepository {
 
     override suspend fun bulkSetStatus(ids: List<String>, active: Boolean) {
         delay(400)
-        _links.update { list -> list.map { if (it.id in ids) it.copy(active = active) else it } }
+        val status = if (active) LinkUiStatus.Active else LinkUiStatus.Inactive
+        _links.update { list -> list.map { if (it.id in ids) it.copy(status = status) else it } }
     }
 
     override suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?) {
@@ -158,9 +161,21 @@ class MockLinksRepository : LinksRepository {
         url: String,
         clicks: Int,
         created: String,
+        ageDays: Int,
         password: Boolean = false,
-        active: Boolean = true,
-    ) = SpooLink(id, code, url, clicks, created, password, active)
+        status: LinkUiStatus = LinkUiStatus.Active,
+        clickLimited: Boolean = false,
+    ) = SpooLink(
+        id = id,
+        shortCode = code,
+        originalUrl = url,
+        totalClicks = clicks,
+        createdLabel = created,
+        hasPassword = password,
+        status = status,
+        clickLimited = clickLimited,
+        createdAtMillis = System.currentTimeMillis() - ageDays * 86_400_000L,
+    )
 
     private companion object {
         val COUNTRIES = listOf(

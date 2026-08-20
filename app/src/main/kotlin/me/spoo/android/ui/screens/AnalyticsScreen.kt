@@ -45,6 +45,10 @@ import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
+import me.spoo.android.ui.components.BrandIcon
+import me.spoo.android.ui.components.CountryFlag
+import me.spoo.android.ui.components.Favicon
+import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.StatsContent
 import me.spoo.android.ui.components.countryDisplayName
 import me.spoo.android.ui.components.toggling
@@ -140,10 +144,28 @@ private fun FilterSheet(
                     }
                 }
             }
-            FilterGroup("Country", stats?.countries, StatsDim.Country, params, onParamsChange, ::countryDisplayName)
-            FilterGroup("Browser", stats?.browsers, StatsDim.Browser, params, onParamsChange) { it }
-            FilterGroup("Operating system", stats?.os, StatsDim.Os, params, onParamsChange) { it }
-            FilterGroup("Referrer", stats?.referrers, StatsDim.Referrer, params, onParamsChange) { it }
+            FilterGroup(
+                "Country", stats?.countries, StatsDim.Country, params, onParamsChange,
+                labelFor = ::countryDisplayName,
+                icon = { CountryFlag(it, size = 18.dp) },
+            )
+            FilterGroup(
+                "Browser", stats?.browsers, StatsDim.Browser, params, onParamsChange,
+                labelFor = { it },
+                icon = { BrandIcon(it, size = 18.dp) },
+            )
+            FilterGroup(
+                "Operating system", stats?.os, StatsDim.Os, params, onParamsChange,
+                labelFor = { it },
+                icon = { BrandIcon(it, size = 18.dp) },
+            )
+            FilterGroup(
+                "Referrer", stats?.referrers, StatsDim.Referrer, params, onParamsChange,
+                labelFor = { it },
+                icon = { value ->
+                    if (value.contains('.')) Favicon(value, size = 18.dp) else Monogram(value, size = 18.dp)
+                },
+            )
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -158,6 +180,7 @@ private fun FilterGroup(
     params: StatsParams,
     onParamsChange: (StatsParams) -> Unit,
     labelFor: (String) -> String,
+    icon: @Composable (String) -> Unit,
 ) {
     val values = slices.orEmpty().take(8)
     if (values.isEmpty()) return
@@ -173,6 +196,7 @@ private fun FilterGroup(
             FilterChip(
                 selected = selected,
                 onClick = { onParamsChange(params.toggling(dim, slice.label)) },
+                leadingIcon = { icon(slice.label) },
                 label = { Text(labelFor(slice.label)) },
             )
         }

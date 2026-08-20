@@ -4,6 +4,8 @@ package me.spoo.android.data
  * UI-facing link model. Deliberately narrower than the SDK's — the fake and
  * SDK-backed repositories both map into this, keeping screens SDK-agnostic.
  */
+enum class LinkUiStatus { Active, Inactive, Expired, Blocked }
+
 data class SpooLink(
     val id: String,
     val shortCode: String,
@@ -11,10 +13,39 @@ data class SpooLink(
     val totalClicks: Int,
     val createdLabel: String,
     val hasPassword: Boolean = false,
-    /** False when the owner disabled redirects (INACTIVE). */
-    val active: Boolean = true,
+    val status: LinkUiStatus = LinkUiStatus.Active,
+    /** True when a max-clicks limit is set. */
+    val clickLimited: Boolean = false,
+    val createdAtMillis: Long? = null,
 ) {
     val shortUrl: String get() = "spoo.me/$shortCode"
+    val active: Boolean get() = status == LinkUiStatus.Active
+}
+
+/** Client-side filters for the links list, mirroring the webapp's set. */
+data class LinksFilter(
+    val status: LinkUiStatus? = null,
+    val passwordProtected: Boolean = false,
+    val clickLimited: Boolean = false,
+    /** Created-at window in epoch millis; null = all time. */
+    val createdRange: Pair<Long, Long>? = null,
+) {
+    val count: Int
+        get() = listOf(
+            status != null,
+            passwordProtected,
+            clickLimited,
+            createdRange != null,
+        ).count { it }
+
+    fun matches(link: SpooLink): Boolean =
+        (status == null || link.status == status) &&
+            (!passwordProtected || link.hasPassword) &&
+            (!clickLimited || link.clickLimited) &&
+            (
+                createdRange == null || link.createdAtMillis == null ||
+                    link.createdAtMillis in createdRange.first..(createdRange.second + 86_399_999)
+                )
 }
 
 data class CreateLinkRequest(

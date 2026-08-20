@@ -11,12 +11,11 @@ import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
 import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.LinkEdit
+import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SpooLink
 
 enum class LinkSort { Recent, Clicks }
-
-enum class StatusFilter { All, Active, Disabled }
 
 sealed interface CreateState {
     data object Idle : CreateState
@@ -42,16 +41,12 @@ class LinksViewModel(
 
     val query = MutableStateFlow("")
     val sort = MutableStateFlow(LinkSort.Recent)
-    val statusFilter = MutableStateFlow(StatusFilter.All)
+    val filter = MutableStateFlow(LinksFilter())
 
     val links: StateFlow<List<SpooLink>> =
-        combine(repository.links, query, sort, statusFilter) { all, q, sort, status ->
-            val byStatus = when (status) {
-                StatusFilter.All -> all
-                StatusFilter.Active -> all.filter { it.active }
-                StatusFilter.Disabled -> all.filterNot { it.active }
-            }
-            val filtered = if (q.isBlank()) byStatus else byStatus.filter {
+        combine(repository.links, query, sort, filter) { all, q, sort, filter ->
+            val byFilter = all.filter(filter::matches)
+            val filtered = if (q.isBlank()) byFilter else byFilter.filter {
                 it.shortCode.contains(q, ignoreCase = true) ||
                     it.originalUrl.contains(q, ignoreCase = true)
             }
