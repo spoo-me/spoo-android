@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
@@ -17,10 +18,12 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarDefaults
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -131,7 +134,10 @@ fun SpooNav(
         }
         // The M3 Expressive navigation bar (the shorter redesign).
         if (atRoot) {
-            ShortNavigationBar {
+            ShortNavigationBar(
+                windowInsets = ShortNavigationBarDefaults.windowInsets
+                    .add(WindowInsets(top = 10.dp)),
+            ) {
                 tabs.forEach { tab ->
                     ShortNavigationBarItem(
                         selected = currentRoot == tab.key,

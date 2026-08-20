@@ -4,8 +4,8 @@ import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -91,7 +91,11 @@ import me.spoo.android.ui.screens.links.StatusFilter
  * (ACTION_SEND, QS tile, and the shortcut land here via [prefillText]/
  * [startInCreate]).
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class,
+)
 @Composable
 fun LinksScreen(
     prefillText: String?,
@@ -187,34 +191,37 @@ fun LinksScreen(
                 )
             }
             item(key = "sort") {
-                Row(
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                // The two groups wrap as units so every filter stays visible.
+                FlowRow(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ToggleButton(
-                        checked = sort == LinkSort.Recent,
-                        onCheckedChange = { viewModel.sort.value = LinkSort.Recent },
-                        shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                    ) { Text("Recent") }
-                    ToggleButton(
-                        checked = sort == LinkSort.Clicks,
-                        onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
-                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                    ) { Text("Top clicks") }
-                    Spacer(Modifier.width(10.dp))
-                    StatusFilter.entries.forEachIndexed { i, status ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         ToggleButton(
-                            checked = statusFilter == status,
-                            onCheckedChange = { viewModel.statusFilter.value = status },
-                            shapes = when (i) {
-                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                StatusFilter.entries.lastIndex ->
-                                    ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                            },
-                        ) { Text(status.name) }
+                            checked = sort == LinkSort.Recent,
+                            onCheckedChange = { viewModel.sort.value = LinkSort.Recent },
+                            shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                        ) { Text("Recent") }
+                        ToggleButton(
+                            checked = sort == LinkSort.Clicks,
+                            onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
+                            shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                        ) { Text("Top clicks") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        StatusFilter.entries.forEachIndexed { i, status ->
+                            ToggleButton(
+                                checked = statusFilter == status,
+                                onCheckedChange = { viewModel.statusFilter.value = status },
+                                shapes = when (i) {
+                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                    StatusFilter.entries.lastIndex ->
+                                        ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                },
+                            ) { Text(status.name) }
+                        }
                     }
                 }
             }
