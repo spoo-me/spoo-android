@@ -100,10 +100,12 @@ private val BRAND_DOMAINS = mapOf(
     "chrome" to "www.google.com/chrome",
     "safari" to "www.apple.com",
     "mobile safari" to "www.apple.com",
-    "firefox" to "www.mozilla.org",
+    // Not always the vendor's main domain: picked for favicon quality
+    // (mozilla.org serves a wordmark glyph, opera.com a white-boxed JPEG).
+    "firefox" to "firefox.com",
     "edge" to "www.microsoft.com/edge",
     "samsung internet" to "www.samsung.com",
-    "opera" to "www.opera.com",
+    "opera" to "addons.opera.com",
     "brave" to "brave.com",
     "vivaldi" to "vivaldi.com",
     "duckduckgo" to "duckduckgo.com",
