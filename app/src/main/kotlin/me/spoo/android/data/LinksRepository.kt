@@ -13,6 +13,8 @@ interface LinksRepository {
     /** Reload from the source of truth; clears on auth loss. */
     suspend fun refresh()
     suspend fun create(request: CreateLinkRequest): SpooLink
+    suspend fun update(id: String, edit: LinkEdit): SpooLink
+    suspend fun delete(id: String)
     suspend fun stats(shortCode: String): LinkStats
 }
 
@@ -56,6 +58,28 @@ class FakeLinksRepository : LinksRepository {
         )
         _links.update { listOf(link) + it }
         return link
+    }
+
+    override suspend fun update(id: String, edit: LinkEdit): SpooLink {
+        delay(400)
+        val updated = _links.value.first { it.id == id }.let { old ->
+            old.copy(
+                originalUrl = edit.longUrl ?: old.originalUrl,
+                shortCode = edit.alias ?: old.shortCode,
+                hasPassword = when {
+                    edit.clearPassword -> false
+                    edit.password != null -> true
+                    else -> old.hasPassword
+                },
+            )
+        }
+        _links.update { list -> list.map { if (it.id == id) updated else it } }
+        return updated
+    }
+
+    override suspend fun delete(id: String) {
+        delay(300)
+        _links.update { list -> list.filterNot { it.id == id } }
     }
 
     override suspend fun stats(shortCode: String): LinkStats {

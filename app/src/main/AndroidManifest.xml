@@ -5,9 +5,10 @@
 
     <application
         android:name=".SpooApp"
-        android:label="spoo.me"
-        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
         android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
         <activity
@@ -23,7 +24,41 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- QS-tile clipboard hop; see ClipboardTrampolineActivity. -->
+        <activity
+            android:name=".ClipboardTrampolineActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <service
+            android:name=".ShortenTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_link"
+            android:label="@string/tile_shorten"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".widget.SpooWidgetReceiver"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/spoo_widget_info" />
+        </receiver>
 
         <!-- Device-auth redirect target. Custom scheme for local dev; the
              verified https App Link variant lands with assetlinks.json. -->

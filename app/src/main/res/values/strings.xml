@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">spoo.me</string>
+    <string name="widget_description">Shorten a link and see your recent links</string>
+    <string name="tile_shorten">Shorten clipboard URL</string>
+    <string name="shortcut_shorten">Shorten a link</string>
+</resources>

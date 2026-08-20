@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
 import me.spoo.android.data.CreateLinkRequest
+import me.spoo.android.data.LinkEdit
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SpooLink
 
@@ -20,6 +21,13 @@ sealed interface CreateState {
     data object Submitting : CreateState
     data class Done(val link: SpooLink) : CreateState
     data class Failed(val reason: String) : CreateState
+}
+
+sealed interface EditState {
+    data object Idle : EditState
+    data object Submitting : EditState
+    data object Done : EditState
+    data class Failed(val reason: String) : EditState
 }
 
 class LinksViewModel(
@@ -61,5 +69,37 @@ class LinksViewModel(
 
     fun resetCreate() {
         _createState.value = CreateState.Idle
+    }
+
+    private val _editState = MutableStateFlow<EditState>(EditState.Idle)
+    val editState: StateFlow<EditState> = _editState
+
+    fun updateLink(id: String, edit: LinkEdit) {
+        _editState.value = EditState.Submitting
+        viewModelScope.launch {
+            _editState.value = try {
+                repository.update(id, edit)
+                EditState.Done
+            } catch (e: Exception) {
+                EditState.Failed(e.message ?: "Could not save changes")
+            }
+        }
+    }
+
+    fun resetEdit() {
+        _editState.value = EditState.Idle
+    }
+
+    /** One-shot error line for fire-and-forget actions (delete). */
+    val actionError = MutableStateFlow<String?>(null)
+
+    fun deleteLink(id: String) {
+        viewModelScope.launch {
+            try {
+                repository.delete(id)
+            } catch (e: Exception) {
+                actionError.value = e.message ?: "Could not delete the link"
+            }
+        }
     }
 }

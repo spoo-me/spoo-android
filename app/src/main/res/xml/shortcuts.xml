@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shorten"
+        android:enabled="true"
+        android:icon="@drawable/ic_link"
+        android:shortcutShortLabel="@string/shortcut_shorten"
+        android:shortcutLongLabel="@string/shortcut_shorten">
+        <intent
+            android:action="me.spoo.android.action.SHORTEN"
+            android:targetPackage="me.spoo.android"
+            android:targetClass="me.spoo.android.MainActivity" />
+    </shortcut>
+</shortcuts>

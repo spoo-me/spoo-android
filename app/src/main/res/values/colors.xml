@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Placeholder brand seed until the icon gets a real design pass. -->
+    <color name="ic_launcher_background">#6750A4</color>
+</resources>

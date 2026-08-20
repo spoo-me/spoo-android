@@ -66,6 +66,34 @@ class SdkLinksRepository(
         return ui
     }
 
+    override suspend fun update(id: String, edit: LinkEdit): SpooLink {
+        val updated = clientProvider().links.update(id) {
+            edit.longUrl?.let { longUrl(it) }
+            edit.alias?.let { alias(it) }
+            when {
+                edit.clearPassword -> removePassword()
+                edit.password != null -> password(edit.password)
+            }
+            when {
+                edit.clearMaxClicks -> removeMaxClicks()
+                edit.maxClicks != null -> maxClicks(edit.maxClicks)
+            }
+        }
+        val old = _links.value.first { it.id == id }
+        val ui = old.copy(
+            shortCode = updated.alias ?: old.shortCode,
+            originalUrl = updated.longUrl ?: old.originalUrl,
+            hasPassword = updated.passwordSet,
+        )
+        _links.update { list -> list.map { if (it.id == id) ui else it } }
+        return ui
+    }
+
+    override suspend fun delete(id: String) {
+        clientProvider().links.delete(id)
+        _links.update { list -> list.filterNot { it.id == id } }
+    }
+
     override suspend fun stats(shortCode: String): LinkStats {
         val link = _links.value.first { it.shortCode == shortCode }
         val report = clientProvider().stats.forLink(

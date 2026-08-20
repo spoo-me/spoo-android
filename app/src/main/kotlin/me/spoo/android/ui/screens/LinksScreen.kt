@@ -1,6 +1,8 @@
 package me.spoo.android.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,8 +19,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,20 +33,26 @@ import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,17 +60,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
 import me.spoo.android.data.SpooLink
 import me.spoo.android.ui.components.CreateLinkSheet
+import me.spoo.android.ui.components.EditLinkSheet
+import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
 
 /**
- * Home: link list with search + sort, create sheet via FAB, and the
- * share-target hero flow (ACTION_SEND text prefills the create sheet).
+ * Home: link list with search + sort, create sheet via FAB, per-link
+ * actions, and the share-target hero flow — ACTION_SEND text, the QS tile,
+ * and the launcher shortcut all land in the create sheet via [prefillText]/
+ * [startInCreate].
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LinksScreen(
-    sharedText: String?,
+    prefillText: String?,
+    startInCreate: Boolean,
     onOpenStats: (String) -> Unit,
     onOpenAccount: () -> Unit,
     viewModel: LinksViewModel = viewModel(),
@@ -67,11 +84,23 @@ fun LinksScreen(
     val query by viewModel.query.collectAsState()
     val sort by viewModel.sort.collectAsState()
     val createState by viewModel.createState.collectAsState()
+    val editState by viewModel.editState.collectAsState()
+    val actionError by viewModel.actionError.collectAsState()
 
-    // The share sheet is the hero flow: arriving with ACTION_SEND text goes
-    // straight into the create sheet, prefilled.
-    var showCreateSheet by rememberSaveable { mutableStateOf(sharedText != null) }
-    val sharedUrl = sharedText?.let { Regex("""https?://\S+""").find(it)?.value ?: it }
+    var showCreateSheet by rememberSaveable { mutableStateOf(startInCreate) }
+    val sharedUrl = prefillText?.let { Regex("""https?://\S+""").find(it)?.value ?: it }
+
+    var qrFor by remember { mutableStateOf<SpooLink?>(null) }
+    var editFor by remember { mutableStateOf<SpooLink?>(null) }
+    var deleteFor by remember { mutableStateOf<SpooLink?>(null) }
+
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(actionError) {
+        actionError?.let {
+            snackbar.showSnackbar(it)
+            viewModel.actionError.value = null
+        }
+    }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val totalClicks = links.sumOf { it.totalClicks }
@@ -79,6 +108,7 @@ fun LinksScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text("spoo.me") },
@@ -142,8 +172,14 @@ fun LinksScreen(
                     ) { Text("Top clicks") }
                 }
             }
-            items(links, key = { it.shortCode }) { link ->
-                LinkRow(link = link, onClick = { onOpenStats(link.shortCode) })
+            items(links, key = { it.id }) { link ->
+                LinkRow(
+                    link = link,
+                    onClick = { onOpenStats(link.shortCode) },
+                    onQr = { qrFor = link },
+                    onEdit = { editFor = link },
+                    onDelete = { deleteFor = link },
+                )
             }
             if (links.isEmpty()) {
                 item(key = "empty") {
@@ -163,12 +199,45 @@ fun LinksScreen(
 
     if (showCreateSheet) {
         CreateLinkSheet(
-            initialUrl = sharedUrl.takeIf { sharedText != null },
+            initialUrl = sharedUrl,
             state = createState,
             onSubmit = viewModel::create,
             onDismiss = {
                 showCreateSheet = false
                 viewModel.resetCreate()
+            },
+        )
+    }
+
+    qrFor?.let { link ->
+        QrDialog(shortUrl = link.shortUrl, onDismiss = { qrFor = null })
+    }
+
+    editFor?.let { link ->
+        EditLinkSheet(
+            link = link,
+            state = editState,
+            onSubmit = { edit -> viewModel.updateLink(link.id, edit) },
+            onDismiss = {
+                editFor = null
+                viewModel.resetEdit()
+            },
+        )
+    }
+
+    deleteFor?.let { link ->
+        AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            title = { Text("Delete ${link.shortUrl}?") },
+            text = { Text("The short link stops working immediately. Its stats are deleted with it.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteLink(link.id)
+                    deleteFor = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteFor = null }) { Text("Cancel") }
             },
         )
     }
@@ -178,8 +247,13 @@ fun LinksScreen(
 private fun LinkRow(
     link: SpooLink,
     onClick: () -> Unit,
+    onQr: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    var menuOpen by remember { mutableStateOf(false) }
     val numbers = NumberFormat.getIntegerInstance()
 
     Surface(
@@ -230,6 +304,40 @@ private fun LinkRow(
                     contentDescription = "Copy https://${link.shortUrl}",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(
+                        Icons.Outlined.MoreVert,
+                        contentDescription = "More actions for ${link.shortUrl}",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Share") },
+                        onClick = {
+                            menuOpen = false
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "https://${link.shortUrl}")
+                            }
+                            context.startActivity(Intent.createChooser(send, null))
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("QR code") },
+                        onClick = { menuOpen = false; onQr() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = { menuOpen = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        onClick = { menuOpen = false; onDelete() },
+                    )
+                }
             }
         }
     }

@@ -19,6 +19,10 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version = "1.7.8" }
 androidx-browser = { module = "androidx.browser:browser", version = "1.9.0" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version = "1.1.7" }
+zxing-core = { module = "com.google.zxing:core", version = "3.5.3" }
+# 1.2 never went stable; the rc is what the ecosystem ships (see plan).
+glance-appwidget = { module = "androidx.glance:glance-appwidget", version = "1.2.0-rc01" }
+glance-material3 = { module = "androidx.glance:glance-material3", version = "1.2.0-rc01" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }

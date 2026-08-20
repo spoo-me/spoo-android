@@ -23,6 +23,19 @@ data class CreateLinkRequest(
     val emojiAlias: Boolean = false,
 )
 
+/**
+ * A partial edit. Null field = keep as is; the clear flags express
+ * explicit removal (the API's tri-state patch semantics).
+ */
+data class LinkEdit(
+    val longUrl: String? = null,
+    val alias: String? = null,
+    val password: String? = null,
+    val clearPassword: Boolean = false,
+    val maxClicks: Long? = null,
+    val clearMaxClicks: Boolean = false,
+)
+
 data class LinkStats(
     val link: SpooLink,
     val dailyClicks: List<Int>,

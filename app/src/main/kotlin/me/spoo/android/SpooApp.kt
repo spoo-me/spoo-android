@@ -10,8 +10,10 @@ import me.spoo.SpooClient
 import me.spoo.SpooConfig
 import me.spoo.android.auth.AuthManager
 import me.spoo.android.auth.TokenStore
+import androidx.glance.appwidget.updateAll
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SdkLinksRepository
+import me.spoo.android.widget.SpooWidget
 import me.spoo.oauth.Session
 
 /**
@@ -45,6 +47,13 @@ class AppGraph(context: Context) {
             authManager.session.collect { session ->
                 currentClient = if (session == null) anonClient else newClient(session)
                 runCatching { linksRepository.refresh() }
+            }
+        }
+        // Keep home-screen widgets in sync with whatever the app knows.
+        val appContext = context.applicationContext
+        scope.launch {
+            linksRepository.links.collect {
+                runCatching { SpooWidget().updateAll(appContext) }
             }
         }
     }

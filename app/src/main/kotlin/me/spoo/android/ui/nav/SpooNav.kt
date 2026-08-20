@@ -22,7 +22,8 @@ data object AccountKey : NavKey
 
 @Composable
 fun SpooNav(
-    sharedText: String?,
+    prefillText: String?,
+    startInCreate: Boolean,
     authState: AuthState,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
@@ -35,7 +36,8 @@ fun SpooNav(
         entryProvider = entryProvider {
             entry<LinksKey> {
                 LinksScreen(
-                    sharedText = sharedText,
+                    prefillText = prefillText,
+                    startInCreate = startInCreate,
                     onOpenStats = { code -> backStack.add(StatsKey(code)) },
                     onOpenAccount = { backStack.add(AccountKey) },
                 )
