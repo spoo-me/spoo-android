@@ -54,6 +54,7 @@ import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.theme.cardChrome
 import me.spoo.android.ui.theme.cardContainerColor
 import me.spoo.android.ui.theme.hero
+import me.spoo.android.ui.theme.railIconColors
 import me.spoo.android.ui.theme.tabular
 
 private val RANGES = listOf(7 to "7d", 30 to "30d", 90 to "90d", null to "All")
@@ -144,7 +145,10 @@ fun StatsContent(
                     }
                     if (onOpenFilters != null) {
                         Spacer(Modifier.weight(1f))
-                        IconButton(onClick = onOpenFilters) {
+                        IconButton(
+                            onClick = onOpenFilters,
+                            colors = railIconColors(active = params.filters.isNotEmpty()),
+                        ) {
                             BadgedBox(
                                 badge = {
                                     if (params.filters.isNotEmpty()) {
@@ -164,12 +168,18 @@ fun StatsContent(
         // tall enough to breathe — no orphan baselines.
         item(key = "chart") {
             StatsCard(title = "Clicks over time", fullBleed = true) {
-                WavyClicksChart(
-                    dailyClicks = stats.dailyClicks,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(210.dp),
-                )
+                // All-zero data would draw a lone baseline: honest empty
+                // text in the same body instead, height stable.
+                if (stats.dailyClicks.sum() == 0) {
+                    EmptyBody(height = 210.dp)
+                } else {
+                    WavyClicksChart(
+                        dailyClicks = stats.dailyClicks,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(210.dp),
+                    )
+                }
             }
         }
 
@@ -269,7 +279,9 @@ private fun StatsCard(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.cardChrome(RoundedCornerShape(20.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .cardChrome(RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         color = cardContainerColor(),
     ) {
@@ -287,6 +299,26 @@ private fun StatsCard(
             Spacer(Modifier.height(12.dp))
             content()
         }
+    }
+}
+
+/**
+ * One empty-state grammar for every chart body: quiet centered muted
+ * text at a stable height, so empty and loaded cards line up uniformly.
+ */
+@Composable
+private fun EmptyBody(height: androidx.compose.ui.unit.Dp) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "No data in this range",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -308,11 +340,7 @@ private fun Breakdown(
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             header?.invoke()
             if (top.isEmpty()) {
-                Text(
-                    "No data in this range",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                EmptyBody(height = 120.dp)
             }
             top.forEach { slice ->
                 val active = slice.label in activeValues

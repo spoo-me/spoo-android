@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import me.spoo.android.R
 
@@ -74,7 +75,11 @@ private fun heroFamily(weight: Int) = flex(weight, 112f)
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun TextStyle.hero(key: Any?): TextStyle {
+fun TextStyle.hero(
+    key: Any?,
+    fontSize: TextUnit = 64.sp,
+    lineHeight: TextUnit = 68.sp,
+): TextStyle {
     val weight = remember { Animatable(450f) }
     val spring = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
     LaunchedEffect(key) {
@@ -83,8 +88,8 @@ fun TextStyle.hero(key: Any?): TextStyle {
     }
     return copy(
         fontFamily = heroFamily(weight.value.toInt()),
-        fontSize = 64.sp,
-        lineHeight = 68.sp,
+        fontSize = fontSize,
+        lineHeight = lineHeight,
         color = MaterialTheme.colorScheme.primary,
     ).tabular
 }
