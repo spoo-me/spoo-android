@@ -346,14 +346,17 @@ private fun SwipeActionRow(
             Spacer(Modifier.width(16.dp))
             Switch(checked = enabled, onCheckedChange = onEnabled)
         }
-        // Expressive menu skin; QR is a view, not a swipe-able verb.
+        // Expressive menu skin; QR is a view, not a swipe-able verb, and
+        // "Nothing" is redundant — the switch already turns the swipe off.
         DropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
             shape = MaterialTheme.shapes.large,
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
-            SwipeAction.entries.filterNot { it == SwipeAction.Qr }.forEach { action ->
+            SwipeAction.entries
+                .filterNot { it == SwipeAction.Qr || it == SwipeAction.None }
+                .forEach { action ->
                 DropdownMenuItem(
                     text = { Text(action.label) },
                     leadingIcon = {

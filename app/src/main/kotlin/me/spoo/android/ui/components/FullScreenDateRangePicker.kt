@@ -41,11 +41,15 @@ fun FullScreenDateRangePicker(
     val state = rememberDateRangePickerState()
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false, // edge to edge, no dark strip
+        ),
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surface,
+            // Match the picker body so the top bar doesn't read two-tone.
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 Row(

@@ -7,12 +7,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 
 /** Tinted card on the clean ground, both themes. */
 @Composable
 fun cardContainerColor(): Color = MaterialTheme.colorScheme.surfaceContainerLow
+
+/**
+ * Loader disc: a pale tint of primary over the ground, dark shape on top
+ * (the M3E reference look). Derived, not a container role — medium
+ * contrast darkens containers and inverts the disc.
+ */
+@Composable
+fun loaderContainerColor(): Color =
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+        .compositeOver(MaterialTheme.colorScheme.surface)
 
 /**
  * Card chrome is tonal only: color instead of shadows communicates
