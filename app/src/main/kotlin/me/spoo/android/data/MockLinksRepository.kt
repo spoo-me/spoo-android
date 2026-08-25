@@ -121,9 +121,13 @@ class MockLinksRepository : LinksRepository {
         // Unique visitors are a stable-ish fraction of raw clicks.
         if (params.metric == StatsMetric.UniqueClicks) total *= 0.72f
 
-        // Filters cut the total by the value's share and pin its dimension.
-        fun share(pool: List<Pair<String, Float>>, value: String?) =
-            value?.let { v -> pool.firstOrNull { it.first == v }?.second ?: 0.02f }
+        // Filters cut the total by the selected values' combined share.
+        fun share(pool: List<Pair<String, Float>>, values: Set<String>?) =
+            values?.takeIf { it.isNotEmpty() }?.let { vs ->
+                pool.filter { it.first in vs }
+                    .sumOf { it.second.toDouble() }.toFloat()
+                    .coerceAtLeast(0.02f)
+            }
 
         share(COUNTRIES, params.filters[StatsDim.Country])?.let { total *= it }
         share(REFERRERS, params.filters[StatsDim.Referrer])?.let { total *= it }
@@ -139,8 +143,9 @@ class MockLinksRepository : LinksRepository {
         val weightSum = weights.sum()
         val daily = weights.map { (total * it / weightSum).roundToInt() }
 
-        fun slices(pool: List<Pair<String, Float>>, filter: String?): List<LinkStats.Slice> {
-            val chosen = filter?.let { f -> pool.filter { it.first == f } } ?: pool
+        fun slices(pool: List<Pair<String, Float>>, filter: Set<String>?): List<LinkStats.Slice> {
+            val chosen = filter?.takeIf { it.isNotEmpty() }
+                ?.let { f -> pool.filter { it.first in f } } ?: pool
             val poolSum = chosen.sumOf { it.second.toDouble() }.toFloat()
             return chosen.mapNotNull { (label, share) ->
                 val count = (total * share / poolSum).roundToInt()

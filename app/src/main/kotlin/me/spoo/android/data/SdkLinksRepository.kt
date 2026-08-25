@@ -163,13 +163,13 @@ class SdkLinksRepository(
                 StatsMetric.UniqueClicks -> Metric.UNIQUE_CLICKS
             },
         ),
-        filters = filters.entries.associate { (dim, value) ->
+        filters = filters.entries.associate { (dim, values) ->
             when (dim) {
                 StatsDim.Country -> FilterDimension.COUNTRY
                 StatsDim.Browser -> FilterDimension.BROWSER
                 StatsDim.Os -> FilterDimension.OS
                 StatsDim.Referrer -> FilterDimension.REFERRER
-            } to listOf(value)
+            } to values.toList()
         },
     )
 

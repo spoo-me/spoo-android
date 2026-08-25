@@ -60,7 +60,13 @@ data class WidgetConfig(
             if (filters.isNotEmpty()) "FILTERED" else null,
         ).joinToString(" · ")
 
-    fun toParams() = StatsParams(days = rangeDays, filters = filters, metric = metric)
+    fun toParams() = StatsParams(
+        days = rangeDays,
+        // Widget config stays single-select per dimension; the params
+        // surface takes sets.
+        filters = filters.mapValues { setOf(it.value) },
+        metric = metric,
+    )
 
     companion object {
         /** Picker shells: provider receiver class -> prefill. */

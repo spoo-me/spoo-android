@@ -148,7 +148,7 @@ fun StatsContent(
                             BadgedBox(
                                 badge = {
                                     if (params.filters.isNotEmpty()) {
-                                        Badge { Text("${params.filters.size}") }
+                                        Badge { Text("${params.filters.values.sumOf { it.size }}") }
                                     }
                                 },
                             ) {
@@ -177,7 +177,7 @@ fun StatsContent(
             Breakdown(
                 title = "Browsers",
                 slices = stats.browsers,
-                activeValue = params.filters[StatsDim.Browser],
+                activeValues = params.filters[StatsDim.Browser].orEmpty(),
                 labelFor = { it },
                 icon = { BrandIcon(it) },
                 onToggle = if (filterable) {
@@ -191,7 +191,7 @@ fun StatsContent(
             Breakdown(
                 title = "Operating systems",
                 slices = stats.os,
-                activeValue = params.filters[StatsDim.Os],
+                activeValues = params.filters[StatsDim.Os].orEmpty(),
                 labelFor = { it },
                 icon = { BrandIcon(it) },
                 onToggle = if (filterable) {
@@ -205,7 +205,7 @@ fun StatsContent(
             Breakdown(
                 title = "Referrers",
                 slices = stats.referrers,
-                activeValue = params.filters[StatsDim.Referrer],
+                activeValues = params.filters[StatsDim.Referrer].orEmpty(),
                 labelFor = { it },
                 icon = { value ->
                     if (value.contains('.')) Favicon(value) else Monogram(value)
@@ -221,7 +221,7 @@ fun StatsContent(
             Breakdown(
                 title = "Countries",
                 slices = stats.countries,
-                activeValue = params.filters[StatsDim.Country],
+                activeValues = params.filters[StatsDim.Country].orEmpty(),
                 labelFor = ::countryDisplayName,
                 icon = { CountryFlag(it) },
                 onToggle = if (filterable) {
@@ -270,10 +270,11 @@ fun StatsContent(
     }
 }
 
-fun StatsParams.toggling(dim: StatsDim, value: String): StatsParams =
-    copy(
-        filters = if (filters[dim] == value) filters - dim else filters + (dim to value),
-    )
+fun StatsParams.toggling(dim: StatsDim, value: String): StatsParams {
+    val current = filters[dim].orEmpty()
+    val next = if (value in current) current - value else current + value
+    return copy(filters = if (next.isEmpty()) filters - dim else filters + (dim to next))
+}
 
 /**
  * One framed section: quiet card, muted section label, content below.
@@ -311,7 +312,7 @@ private fun StatsCard(
 private fun Breakdown(
     title: String,
     slices: List<LinkStats.Slice>,
-    activeValue: String?,
+    activeValues: Set<String>,
     labelFor: (String) -> String,
     icon: @Composable (String) -> Unit,
     onToggle: ((String) -> Unit)?,
@@ -332,7 +333,7 @@ private fun Breakdown(
                 )
             }
             top.forEach { slice ->
-                val active = slice.label == activeValue
+                val active = slice.label in activeValues
                 // Surface pairs onSecondaryContainer automatically; every
                 // child must speak that pair, bar included (pairing law).
                 Surface(

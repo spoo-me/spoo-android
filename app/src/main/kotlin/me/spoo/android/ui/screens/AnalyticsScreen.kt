@@ -61,11 +61,19 @@ import me.spoo.android.ui.components.toggling
 fun AnalyticsScreen() {
     var params by remember { mutableStateOf(StatsParams()) }
     var stats by remember { mutableStateOf<LinkStats?>(null) }
+    // The filter menu's vocabulary: same window, NO filters — otherwise
+    // picking one value collapses the menu to just that value.
+    var vocab by remember { mutableStateOf<LinkStats?>(null) }
 
     LaunchedEffect(params) {
         stats = runCatching {
             SpooApp.graph.linksRepository.accountStats(params)
         }.getOrNull() ?: stats
+    }
+    LaunchedEffect(params.days, params.customRange) {
+        vocab = runCatching {
+            SpooApp.graph.linksRepository.accountStats(params.copy(filters = emptyMap()))
+        }.getOrNull() ?: vocab
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -113,7 +121,7 @@ fun AnalyticsScreen() {
 
     if (showFilters) {
         FilterSheet(
-            stats = stats,
+            stats = vocab ?: stats,
             params = params,
             onParamsChange = { params = it },
             onDismiss = { showFilters = false },
@@ -197,7 +205,7 @@ private fun FilterGroup(
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         values.forEach { slice ->
-            val selected = params.filters[dim] == slice.label
+            val selected = slice.label in params.filters[dim].orEmpty()
             FilterChip(
                 selected = selected,
                 onClick = { onParamsChange(params.toggling(dim, slice.label)) },

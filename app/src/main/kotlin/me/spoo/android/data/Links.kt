@@ -81,8 +81,9 @@ data class StatsParams(
     val days: Int? = 30,
     /** Explicit start..end in epoch millis; wins over [days]. */
     val customRange: Pair<Long, Long>? = null,
-    /** Raw dimension values, exactly as the API stored them. */
-    val filters: Map<StatsDim, String> = emptyMap(),
+    /** Raw dimension values, exactly as the API stored them; the API
+     *  accepts several values per dimension. */
+    val filters: Map<StatsDim, Set<String>> = emptyMap(),
     val metric: StatsMetric = StatsMetric.Clicks,
 )
 
