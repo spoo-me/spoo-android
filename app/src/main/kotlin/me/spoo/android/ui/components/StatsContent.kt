@@ -27,6 +27,7 @@ import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -332,6 +333,8 @@ private fun Breakdown(
             }
             top.forEach { slice ->
                 val active = slice.label == activeValue
+                // Surface pairs onSecondaryContainer automatically; every
+                // child must speak that pair, bar included (pairing law).
                 Surface(
                     onClick = { onToggle?.invoke(slice.label) },
                     enabled = onToggle != null,
@@ -342,8 +345,12 @@ private fun Breakdown(
                         Color.Transparent
                     },
                 ) {
+                    val content = LocalContentColor.current
                     Row(
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(
+                            horizontal = if (active) 12.dp else 4.dp,
+                            vertical = 8.dp,
+                        ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         icon(slice.label)
@@ -361,7 +368,6 @@ private fun Breakdown(
                                 Text(
                                     numbers.format(slice.count),
                                     style = MaterialTheme.typography.labelLarge.tabular,
-                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
                             }
                             Box(
@@ -369,14 +375,22 @@ private fun Breakdown(
                                     .fillMaxWidth()
                                     .height(5.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                    .background(
+                                        if (active) {
+                                            content.copy(alpha = 0.15f) // state-layer alpha
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceContainerHigh
+                                        },
+                                    ),
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth(slice.count / max.toFloat())
                                         .height(5.dp)
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary),
+                                        .background(
+                                            if (active) content else MaterialTheme.colorScheme.primary,
+                                        ),
                                 )
                             }
                         }
