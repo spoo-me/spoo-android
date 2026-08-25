@@ -1,5 +1,6 @@
 package me.spoo.android.ui.theme
 
+import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,11 +19,34 @@ import androidx.compose.ui.unit.dp
 fun Modifier.softCardShadow(shape: Shape): Modifier =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
         shadow(
-            elevation = 7.dp,
+            elevation = 6.dp,
             shape = shape,
-            spotColor = Color.Black.copy(alpha = 0.16f),
-            ambientColor = Color.Black.copy(alpha = 0.10f),
+            spotColor = Color.Black.copy(alpha = 0.12f),
+            ambientColor = Color.Black.copy(alpha = 0.07f),
         )
     } else {
         this
     }
+
+/** White card in light, elevated tone in dark. */
+@Composable
+fun cardContainerColor(): Color =
+    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+/** Shadow + hairline: the full premium card chrome, both themes. */
+@Composable
+fun Modifier.cardChrome(shape: Shape): Modifier {
+    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    return softCardShadow(shape).then(
+        Modifier.border(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+                .copy(alpha = if (light) 0.55f else 0.4f),
+            shape = shape,
+        ),
+    )
+}

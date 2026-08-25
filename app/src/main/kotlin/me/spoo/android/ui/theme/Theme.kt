@@ -44,8 +44,9 @@ fun SpooTheme(
     }
 
     // Dynamic schemes tint every surface with the seed hue; the premium
-    // read needs a clean ground. Ground goes true white / near-black,
-    // containers keep their soft tint — tiers stay visible, cast goes.
+    // read needs a neutral ground so true-white cards can sit on it
+    // (near-black ground + elevated cards in dark). Containers keep
+    // their soft tint — tiers stay visible, cast goes.
     val cleanGround = if (darkTheme) {
         colorScheme.copy(
             surface = Color(0xFF0B0B0D),
@@ -53,8 +54,8 @@ fun SpooTheme(
         )
     } else {
         colorScheme.copy(
-            surface = Color.White,
-            background = Color.White,
+            surface = Color(0xFFF4F4F6),
+            background = Color(0xFFF4F4F6),
         )
     }
 

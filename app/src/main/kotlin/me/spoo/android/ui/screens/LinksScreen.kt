@@ -56,7 +56,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.Scaffold
@@ -101,7 +101,8 @@ import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
-import me.spoo.android.ui.theme.softCardShadow
+import me.spoo.android.ui.theme.cardChrome
+import me.spoo.android.ui.theme.cardContainerColor
 import me.spoo.android.ui.theme.tabular
 
 /**
@@ -170,7 +171,7 @@ fun LinksScreen(
                     },
                 )
             } else {
-                LargeFlexibleTopAppBar(
+                MediumFlexibleTopAppBar(
                     title = { Text("spoo.me") },
                     subtitle = {
                         Text(
@@ -199,7 +200,7 @@ fun LinksScreen(
                 top = padding.calculateTopPadding(),
                 bottom = padding.calculateBottomPadding() + 96.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item(key = "search") {
                 // Filled, not outlined: quiet chrome over hairline chrome.
@@ -555,76 +556,83 @@ private fun LinkRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val clipboard = LocalClipboardManager.current
-    val context = LocalContext.current
     var menuOpen by remember { mutableStateOf(false) }
     val numbers = NumberFormat.getIntegerInstance()
 
-    Row(
+    // The reference card anatomy: identity + title block up top with the
+    // overflow pinned to the corner, then a bottom rail — the metric on
+    // the left, the date on the right. One fact per line, nothing crammed.
+    Column(
         modifier = Modifier
-            .softCardShadow(MaterialTheme.shapes.large)
+            .cardChrome(MaterialTheme.shapes.large)
             .clip(MaterialTheme.shapes.large)
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
-                    MaterialTheme.colorScheme.surfaceContainerLow
+                    cardContainerColor()
                 },
             )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 12.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
     ) {
-        // Identity in a tonal container: the row's anchor, not a floater.
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center,
-        ) {
-            Favicon(host = faviconHost(link.originalUrl), size = 20.dp)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                contentAlignment = Alignment.Center,
+            ) {
+                Favicon(host = faviconHost(link.originalUrl), size = 20.dp)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "/${link.shortCode}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (link.active) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (link.hasPassword) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Outlined.Lock,
+                            contentDescription = "Password protected",
+                            modifier = Modifier.height(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "/${link.shortCode}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (link.active) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (link.hasPassword) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(
-                        Icons.Outlined.Lock,
-                        contentDescription = "Password protected",
-                        modifier = Modifier.height(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = buildString {
-                    if (!link.active) append("${link.status.name.lowercase()} · ")
-                    append(link.originalUrl.removePrefix("https://").removePrefix("http://"))
-                    append(" · ${link.createdLabel}")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (!selecting) {
+                LinkMenu(
+                    link = link,
+                    showShare = showShare,
+                    menuOpen = menuOpen,
+                    onMenuOpenChange = { menuOpen = it },
+                    onQr = onQr,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                )
+            }
         }
-        // The one number this app is about, treated like it.
-        Spacer(Modifier.width(10.dp))
-        Column(horizontalAlignment = Alignment.End) {
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.padding(end = 6.dp)) {
             Text(
                 text = numbers.format(link.totalClicks),
                 style = MaterialTheme.typography.titleMedium.tabular,
@@ -633,57 +641,87 @@ private fun LinkRow(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
+                modifier = Modifier.alignByBaseline(),
             )
+            Spacer(Modifier.width(5.dp))
             Text(
                 text = "clicks",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alignByBaseline(),
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = buildString {
+                    if (!link.active) append("${link.status.name.lowercase()} · ")
+                    append(link.createdLabel)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alignByBaseline(),
             )
         }
-        if (!selecting) {
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(
-                        Icons.Outlined.MoreVert,
-                        contentDescription = "More actions for ${link.shortUrl}",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Copy") },
-                        onClick = {
-                            menuOpen = false
-                            clipboard.setText(AnnotatedString("https://${link.shortUrl}"))
-                        },
-                    )
-                    if (showShare) {
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            onClick = {
-                                menuOpen = false
-                                val send = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, "https://${link.shortUrl}")
-                                }
-                                context.startActivity(Intent.createChooser(send, null))
-                            },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("QR code") },
-                        onClick = { menuOpen = false; onQr() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = { menuOpen = false; onEdit() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        onClick = { menuOpen = false; onDelete() },
-                    )
-                }
+    }
+}
+
+/** Corner overflow: compact target, the reference card's quiet "...". */
+@Composable
+private fun LinkMenu(
+    link: SpooLink,
+    showShare: Boolean,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
+    onQr: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    Box {
+        IconButton(
+            onClick = { onMenuOpenChange(true) },
+            modifier = Modifier.size(30.dp),
+        ) {
+            Icon(
+                Icons.Outlined.MoreVert,
+                contentDescription = "More actions for ${link.shortUrl}",
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }) {
+            DropdownMenuItem(
+                text = { Text("Copy") },
+                onClick = {
+                    onMenuOpenChange(false)
+                    clipboard.setText(AnnotatedString("https://${link.shortUrl}"))
+                },
+            )
+            if (showShare) {
+                DropdownMenuItem(
+                    text = { Text("Share") },
+                    onClick = {
+                        onMenuOpenChange(false)
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "https://${link.shortUrl}")
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    },
+                )
             }
+            DropdownMenuItem(
+                text = { Text("QR code") },
+                onClick = { onMenuOpenChange(false); onQr() },
+            )
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                onClick = { onMenuOpenChange(false); onEdit() },
+            )
+            DropdownMenuItem(
+                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                onClick = { onMenuOpenChange(false); onDelete() },
+            )
         }
     }
 }

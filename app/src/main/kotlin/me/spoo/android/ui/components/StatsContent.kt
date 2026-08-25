@@ -50,7 +50,8 @@ import java.util.Locale
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
-import me.spoo.android.ui.theme.softCardShadow
+import me.spoo.android.ui.theme.cardChrome
+import me.spoo.android.ui.theme.cardContainerColor
 import me.spoo.android.ui.theme.tabular
 
 private val RANGES = listOf(7 to "7d", 30 to "30d", 90 to "90d", null to "All")
@@ -287,9 +288,9 @@ private fun StatsCard(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.softCardShadow(RoundedCornerShape(20.dp)),
+        modifier = Modifier.cardChrome(RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = cardContainerColor(),
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(
