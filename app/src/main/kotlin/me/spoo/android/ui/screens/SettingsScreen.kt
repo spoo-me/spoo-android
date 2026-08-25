@@ -28,8 +28,12 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.SwipeLeft
+import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MediumFlexibleTopAppBar
@@ -42,6 +46,10 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +61,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.spoo.android.BuildConfig
 import me.spoo.android.data.AppSettings
+import me.spoo.android.data.SwipeAction
 import me.spoo.android.data.ThemeMode
 
 /**
@@ -68,6 +77,8 @@ fun SettingsScreen(
     onSetUseDeviceColors: (Boolean) -> Unit,
     onSetSeedColor: (Long) -> Unit,
     onSetShowShare: (Boolean) -> Unit,
+    onSetSwipeRight: (SwipeAction) -> Unit,
+    onSetSwipeLeft: (SwipeAction) -> Unit,
     onSetMockData: (Boolean) -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -165,13 +176,29 @@ fun SettingsScreen(
             }
 
             Group("Behavior") {
-                GroupRow(0, 1) {
+                GroupRow(0, 3) {
                     SwitchRow(
                         icon = Icons.Outlined.Share,
                         title = "Share in link menu",
                         subtitle = "Show a Share action on every link",
                         checked = settings.showShareInMenu,
                         onChecked = onSetShowShare,
+                    )
+                }
+                GroupRow(1, 3) {
+                    SwipeActionRow(
+                        icon = Icons.Outlined.SwipeRight,
+                        title = "Swipe right on a link",
+                        current = settings.swipeRight,
+                        onSelect = onSetSwipeRight,
+                    )
+                }
+                GroupRow(2, 3) {
+                    SwipeActionRow(
+                        icon = Icons.Outlined.SwipeLeft,
+                        title = "Swipe left on a link",
+                        current = settings.swipeLeft,
+                        onSelect = onSetSwipeLeft,
                     )
                 }
             }
@@ -269,6 +296,42 @@ private fun groupShape(index: Int, count: Int): Shape {
         bottomStart = if (index == count - 1) big else small,
         bottomEnd = if (index == count - 1) big else small,
     )
+}
+
+@Composable
+private fun SwipeActionRow(
+    icon: ImageVector,
+    title: String,
+    current: SwipeAction,
+    onSelect: (SwipeAction) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { open = true }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(16.dp))
+            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(
+                current.label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            SwipeAction.entries.forEach { action ->
+                DropdownMenuItem(
+                    text = { Text(action.label) },
+                    onClick = { open = false; onSelect(action) },
+                )
+            }
+        }
+    }
 }
 
 @Composable

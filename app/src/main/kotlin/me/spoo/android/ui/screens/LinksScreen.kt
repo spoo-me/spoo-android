@@ -30,7 +30,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.QrCode
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Link
@@ -61,7 +65,12 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MediumFlexibleTopAppBar
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.toShape
 import androidx.compose.material3.MediumFloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TextField
@@ -99,6 +108,7 @@ import java.text.NumberFormat
 import me.spoo.android.data.LinkUiStatus
 import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.SpooLink
+import me.spoo.android.data.SwipeAction
 import me.spoo.android.ui.components.CreateLinkSheet
 import me.spoo.android.ui.components.EditLinkSheet
 import me.spoo.android.ui.components.Favicon
@@ -126,6 +136,8 @@ fun LinksScreen(
     prefillText: String?,
     startInCreate: Boolean,
     showShareInMenu: Boolean,
+    swipeRight: SwipeAction = SwipeAction.Edit,
+    swipeLeft: SwipeAction = SwipeAction.Delete,
     onOpenStats: (String) -> Unit,
     viewModel: LinksViewModel = viewModel(),
 ) {
@@ -272,19 +284,47 @@ fun LinksScreen(
                 }
             }
             items(links, key = { it.id }) { link ->
-                LinkRow(
-                    link = link,
-                    selecting = selecting,
-                    selected = link.id in selection,
-                    showShare = showShareInMenu,
-                    onClick = {
-                        if (selecting) viewModel.toggleSelected(link.id) else onOpenStats(link.shortCode)
-                    },
-                    onLongClick = { viewModel.toggleSelected(link.id) },
-                    onQr = { qrFor = link },
-                    onEdit = { editFor = link },
-                    onDelete = { deleteFor = link },
-                )
+                val clipboard = LocalClipboardManager.current
+                val context = LocalContext.current
+                val runSwipeAction: (SwipeAction) -> Unit = { action ->
+                    when (action) {
+                        SwipeAction.Copy -> {
+                            clipboard.setText(AnnotatedString("https://${link.shortUrl}"))
+                            viewModel.actionMessage.value = "Copied ${link.shortUrl}"
+                        }
+                        SwipeAction.Share -> {
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "https://${link.shortUrl}")
+                            }
+                            context.startActivity(Intent.createChooser(send, null))
+                        }
+                        SwipeAction.Edit -> editFor = link
+                        SwipeAction.Qr -> qrFor = link
+                        SwipeAction.Delete -> deleteFor = link
+                        SwipeAction.None -> Unit
+                    }
+                }
+                SwipeableLinkCard(
+                    swipeRight = swipeRight,
+                    swipeLeft = swipeLeft,
+                    enabled = !selecting,
+                    onAction = runSwipeAction,
+                ) {
+                    LinkRow(
+                        link = link,
+                        selecting = selecting,
+                        selected = link.id in selection,
+                        showShare = showShareInMenu,
+                        onClick = {
+                            if (selecting) viewModel.toggleSelected(link.id) else onOpenStats(link.shortCode)
+                        },
+                        onLongClick = { viewModel.toggleSelected(link.id) },
+                        onQr = { qrFor = link },
+                        onEdit = { editFor = link },
+                        onDelete = { deleteFor = link },
+                    )
+                }
             }
             if (links.isEmpty()) {
                 item(key = "empty") {
@@ -548,14 +588,86 @@ private fun LinksFilterSheet(
     }
 }
 
-private fun LinkUiStatus.dotColor() = when (this) {
-    LinkUiStatus.Active -> Color(0xFF4ADE80)
-    LinkUiStatus.Inactive -> Color(0xFF9CA3AF)
-    LinkUiStatus.Expired -> Color(0xFFF59E0B)
-    LinkUiStatus.Blocked -> Color(0xFFEF4444)
+/**
+ * Horizontal swipe on a card runs a user-mapped action (Settings ->
+ * Behavior). The card always settles back — sheets and dialogs carry
+ * the action itself, so nothing is destructive from the gesture alone.
+ */
+@Composable
+private fun SwipeableLinkCard(
+    swipeRight: SwipeAction,
+    swipeLeft: SwipeAction,
+    enabled: Boolean,
+    onAction: (SwipeAction) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> onAction(swipeRight)
+                SwipeToDismissBoxValue.EndToStart -> onAction(swipeLeft)
+                else -> Unit
+            }
+            false // settle back, never dismiss
+        },
+    )
+    SwipeToDismissBox(
+        state = state,
+        enableDismissFromStartToEnd = enabled && swipeRight != SwipeAction.None,
+        enableDismissFromEndToStart = enabled && swipeLeft != SwipeAction.None,
+        backgroundContent = {
+            val action = when (state.dismissDirection) {
+                SwipeToDismissBoxValue.StartToEnd -> swipeRight
+                SwipeToDismissBoxValue.EndToStart -> swipeLeft
+                else -> SwipeAction.None
+            }
+            if (action != SwipeAction.None) {
+                val (container, onContainer, glyph) = swipeVisual(action)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(MaterialTheme.shapes.large)
+                        .background(container)
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = if (state.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
+                        Alignment.CenterStart
+                    } else {
+                        Alignment.CenterEnd
+                    },
+                ) {
+                    Icon(glyph, contentDescription = action.label, tint = onContainer)
+                }
+            }
+        },
+        content = { content() },
+    )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** Container/on-container pairs per the color-role doctrine. */
+@Composable
+private fun swipeVisual(action: SwipeAction): Triple<Color, Color, androidx.compose.ui.graphics.vector.ImageVector> {
+    val scheme = MaterialTheme.colorScheme
+    return when (action) {
+        SwipeAction.Delete -> Triple(scheme.errorContainer, scheme.onErrorContainer, Icons.Outlined.Delete)
+        SwipeAction.Edit -> Triple(scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.Edit)
+        SwipeAction.Qr -> Triple(scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.QrCode)
+        SwipeAction.Copy -> Triple(scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Outlined.ContentCopy)
+        SwipeAction.Share -> Triple(scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Outlined.Share)
+        SwipeAction.None -> Triple(Color.Transparent, Color.Transparent, Icons.Outlined.Close)
+    }
+}
+
+// Roles, not hexes: fixed colors break dark theme, dynamic color, and
+// user-controlled contrast (per the M3 color doctrine).
+@Composable
+private fun LinkUiStatus.dotColor() = when (this) {
+    LinkUiStatus.Active -> MaterialTheme.colorScheme.primary
+    LinkUiStatus.Inactive -> MaterialTheme.colorScheme.outline
+    LinkUiStatus.Expired -> MaterialTheme.colorScheme.tertiary
+    LinkUiStatus.Blocked -> MaterialTheme.colorScheme.error
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LinkRow(
     link: SpooLink,
@@ -589,16 +701,17 @@ private fun LinkRow(
             .padding(start = 16.dp, end = 10.dp, top = 14.dp, bottom = 14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Identity shell sized to the icon, centered in the card.
+            // Identity shell: the app's one abstract shape — the spoo ghost
+            // (MaterialShapes avatar-masking pattern, per shape doctrine).
             Box(
                 modifier = Modifier
-                    .width(46.dp)
+                    .width(50.dp)
                     .height(54.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(MaterialShapes.Ghostish.toShape())
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
-                Favicon(host = faviconHost(link.originalUrl), size = 26.dp)
+                Favicon(host = faviconHost(link.originalUrl), size = 24.dp)
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {

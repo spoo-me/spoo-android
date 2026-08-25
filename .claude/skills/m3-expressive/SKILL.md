@@ -119,3 +119,71 @@ icon in all masks.
   space200, v-padding space125, icon-label gap space100; buttons scale
   paddings with size tier (small→large: bottom space200→400, leading
   space300→600). Compose is the only platform with the tokens wired.
+
+## Elevation doctrine (m3.material.io/styles/elevation, digested 2026-08-25)
+- Six levels (0..+5). REST lives at 0-3; +4/+5 are reserved for
+  interaction states (hover, drag, swipe). Components keep their DEFAULT
+  resting elevation — don't redesign it per screen.
+- M3 is color-first: tonal difference between surface-container roles is
+  the default separator; shadows are spent ONLY to (a) protect elements
+  on busy ground or (b) encourage interaction (temporary lift on press/
+  drag/swipe). Scrims (scrim role @32%) focus large layered surfaces.
+- Shadow size/softness = distance: small+sharp = close, large+soft = far.
+  Fewer shadow levels = more power.
+- Overlapping containment areas must use DIFFERENT surface roles; edges
+  of interactive surfaces need accessible contrast.
+- **spoo-android ruling**: the rest-state card shadow (Effects.kt) is a
+  deliberate divergence zingzy chose for the premium look — treat it as
+  the app's protection layer and add NO other resting shadows. Interaction
+  lift (swipe, drag) is the sanctioned place for elevation change.
+
+## Color-role doctrine (m3.material.io/styles/color, digested 2026-08-25)
+- Paint-by-number: every element maps to a ROLE, never a hex. One source
+  color → 5 key colors → tonal palettes (tone 0-100) → roles. HCT tone
+  difference is what creates contrast (HSL lightness ≠ HCT tone).
+- Role grammar: Surface = background/low-emphasis; Primary/Secondary/
+  Tertiary = accents by emphasis (primary = FAB/hero, secondary = quieter
+  chrome like chips/toggles, tertiary = contrasting small emphasis like
+  badges); Container = FILL for foreground elements, never for text;
+  On-X = text/icons on X, used ONLY on its pair; Variant = lower emphasis.
+- **Pairing is law**: only On-X on X (or the documented layerings). Hand-
+  mixed pairings break user-controlled contrast — the system re-derives
+  roles at higher contrast settings, and rogue pairs go illegible.
+- **outline vs outlineVariant** (zingzy flagged): outline = boundaries of
+  interactive targets needing 3:1 (text fields). outlineVariant = dividers
+  and decorative edges of multi-element containers (cards). NEVER outline
+  on cards/dividers; never outlineVariant as the only boundary of a target
+  (unless inner content carries the contrast).
+- **Fixed roles / fixed colors** (zingzy flagged): anything that doesn't
+  flip with light/dark theme is a contrast bug waiting. No hardcoded
+  hexes for UI meaning — map to roles so dynamic color + dark theme +
+  contrast settings all keep working.
+- Multiple schemes may coexist (max two source types per screen; pair a
+  content-based scheme with its visible source; never replace semantic
+  red/green conventions with dynamic color).
+- **spoo-android rulings**: ground override (pure white / #0B0B0D) is a
+  deliberate global remap of the surface role — sanctioned. Chart-bitmap
+  text colors computed from fill luminance are sanctioned (contrast by
+  construction). Everything else: roles only; status colors map to roles
+  (active=primary, inactive=outline, expired=tertiary, blocked=error),
+  never Tailwind hexes.
+
+## Shape doctrine (m3.material.io/styles/shape, digested 2026-08-25)
+- 35-shape library (MaterialShapes.*) incl. cookies, clovers, bursts,
+  Ghostish, Bun, Heart; shapes echo type roundness — use shape+type
+  together.
+- BE BOLD: tension (mixing round + square) makes design memorable;
+  Material historically over-rounded, sharp/unconventional shapes are in.
+- Morph shapes to communicate: interaction states (selected button),
+  progress (typing, loading), environment changes. Shape morph should
+  respond to user interaction.
+- Shape is versatile, NOT semantic: don't hard-bind one shape to one
+  meaning (wavy ≠ only progress).
+- Abstract shapes SPARINGLY and with intent — shape variety without a why
+  is clutter, not delight. Decorative moments (avatar/image masking,
+  non-interactive graphics) are the most flexible place for them.
+- 2.5D: differential motion/shape per layer fakes depth.
+- **spoo-android ruling**: the app's shape moment = MaterialShapes.Ghostish
+  as the favicon-shell mask on link cards (the spoo ghost, avatar-masking
+  pattern). It is the ONE abstract shape; everything else stays on the
+  corner-radius scale.

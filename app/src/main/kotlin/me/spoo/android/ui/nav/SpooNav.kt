@@ -114,6 +114,8 @@ fun SpooNav(
                             prefillText = prefillText,
                             startInCreate = startInCreate,
                             showShareInMenu = settings.showShareInMenu,
+                            swipeRight = settings.swipeRight,
+                            swipeLeft = settings.swipeLeft,
                             onOpenStats = { code -> backStack.add(StatsKey(code)) },
                         )
                     }
@@ -131,6 +133,8 @@ fun SpooNav(
                             onSetUseDeviceColors = { scope.launch { settingsRepo.setUseDeviceColors(it) } },
                             onSetSeedColor = { scope.launch { settingsRepo.setSeedColor(it) } },
                             onSetShowShare = { scope.launch { settingsRepo.setShowShareInMenu(it) } },
+                            onSetSwipeRight = { scope.launch { settingsRepo.setSwipeRight(it) } },
+                            onSetSwipeLeft = { scope.launch { settingsRepo.setSwipeLeft(it) } },
                             onSetMockData = { scope.launch { settingsRepo.setMockData(it) } },
                             onSignOut = onSignOut,
                         )
