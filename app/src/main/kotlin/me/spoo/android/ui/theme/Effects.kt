@@ -10,28 +10,14 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 
-/**
- * The soft, wide, barely-there card shadow. Translucent shadow colors
- * diffuse what stock elevation renders harsh; dark theme skips it
- * entirely (shadows on near-black read as mud, tiers do the work there).
- */
-@Composable
-fun Modifier.softCardShadow(shape: Shape): Modifier =
-    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        shadow(
-            elevation = 9.dp,
-            shape = shape,
-            spotColor = Color.Black.copy(alpha = 0.20f),
-            ambientColor = Color.Black.copy(alpha = 0.12f),
-        )
-    } else {
-        this
-    }
-
 /** Tinted card on the clean ground, both themes. */
 @Composable
 fun cardContainerColor(): Color = MaterialTheme.colorScheme.surfaceContainerLow
 
-/** The card chrome: soft shadow only — the tint edge is the border. */
+/**
+ * Card chrome is tonal only: color instead of shadows communicates
+ * elevation (the M3 rule zingzy adopted). Kept as the single hook so a
+ * future interaction-lift lands in one place.
+ */
 @Composable
-fun Modifier.cardChrome(shape: Shape): Modifier = softCardShadow(shape)
+fun Modifier.cardChrome(shape: Shape): Modifier = this

@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
@@ -41,6 +42,8 @@ fun SpooTheme(
             seedColor = Color(settings.seedColor),
             isDark = darkTheme,
             style = PaletteStyle.TonalSpot,
+            // Medium contrast: deeper accents and text per zingzy's call.
+            contrastLevel = 0.5,
         )
     }
 
@@ -54,9 +57,21 @@ fun SpooTheme(
             background = Color(0xFF0B0B0D),
         )
     } else {
+        // Containers should read as neutral surfaces with a whisper of the
+        // seed (M3 derives them from the low-chroma neutral palette); the
+        // generated ramp runs hotter, and against a true-white ground every
+        // card reads as an accent-colored component. Halve the chroma,
+        // keep the hue.
+        fun soften(color: Color) = lerp(Color.White, color, 0.5f)
         colorScheme.copy(
             surface = Color.White,
             background = Color.White,
+            surfaceContainerLowest = Color.White,
+            surfaceContainerLow = soften(colorScheme.surfaceContainerLow),
+            surfaceContainer = soften(colorScheme.surfaceContainer),
+            surfaceContainerHigh = soften(colorScheme.surfaceContainerHigh),
+            surfaceContainerHighest = soften(colorScheme.surfaceContainerHighest),
+            surfaceVariant = soften(colorScheme.surfaceVariant),
         )
     }
 

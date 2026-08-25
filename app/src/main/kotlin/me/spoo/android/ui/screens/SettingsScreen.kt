@@ -307,6 +307,7 @@ private fun SwipeActionRow(
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
+        // Same anatomy as SwitchRow so the group's rows stay equal-height.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -316,12 +317,14 @@ private fun SwipeActionRow(
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(16.dp))
-            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            Text(
-                current.label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    current.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             SwipeAction.entries.forEach { action ->

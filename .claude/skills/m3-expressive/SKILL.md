@@ -132,10 +132,10 @@ icon in all masks.
   Fewer shadow levels = more power.
 - Overlapping containment areas must use DIFFERENT surface roles; edges
   of interactive surfaces need accessible contrast.
-- **spoo-android ruling**: the rest-state card shadow (Effects.kt) is a
-  deliberate divergence zingzy chose for the premium look — treat it as
-  the app's protection layer and add NO other resting shadows. Interaction
-  lift (swipe, drag) is the sanctioned place for elevation change.
+- **spoo-android ruling (updated Aug 25)**: zingzy adopted color-instead-
+  of-shadows fully — cards separate by tonal difference ONLY, zero resting
+  shadows anywhere. Interaction lift (swipe, drag, press) is the only
+  sanctioned elevation change; cardChrome() in Effects.kt is the hook.
 
 ## Color-role doctrine (m3.material.io/styles/color, digested 2026-08-25)
 - Paint-by-number: every element maps to a ROLE, never a hex. One source
