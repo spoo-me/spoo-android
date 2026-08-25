@@ -584,10 +584,10 @@ private fun LinkRow(
                 },
             )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            .padding(start = 16.dp, end = 10.dp, top = 14.dp, bottom = 14.dp),
     ) {
-        Row {
-            // Identity shell sized to the icon, anchored to the title block.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Identity shell sized to the icon, centered in the card.
             Box(
                 modifier = Modifier
                     .size(44.dp)
