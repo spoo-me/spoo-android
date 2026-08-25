@@ -30,7 +30,6 @@ fun WavyClicksChart(
 ) {
     val stroke = MaterialTheme.colorScheme.primary
     val fillTop = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
-    val baseline = MaterialTheme.colorScheme.outlineVariant
 
     val progress = remember { Animatable(0f) }
     val spring = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
@@ -72,13 +71,6 @@ fun WavyClicksChart(
                 )
             }
         }
-
-        drawLine(
-            color = baseline,
-            start = Offset(0f, size.height - 0.5f),
-            end = Offset(size.width, size.height - 0.5f),
-            strokeWidth = 1.dp.toPx(),
-        )
 
         val fill = Path().apply {
             addPath(path)

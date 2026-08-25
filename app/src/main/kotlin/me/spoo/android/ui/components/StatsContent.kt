@@ -156,56 +156,22 @@ fun StatsContent(
                         }
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+            }
+        }
+
+        // The hero chart in the same card language as every other section,
+        // tall enough to breathe — no orphan baselines.
+        item(key = "chart") {
+            StatsCard(title = "Clicks over time") {
                 WavyClicksChart(
                     dailyClicks = stats.dailyClicks,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(170.dp),
+                        .height(210.dp),
                 )
             }
         }
 
-        // A contribution grid needs a run of weeks to read as one;
-        // short ranges skip it rather than render a lonely strip.
-        if (stats.dailyClicks.size >= 56) {
-            item(key = "activity") {
-                StatsCard(title = "Daily activity") {
-                    ClickHeatmap(
-                        dailyClicks = stats.dailyClicks,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(92.dp),
-                    )
-                }
-            }
-        }
-
-        item(key = "countries") {
-            Breakdown(
-                title = "Countries",
-                slices = stats.countries,
-                activeValue = params.filters[StatsDim.Country],
-                labelFor = ::countryDisplayName,
-                icon = { CountryFlag(it) },
-                onToggle = if (filterable) {
-                    { onParamsChange(params.toggling(StatsDim.Country, it)) }
-                } else {
-                    null
-                },
-                header = if (stats.countries.isNotEmpty()) {
-                    {
-                        WorldChoropleth(
-                            countries = stats.countries.associate { it.label.lowercase() to it.count },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                    }
-                } else {
-                    null
-                },
-            )
-        }
         item(key = "browsers") {
             Breakdown(
                 title = "Browsers",
@@ -245,6 +211,31 @@ fun StatsContent(
                 },
                 onToggle = if (filterable) {
                     { onParamsChange(params.toggling(StatsDim.Referrer, it)) }
+                } else {
+                    null
+                },
+            )
+        }
+        item(key = "countries") {
+            Breakdown(
+                title = "Countries",
+                slices = stats.countries,
+                activeValue = params.filters[StatsDim.Country],
+                labelFor = ::countryDisplayName,
+                icon = { CountryFlag(it) },
+                onToggle = if (filterable) {
+                    { onParamsChange(params.toggling(StatsDim.Country, it)) }
+                } else {
+                    null
+                },
+                header = if (stats.countries.isNotEmpty()) {
+                    {
+                        WorldChoropleth(
+                            countries = stats.countries.associate { it.label.lowercase() to it.count },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
                 } else {
                     null
                 },
