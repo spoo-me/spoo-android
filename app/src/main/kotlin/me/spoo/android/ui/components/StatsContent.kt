@@ -162,7 +162,7 @@ fun StatsContent(
         // The hero chart in the same card language as every other section,
         // tall enough to breathe — no orphan baselines.
         item(key = "chart") {
-            StatsCard(title = "Clicks over time") {
+            StatsCard(title = "Clicks over time", fullBleed = true) {
                 WavyClicksChart(
                     dailyClicks = stats.dailyClicks,
                     modifier = Modifier
@@ -274,10 +274,14 @@ fun StatsParams.toggling(dim: StatsDim, value: String): StatsParams =
         filters = if (filters[dim] == value) filters - dim else filters + (dim to value),
     )
 
-/** One framed section: quiet card, muted section label, content below. */
+/**
+ * One framed section: quiet card, muted section label, content below.
+ * [fullBleed] keeps the title inset but lets content consume the shell.
+ */
 @Composable
 private fun StatsCard(
     title: String,
+    fullBleed: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Surface(
@@ -285,9 +289,14 @@ private fun StatsCard(
         shape = RoundedCornerShape(20.dp),
         color = cardContainerColor(),
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(
+            Modifier.padding(
+                if (fullBleed) PaddingValues(top = 16.dp) else PaddingValues(16.dp),
+            ),
+        ) {
             Text(
                 title,
+                modifier = Modifier.padding(horizontal = if (fullBleed) 16.dp else 0.dp),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
