@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Cleartext only to the emulator's host loopback; everything else stays https. -->
+    <!-- Cleartext only to the dev backend (emulator loopback + the Mac's
+         tailnet IP); everything else stays https. -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">100.78.133.82</domain>
     </domain-config>
 </network-security-config>

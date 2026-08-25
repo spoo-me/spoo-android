@@ -30,8 +30,9 @@ android {
 
     buildTypes {
         debug {
-            // Local backend on the emulator host; see spoo-latest docker compose.
-            buildConfigField("String", "SPOO_BASE_URL", "\"http://10.0.2.2:8000\"")
+            // Local backend over the Mac's tailnet IP: reachable from the
+            // emulator (host NAT) AND a physical phone on the tailnet.
+            buildConfigField("String", "SPOO_BASE_URL", "\"http://100.78.133.82:8000\"")
             buildConfigField("String", "SPOO_REDIRECT_URI", "\"spoo://oauth/callback\"")
         }
         release {
