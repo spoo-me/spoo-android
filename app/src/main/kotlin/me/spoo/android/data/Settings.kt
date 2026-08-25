@@ -31,6 +31,8 @@ data class AppSettings(
     val showShareInMenu: Boolean = true,
     val swipeRight: SwipeAction = SwipeAction.Edit,
     val swipeLeft: SwipeAction = SwipeAction.Delete,
+    val swipeRightEnabled: Boolean = true,
+    val swipeLeftEnabled: Boolean = true,
     /** Debug-only: fixture links + stats for design work, no backend. */
     val mockData: Boolean = false,
 ) {
@@ -62,6 +64,8 @@ class SettingsRepository(private val context: Context) {
                 ?: SwipeAction.Edit,
             swipeLeft = p[SWIPE_LEFT]?.let { runCatching { SwipeAction.valueOf(it) }.getOrNull() }
                 ?: SwipeAction.Delete,
+            swipeRightEnabled = p[SWIPE_RIGHT_ON] ?: true,
+            swipeLeftEnabled = p[SWIPE_LEFT_ON] ?: true,
             mockData = p[MOCK_DATA] ?: false,
         )
     }
@@ -84,6 +88,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSwipeLeft(action: SwipeAction) =
         context.settingsDataStore.edit { it[SWIPE_LEFT] = action.name }
 
+    suspend fun setSwipeRightEnabled(value: Boolean) =
+        context.settingsDataStore.edit { it[SWIPE_RIGHT_ON] = value }
+
+    suspend fun setSwipeLeftEnabled(value: Boolean) =
+        context.settingsDataStore.edit { it[SWIPE_LEFT_ON] = value }
+
     suspend fun setMockData(value: Boolean) =
         context.settingsDataStore.edit { it[MOCK_DATA] = value }
 
@@ -94,6 +104,8 @@ class SettingsRepository(private val context: Context) {
         val SHOW_SHARE = booleanPreferencesKey("show_share_in_menu")
         val SWIPE_RIGHT = stringPreferencesKey("swipe_right")
         val SWIPE_LEFT = stringPreferencesKey("swipe_left")
+        val SWIPE_RIGHT_ON = booleanPreferencesKey("swipe_right_enabled")
+        val SWIPE_LEFT_ON = booleanPreferencesKey("swipe_left_enabled")
         val MOCK_DATA = booleanPreferencesKey("mock_data")
     }
 }

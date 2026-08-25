@@ -42,6 +42,7 @@ import kotlinx.serialization.Serializable
 import me.spoo.android.SpooApp
 import me.spoo.android.auth.AuthState
 import me.spoo.android.data.AppSettings
+import me.spoo.android.data.SwipeAction
 import me.spoo.android.ui.screens.AnalyticsScreen
 import me.spoo.android.ui.screens.LinksScreen
 import me.spoo.android.ui.screens.SettingsScreen
@@ -114,8 +115,8 @@ fun SpooNav(
                             prefillText = prefillText,
                             startInCreate = startInCreate,
                             showShareInMenu = settings.showShareInMenu,
-                            swipeRight = settings.swipeRight,
-                            swipeLeft = settings.swipeLeft,
+                            swipeRight = if (settings.swipeRightEnabled) settings.swipeRight else SwipeAction.None,
+                            swipeLeft = if (settings.swipeLeftEnabled) settings.swipeLeft else SwipeAction.None,
                             onOpenStats = { code -> backStack.add(StatsKey(code)) },
                         )
                     }
@@ -135,26 +136,14 @@ fun SpooNav(
                             onSetShowShare = { scope.launch { settingsRepo.setShowShareInMenu(it) } },
                             onSetSwipeRight = { scope.launch { settingsRepo.setSwipeRight(it) } },
                             onSetSwipeLeft = { scope.launch { settingsRepo.setSwipeLeft(it) } },
+                            onSetSwipeRightEnabled = { scope.launch { settingsRepo.setSwipeRightEnabled(it) } },
+                            onSetSwipeLeftEnabled = { scope.launch { settingsRepo.setSwipeLeftEnabled(it) } },
                             onSetMockData = { scope.launch { settingsRepo.setMockData(it) } },
                             onSignOut = onSignOut,
                         )
                     }
                 },
             )
-            // Content dissolves into the bar instead of hitting an edge.
-            if (atRoot) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(28.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
-                            ),
-                        ),
-                )
-            }
         }
         // The M3 Expressive navigation bar (the shorter redesign), sitting
         // on the ground color so the fade above lands seamlessly.

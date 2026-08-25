@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import me.spoo.android.BuildConfig
 import me.spoo.android.data.AppSettings
 import me.spoo.android.data.SwipeAction
+import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.data.ThemeMode
 
 /**
@@ -79,6 +80,8 @@ fun SettingsScreen(
     onSetShowShare: (Boolean) -> Unit,
     onSetSwipeRight: (SwipeAction) -> Unit,
     onSetSwipeLeft: (SwipeAction) -> Unit,
+    onSetSwipeRightEnabled: (Boolean) -> Unit,
+    onSetSwipeLeftEnabled: (Boolean) -> Unit,
     onSetMockData: (Boolean) -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -93,6 +96,7 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
+        Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -190,7 +194,9 @@ fun SettingsScreen(
                         icon = Icons.Outlined.SwipeRight,
                         title = "Swipe right on a link",
                         current = settings.swipeRight,
+                        enabled = settings.swipeRightEnabled,
                         onSelect = onSetSwipeRight,
+                        onEnabled = onSetSwipeRightEnabled,
                     )
                 }
                 GroupRow(2, 3) {
@@ -198,7 +204,9 @@ fun SettingsScreen(
                         icon = Icons.Outlined.SwipeLeft,
                         title = "Swipe left on a link",
                         current = settings.swipeLeft,
+                        enabled = settings.swipeLeftEnabled,
                         onSelect = onSetSwipeLeft,
+                        onEnabled = onSetSwipeLeftEnabled,
                     )
                 }
             }
@@ -259,6 +267,8 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        BottomFade()
+        }
     }
 }
 
@@ -303,15 +313,18 @@ private fun SwipeActionRow(
     icon: ImageVector,
     title: String,
     current: SwipeAction,
+    enabled: Boolean,
     onSelect: (SwipeAction) -> Unit,
+    onEnabled: (Boolean) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        // Same anatomy as SwitchRow so the group's rows stay equal-height.
+        // Same anatomy as SwitchRow so the group's rows stay equal-height;
+        // the switch gates the gesture, the row picks its action.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { open = true }
+                .clickable(enabled = enabled) { open = true }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -320,11 +333,13 @@ private fun SwipeActionRow(
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    current.label,
+                    if (enabled) current.label else "Off",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Spacer(Modifier.width(16.dp))
+            Switch(checked = enabled, onCheckedChange = onEnabled)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             SwipeAction.entries.forEach { action ->

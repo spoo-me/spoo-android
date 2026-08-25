@@ -45,6 +45,7 @@ import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
+import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.ui.components.BrandIcon
 import me.spoo.android.ui.components.CountryFlag
 import me.spoo.android.ui.components.Favicon
@@ -80,29 +81,32 @@ fun AnalyticsScreen() {
             )
         },
     ) { padding ->
-        val loaded = stats
-        if (loaded == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                LinearWavyProgressIndicator()
+        Box(Modifier.fillMaxSize()) {
+            val loaded = stats
+            if (loaded == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LinearWavyProgressIndicator()
+                }
+            } else {
+                StatsContent(
+                    stats = loaded,
+                    params = params,
+                    onParamsChange = { params = it },
+                    onOpenFilters = { showFilters = true },
+                    contentPadding = PaddingValues(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = padding.calculateTopPadding() + 8.dp,
+                        bottom = padding.calculateBottomPadding() + 32.dp,
+                    ),
+                )
             }
-        } else {
-            StatsContent(
-                stats = loaded,
-                params = params,
-                onParamsChange = { params = it },
-                onOpenFilters = { showFilters = true },
-                contentPadding = PaddingValues(
-                    start = 20.dp,
-                    end = 20.dp,
-                    top = padding.calculateTopPadding() + 8.dp,
-                    bottom = padding.calculateBottomPadding() + 32.dp,
-                ),
-            )
+            BottomFade()
         }
     }
 

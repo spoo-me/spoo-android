@@ -1,6 +1,7 @@
 package me.spoo.android.ui.screens
 
 import android.content.Intent
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -95,6 +96,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -109,6 +111,7 @@ import me.spoo.android.data.LinkUiStatus
 import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.SpooLink
 import me.spoo.android.data.SwipeAction
+import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.ui.components.CreateLinkSheet
 import me.spoo.android.ui.components.EditLinkSheet
 import me.spoo.android.ui.components.Favicon
@@ -340,6 +343,8 @@ fun LinksScreen(
                 }
             }
         }
+
+        BottomFade()
 
         // The webapp's floating bulk-action bar, in its M3E form.
         if (selecting) {
@@ -639,7 +644,17 @@ private fun SwipeableLinkCard(
                 }
             }
         },
-        content = { content() },
+        content = {
+            // The M3 interaction lift: elevation appears only while the
+            // card is being swiped — the one sanctioned shadow.
+            val swiping = state.dismissDirection != SwipeToDismissBoxValue.Settled
+            val lift by animateDpAsState(
+                targetValue = if (swiping) 10.dp else 0.dp,
+                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                label = "swipeLift",
+            )
+            Box(Modifier.shadow(lift, MaterialTheme.shapes.large)) { content() }
+        },
     )
 }
 
