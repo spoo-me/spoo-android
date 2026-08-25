@@ -184,32 +184,6 @@ fun LinksScreen(
                             style = androidx.compose.material3.LocalTextStyle.current.tabular,
                         )
                     },
-                    actions = {
-                        IconButton(onClick = { showLinkFilters = true }) {
-                            BadgedBox(
-                                badge = {
-                                    if (filter.count > 0) Badge { Text("${filter.count}") }
-                                },
-                            ) {
-                                Icon(
-                                    Icons.Outlined.FilterList,
-                                    contentDescription = "Filters",
-                                    // Mirrored: reads as refinement, not a menu.
-                                    modifier = Modifier.scale(scaleX = -1f, scaleY = 1f),
-                                )
-                            }
-                        }
-                        IconButton(onClick = { showCreatedPicker = true }) {
-                            BadgedBox(
-                                badge = { if (filter.createdRange != null) Badge() },
-                            ) {
-                                Icon(
-                                    Icons.Outlined.DateRange,
-                                    contentDescription = "Created date range",
-                                )
-                            }
-                        }
-                    },
                     scrollBehavior = scrollBehavior,
                 )
             }
@@ -270,6 +244,31 @@ fun LinksScreen(
                         onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                     ) { Text("Top clicks") }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { showLinkFilters = true }) {
+                        BadgedBox(
+                            badge = {
+                                if (filter.count > 0) Badge { Text("${filter.count}") }
+                            },
+                        ) {
+                            Icon(
+                                Icons.Outlined.FilterList,
+                                contentDescription = "Filters",
+                                // Mirrored: reads as refinement, not a menu.
+                                modifier = Modifier.scale(scaleX = -1f, scaleY = 1f),
+                            )
+                        }
+                    }
+                    IconButton(onClick = { showCreatedPicker = true }) {
+                        BadgedBox(
+                            badge = { if (filter.createdRange != null) Badge() },
+                        ) {
+                            Icon(
+                                Icons.Outlined.DateRange,
+                                contentDescription = "Created date range",
+                            )
+                        }
+                    }
                 }
             }
             items(links, key = { it.id }) { link ->
