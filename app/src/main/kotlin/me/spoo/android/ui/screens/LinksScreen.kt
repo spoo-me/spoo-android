@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -576,41 +578,60 @@ private fun LinkRow(
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
     ) {
-        Row {
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            // Identity spans the card: one tall block, everything beside it.
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .fillMaxHeight()
+                    .width(52.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
-                Favicon(host = faviconHost(link.originalUrl), size = 20.dp)
+                Favicon(host = faviconHost(link.originalUrl), size = 22.dp)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "/${link.shortCode}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (link.active) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (link.hasPassword) {
-                        Spacer(Modifier.width(6.dp))
-                        Icon(
-                            Icons.Outlined.Lock,
-                            contentDescription = "Password protected",
-                            modifier = Modifier.height(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "/${link.shortCode}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (link.active) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (link.hasPassword) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                Icons.Outlined.Lock,
+                                contentDescription = "Password protected",
+                                modifier = Modifier.height(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (!selecting) {
+                        LinkMenu(
+                            link = link,
+                            showShare = showShare,
+                            menuOpen = menuOpen,
+                            onMenuOpenChange = { menuOpen = it },
+                            onQr = onQr,
+                            onEdit = onEdit,
+                            onDelete = onDelete,
                         )
                     }
                 }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(1.dp))
                 Text(
                     text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
                     style = MaterialTheme.typography.bodySmall,
@@ -618,48 +639,37 @@ private fun LinkRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.padding(end = 6.dp)) {
+                    Text(
+                        text = numbers.format(link.totalClicks),
+                        style = MaterialTheme.typography.titleMedium.tabular,
+                        color = if (link.active) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        text = "clicks",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = buildString {
+                            if (!link.active) append("${link.status.name.lowercase()} · ")
+                            append(link.createdLabel)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                }
             }
-            if (!selecting) {
-                LinkMenu(
-                    link = link,
-                    showShare = showShare,
-                    menuOpen = menuOpen,
-                    onMenuOpenChange = { menuOpen = it },
-                    onQr = onQr,
-                    onEdit = onEdit,
-                    onDelete = onDelete,
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.padding(end = 6.dp)) {
-            Text(
-                text = numbers.format(link.totalClicks),
-                style = MaterialTheme.typography.titleMedium.tabular,
-                color = if (link.active) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.alignByBaseline(),
-            )
-            Spacer(Modifier.width(5.dp))
-            Text(
-                text = "clicks",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.alignByBaseline(),
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = buildString {
-                    if (!link.active) append("${link.status.name.lowercase()} · ")
-                    append(link.createdLabel)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.alignByBaseline(),
-            )
         }
     }
 }

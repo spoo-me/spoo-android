@@ -18,11 +18,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun Modifier.softCardShadow(shape: Shape): Modifier =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        // Wide radius, faint presence: elevation buys the spread, the
+        // translucent colors keep it a whisper.
         shadow(
-            elevation = 6.dp,
+            elevation = 8.dp,
             shape = shape,
-            spotColor = Color.Black.copy(alpha = 0.12f),
-            ambientColor = Color.Black.copy(alpha = 0.07f),
+            spotColor = Color.Black.copy(alpha = 0.055f),
+            ambientColor = Color.Black.copy(alpha = 0.03f),
         )
     } else {
         this
