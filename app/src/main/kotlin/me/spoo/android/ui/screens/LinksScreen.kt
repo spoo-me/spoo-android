@@ -101,8 +101,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -116,6 +118,7 @@ import me.spoo.android.data.SpooLink
 import me.spoo.android.data.SwipeAction
 import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.ui.components.CreateLinkSheet
+import me.spoo.android.ui.components.FullScreenDateRangePicker
 import me.spoo.android.ui.components.EditLinkSheet
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.QrDialog
@@ -230,8 +233,20 @@ fun LinksScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = padding.calculateTopPadding()),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             },
+        ) {
+        // M3 behavior: the content itself rides down with the pull and
+        // springs back, revealing the loader above it.
+        val pullThreshold = with(LocalDensity.current) {
+            PullToRefreshDefaults.PositionalThreshold.toPx()
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
         ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -365,6 +380,7 @@ fun LinksScreen(
             }
         }
         }
+        }
 
         BottomFade()
 
@@ -452,31 +468,14 @@ fun LinksScreen(
     }
 
     if (showCreatedPicker) {
-        val pickerState = rememberDateRangePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showCreatedPicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val from = pickerState.selectedStartDateMillis
-                        val to = pickerState.selectedEndDateMillis
-                        if (from != null && to != null) {
-                            viewModel.filter.value = filter.copy(createdRange = from to to)
-                        }
-                        showCreatedPicker = false
-                    },
-                    enabled = pickerState.selectedEndDateMillis != null,
-                ) { Text("Apply") }
+        FullScreenDateRangePicker(
+            onDismiss = { showCreatedPicker = false },
+            onApply = { from, to ->
+                viewModel.filter.value = filter.copy(createdRange = from to to)
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    viewModel.filter.value = filter.copy(createdRange = null)
-                    showCreatedPicker = false
-                }) { Text("All time") }
-            },
-        ) {
-            DateRangePicker(state = pickerState, showModeToggle = false)
-        }
+            neutralLabel = "All time",
+            onNeutral = { viewModel.filter.value = filter.copy(createdRange = null) },
+        )
     }
 
     if (showExpiryPicker) {

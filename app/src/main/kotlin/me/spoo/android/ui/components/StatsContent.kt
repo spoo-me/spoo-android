@@ -245,28 +245,10 @@ fun StatsContent(
     }
 
     if (showRangePicker) {
-        val pickerState = rememberDateRangePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showRangePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val from = pickerState.selectedStartDateMillis
-                        val to = pickerState.selectedEndDateMillis
-                        if (from != null && to != null) {
-                            onParamsChange(params.copy(customRange = from to to))
-                        }
-                        showRangePicker = false
-                    },
-                    enabled = pickerState.selectedEndDateMillis != null,
-                ) { Text("Apply") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRangePicker = false }) { Text("Cancel") }
-            },
-        ) {
-            DateRangePicker(state = pickerState, showModeToggle = false)
-        }
+        FullScreenDateRangePicker(
+            onDismiss = { showRangePicker = false },
+            onApply = { from, to -> onParamsChange(params.copy(customRange = from to to)) },
+        )
     }
 }
 
