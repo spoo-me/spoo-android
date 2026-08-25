@@ -19,10 +19,10 @@ import androidx.compose.ui.unit.dp
 fun Modifier.softCardShadow(shape: Shape): Modifier =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
         shadow(
-            elevation = 7.dp,
+            elevation = 9.dp,
             shape = shape,
-            spotColor = Color.Black.copy(alpha = 0.16f),
-            ambientColor = Color.Black.copy(alpha = 0.10f),
+            spotColor = Color.Black.copy(alpha = 0.20f),
+            ambientColor = Color.Black.copy(alpha = 0.12f),
         )
     } else {
         this
