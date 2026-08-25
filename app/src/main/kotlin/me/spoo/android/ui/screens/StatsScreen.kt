@@ -1,13 +1,20 @@
 package me.spoo.android.ui.screens
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -26,11 +33,15 @@ import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.components.StatsContent
+import me.spoo.android.ui.theme.loaderContainerColor
 
 /** Per-link stats: hero chart, choropleth, filterable breakdowns. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun StatsScreen(shortCode: String) {
+fun StatsScreen(
+    shortCode: String,
+    onBack: () -> Unit = {},
+) {
     var params by remember { mutableStateOf(StatsParams()) }
     var stats by remember { mutableStateOf<LinkStats?>(null) }
 
@@ -57,6 +68,14 @@ fun StatsScreen(shortCode: String) {
                         )
                     }
                 },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -69,7 +88,11 @@ fun StatsScreen(shortCode: String) {
                     .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                ContainedLoadingIndicator(modifier = Modifier.size(64.dp))
+                ContainedLoadingIndicator(
+                        modifier = Modifier.size(64.dp),
+                        containerColor = loaderContainerColor(),
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                    )
             }
         } else {
             StatsContent(

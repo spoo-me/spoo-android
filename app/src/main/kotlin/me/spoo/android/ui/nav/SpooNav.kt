@@ -25,8 +25,15 @@ import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarDefaults
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,13 +95,17 @@ fun SpooNav(
         Tab(AnalyticsKey, "Analytics"),
         Tab(SettingsKey, "Settings"),
     )
-    val currentRoot = backStack.firstOrNull()
-    val atRoot = backStack.size == 1
+    // Android back doctrine: Links is the start destination and stays at
+    // the bottom of the stack — back from any other tab returns to Links,
+    // back from Links exits. Stats pushes on top as a detail.
+    val currentKey = backStack.lastOrNull()
+    val atRoot = currentKey !is StatsKey
 
     fun switchTab(key: NavKey) {
-        if (currentRoot == key && atRoot) return
+        if (currentKey == key) return
         backStack.clear()
-        backStack.add(key)
+        backStack.add(LinksKey)
+        if (key != LinksKey) backStack.add(key)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -106,9 +117,35 @@ fun SpooNav(
                     if (atRoot) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier,
                 ),
         ) {
+            // Two named M3 patterns on the MOTION PHYSICS SYSTEM — spring
+            // tokens only, no easing/duration tweens (that system is
+            // legacy). Full-screen transitions take the SLOW tokens per the
+            // speed table; exits ride the fast effects spring so they clear
+            // early, keeping the top-level fade sequential in feel.
+            // - Top level (tabs): quick fade-out, then fade-in + soft scale.
+            // - Forward/backward (Stats detail): expressive slow spatial
+            //   slides that overshoot into place, mirrored on pop.
+            val slowSpatial = MaterialTheme.motionScheme.slowSpatialSpec<IntOffset>()
+            val slowSpatialScale = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+            val slowEffects = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+            val fastEffects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+            val topLevel =
+                (fadeIn(slowEffects) + scaleIn(slowSpatialScale, initialScale = 0.92f))
+                    .togetherWith(fadeOut(fastEffects))
+            val forward =
+                (slideInHorizontally(slowSpatial) { it / 3 } + fadeIn(slowEffects))
+                    .togetherWith(slideOutHorizontally(slowSpatial) { -it / 3 } + fadeOut(fastEffects))
+            val backward =
+                (slideInHorizontally(slowSpatial) { -it / 3 } + fadeIn(slowEffects))
+                    .togetherWith(slideOutHorizontally(slowSpatial) { it / 3 } + fadeOut(fastEffects))
             NavDisplay(
                 backStack = backStack,
                 onBack = { backStack.removeLastOrNull() },
+                // Tabs: the top-level pattern in every direction. The Stats
+                // entry overrides with forward/backward via its metadata.
+                transitionSpec = { topLevel },
+                popTransitionSpec = { topLevel },
+                predictivePopTransitionSpec = { topLevel },
                 entryProvider = entryProvider {
                     entry<LinksKey> {
                         LinksScreen(
@@ -118,10 +155,20 @@ fun SpooNav(
                             swipeRight = if (settings.swipeRightEnabled) settings.swipeRight else SwipeAction.None,
                             swipeLeft = if (settings.swipeLeftEnabled) settings.swipeLeft else SwipeAction.None,
                             onOpenStats = { code -> backStack.add(StatsKey(code)) },
+                            onOpenSettings = { switchTab(SettingsKey) },
                         )
                     }
-                    entry<StatsKey> { key ->
-                        StatsScreen(shortCode = key.shortCode)
+                    entry<StatsKey>(
+                        // Forward/backward owns this destination: in from
+                        // the trailing edge, back out the same way.
+                        metadata = NavDisplay.transitionSpec { forward } +
+                            NavDisplay.popTransitionSpec { backward } +
+                            NavDisplay.predictivePopTransitionSpec { backward },
+                    ) { key ->
+                        StatsScreen(
+                            shortCode = key.shortCode,
+                            onBack = { backStack.removeLastOrNull() },
+                        )
                     }
                     entry<AnalyticsKey> {
                         AnalyticsScreen()
@@ -155,7 +202,7 @@ fun SpooNav(
             ) {
                 tabs.forEach { tab ->
                     ShortNavigationBarItem(
-                        selected = currentRoot == tab.key,
+                        selected = currentKey == tab.key,
                         onClick = { switchTab(tab.key) },
                         icon = {
                             Icon(
