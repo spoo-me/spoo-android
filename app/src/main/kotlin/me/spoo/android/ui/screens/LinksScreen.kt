@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -43,7 +42,9 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.AdsClick
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Speed
@@ -126,12 +127,14 @@ import me.spoo.android.data.SpooLink
 import me.spoo.android.data.SwipeAction
 import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.ui.theme.loaderContainerColor
+import me.spoo.android.ui.theme.railIconColors
 import me.spoo.android.ui.components.CreateLinkSheet
 import me.spoo.android.ui.components.FullScreenDateRangePicker
 import me.spoo.android.ui.components.EditLinkSheet
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
+import me.spoo.android.ui.components.sheetBottomPadding
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
 import me.spoo.android.ui.theme.cardChrome
@@ -165,6 +168,7 @@ fun LinksScreen(
     val query by viewModel.query.collectAsState()
     val sort by viewModel.sort.collectAsState()
     val createState by viewModel.createState.collectAsState()
+    val emojiCatalog by viewModel.emojiCatalog.collectAsState()
     val editState by viewModel.editState.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
     val selection by viewModel.selection.collectAsState()
@@ -218,7 +222,7 @@ fun LinksScreen(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 8.dp)
+                    .padding(top = 24.dp)
                     .size(56.dp)
                     .graphicsLayer {
                         val progress = pullState.distanceFraction.coerceIn(0f, 1f)
@@ -329,7 +333,13 @@ fun LinksScreen(
                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                     ) { Text("Top clicks") }
                     Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { showLinkFilters = true }) {
+                    // Bare at rest; a secondaryContainer tint appears only
+                    // while a filter is active (state via affordance, no
+                    // naked dot badges).
+                    IconButton(
+                        onClick = { showLinkFilters = true },
+                        colors = railIconColors(active = filter.count > 0),
+                    ) {
                         BadgedBox(
                             badge = {
                                 if (filter.count > 0) Badge { Text("${filter.count}") }
@@ -343,15 +353,14 @@ fun LinksScreen(
                             )
                         }
                     }
-                    IconButton(onClick = { showCreatedPicker = true }) {
-                        BadgedBox(
-                            badge = { if (filter.createdRange != null) Badge() },
-                        ) {
-                            Icon(
-                                Icons.Outlined.DateRange,
-                                contentDescription = "Created date range",
-                            )
-                        }
+                    IconButton(
+                        onClick = { showCreatedPicker = true },
+                        colors = railIconColors(active = filter.createdRange != null),
+                    ) {
+                        Icon(
+                            Icons.Outlined.DateRange,
+                            contentDescription = "Created date range",
+                        )
                     }
                 }
             }
@@ -450,6 +459,8 @@ fun LinksScreen(
         CreateLinkSheet(
             initialUrl = sharedUrl,
             state = createState,
+            emojiCatalog = emojiCatalog,
+            onEmojiMode = viewModel::ensureEmojiCatalog,
             onSubmit = viewModel::create,
             onDismiss = {
                 showCreateSheet = false
@@ -562,9 +573,7 @@ private fun LinksFilterSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .navigationBarsPadding(),
+            modifier = Modifier.padding(horizontal = 24.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -641,7 +650,7 @@ private fun LinksFilterSheet(
                     label = { Text("Click-limited") },
                 )
             }
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(8.dp + sheetBottomPadding()))
         }
     }
 }
@@ -814,11 +823,31 @@ private fun LinkRow(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        // Constraint hints in one muted row: lock, click
+                        // cap, expiry — affordance presence, no chips.
                         if (link.hasPassword) {
                             Spacer(Modifier.width(6.dp))
                             Icon(
                                 Icons.Outlined.Lock,
                                 contentDescription = "Password protected",
+                                modifier = Modifier.height(14.dp),
+                                tint = mutedText,
+                            )
+                        }
+                        if (link.clickLimited) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                Icons.Outlined.AdsClick,
+                                contentDescription = "Click limit set",
+                                modifier = Modifier.height(14.dp),
+                                tint = mutedText,
+                            )
+                        }
+                        if (link.expireAtMillis != null) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                Icons.Outlined.Schedule,
+                                contentDescription = "Expiry set",
                                 modifier = Modifier.height(14.dp),
                                 tint = mutedText,
                             )

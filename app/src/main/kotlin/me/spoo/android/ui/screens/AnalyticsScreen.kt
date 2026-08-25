@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -34,6 +33,8 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -50,8 +51,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
+import me.spoo.android.ui.screens.links.MIN_REFRESH_MS
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
@@ -62,7 +65,9 @@ import me.spoo.android.ui.components.CountryFlag
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.StatsContent
+import me.spoo.android.ui.components.StatsLoadFailure
 import me.spoo.android.ui.components.countryDisplayName
+import me.spoo.android.ui.components.sheetBottomPadding
 import me.spoo.android.ui.components.toggling
 
 /** Account-wide analytics tab — same vocabulary as the web dashboard. */
@@ -71,16 +76,24 @@ import me.spoo.android.ui.components.toggling
 fun AnalyticsScreen() {
     var params by remember { mutableStateOf(StatsParams()) }
     var stats by remember { mutableStateOf<LinkStats?>(null) }
+    var loadFailed by remember { mutableStateOf(false) }
+    var attempt by remember { mutableStateOf(0) }
+    val snackbar = remember { SnackbarHostState() }
     // The filter menu's vocabulary: same window, NO filters — otherwise
     // picking one value collapses the menu to just that value.
     var vocab by remember { mutableStateOf<LinkStats?>(null) }
 
-    LaunchedEffect(params) {
-        stats = runCatching {
-            SpooApp.graph.linksRepository.accountStats(params)
-        }.getOrNull() ?: stats
+    LaunchedEffect(params, attempt) {
+        loadFailed = false
+        runCatching { SpooApp.graph.linksRepository.accountStats(params) }
+            .onSuccess { stats = it }
+            .onFailure {
+                if (stats == null) loadFailed = true
+                else snackbar.showSnackbar("Couldn't update stats")
+            }
     }
-    LaunchedEffect(params.days, params.customRange) {
+    LaunchedEffect(params.days, params.customRange, attempt) {
+        // Menu vocabulary only: the sheet falls back to the filtered data.
         vocab = runCatching {
             SpooApp.graph.linksRepository.accountStats(params.copy(filters = emptyMap()))
         }.getOrNull() ?: vocab
@@ -100,9 +113,12 @@ fun AnalyticsScreen() {
         onRefresh = {
             scope.launch {
                 refreshing = true
-                runCatching {
-                    SpooApp.graph.linksRepository.accountStats(params)
-                }.getOrNull()?.let { stats = it }
+                val started = System.currentTimeMillis()
+                runCatching { SpooApp.graph.linksRepository.accountStats(params) }
+                    .onSuccess { stats = it }
+                    .onFailure { snackbar.showSnackbar("Couldn't refresh") }
+                // Same floor as Links: a sub-frame refresh reads as a snap.
+                delay((MIN_REFRESH_MS - (System.currentTimeMillis() - started)).coerceAtLeast(0))
                 refreshing = false
             }
         },
@@ -119,7 +135,7 @@ fun AnalyticsScreen() {
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .statusBarsPadding()
-                    .padding(top = 8.dp)
+                    .padding(top = 24.dp)
                     .size(56.dp)
                     .graphicsLayer {
                         val progress = pullState.distanceFraction.coerceIn(0f, 1f)
@@ -136,7 +152,7 @@ fun AnalyticsScreen() {
             .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
     ) {
     // No page header: the hero count leads, content starts at the top.
-    Scaffold { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Box(Modifier.fillMaxSize()) {
             val loaded = stats
             if (loaded == null) {
@@ -146,11 +162,15 @@ fun AnalyticsScreen() {
                         .padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ContainedLoadingIndicator(
-                        modifier = Modifier.size(64.dp),
-                        containerColor = loaderContainerColor(),
-                        indicatorColor = MaterialTheme.colorScheme.primary,
-                    )
+                    if (loadFailed) {
+                        StatsLoadFailure(onRetry = { attempt++ })
+                    } else {
+                        ContainedLoadingIndicator(
+                            modifier = Modifier.size(64.dp),
+                            containerColor = loaderContainerColor(),
+                            indicatorColor = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             } else {
                 StatsContent(
@@ -195,7 +215,6 @@ private fun FilterSheet(
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -232,7 +251,7 @@ private fun FilterSheet(
                     if (value.contains('.')) Favicon(value, size = 18.dp) else Monogram(value, size = 18.dp)
                 },
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(sheetBottomPadding()))
         }
     }
 }
