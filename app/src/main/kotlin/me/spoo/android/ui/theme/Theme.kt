@@ -54,8 +54,8 @@ fun SpooTheme(
         )
     } else {
         colorScheme.copy(
-            surface = Color(0xFFF4F4F6),
-            background = Color(0xFFF4F4F6),
+            surface = Color.White,
+            background = Color.White,
         )
     }
 

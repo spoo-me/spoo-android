@@ -18,37 +18,20 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun Modifier.softCardShadow(shape: Shape): Modifier =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        // Wide radius, faint presence: elevation buys the spread, the
-        // translucent colors keep it a whisper.
         shadow(
-            elevation = 8.dp,
+            elevation = 7.dp,
             shape = shape,
-            spotColor = Color.Black.copy(alpha = 0.055f),
-            ambientColor = Color.Black.copy(alpha = 0.03f),
+            spotColor = Color.Black.copy(alpha = 0.16f),
+            ambientColor = Color.Black.copy(alpha = 0.10f),
         )
     } else {
         this
     }
 
-/** White card in light, elevated tone in dark. */
+/** Tinted card on the clean ground, both themes. */
 @Composable
-fun cardContainerColor(): Color =
-    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        Color.White
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
-    }
+fun cardContainerColor(): Color = MaterialTheme.colorScheme.surfaceContainerLow
 
-/** Shadow + hairline: the full premium card chrome, both themes. */
+/** The card chrome: soft shadow only — the tint edge is the border. */
 @Composable
-fun Modifier.cardChrome(shape: Shape): Modifier {
-    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-    return softCardShadow(shape).then(
-        Modifier.border(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-                .copy(alpha = if (light) 0.55f else 0.4f),
-            shape = shape,
-        ),
-    )
-}
+fun Modifier.cardChrome(shape: Shape): Modifier = softCardShadow(shape)
