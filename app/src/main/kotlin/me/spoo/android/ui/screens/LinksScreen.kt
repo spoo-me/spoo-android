@@ -590,12 +590,13 @@ private fun LinkRow(
             // Identity shell sized to the icon, centered in the card.
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(13.dp))
+                    .width(46.dp)
+                    .height(54.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
-                Favicon(host = faviconHost(link.originalUrl), size = 24.dp)
+                Favicon(host = faviconHost(link.originalUrl), size = 26.dp)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
