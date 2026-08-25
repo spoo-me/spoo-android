@@ -88,3 +88,34 @@ icon in all masks.
   ruling Aug 2026: it is web-only; this app is pure M3 Expressive, don't
   pollute it. Never load that skill for spoo-android work.)
 - Vico default styling; charts with library watermark aesthetics
+
+## Spacing doctrine (m3.material.io/styles/spacing, digested 2026-08-25)
+- **The scale**: spaceN = N/100 × 8dp. Defined tokens: 0, 25(2), 50(4),
+  75(6), 100(8), 125(10), 150(12), 175(14), 200(16), 250(20), 300(24),
+  400(32), 450(36), 500(40), 600(48), 700(56), 800(64), 900(72).
+  Non-multiples-of-8 ("nested units": 2/4/6/10/14) exist only where a real
+  component needs them. **Every dp of padding/gap/margin in this app must
+  sit on this scale** — extensions follow the multiplier rule (18dp is
+  legal as space225; 15dp is not a value).
+- **Three categories, strict meanings**: padding = inside an element,
+  gap = between siblings in a container, margin = outside an element.
+  Positions: horizontal/vertical/leading/trailing/top/bottom (leading/
+  trailing flip in RTL — never say left/right).
+- **Do/Don't**: define padding + gaps on the PARENT container to organize
+  children; DON'T put margins on child elements (non-uniform, token
+  sprawl). Margins are for layouts (screen edges, panes), rarely for
+  components. Search-bar example: 8dp v-padding + 8dp h-gaps + 24dp
+  h-margin (→12dp when focused; padding/gaps never change with it).
+- **Name complex gaps by their neighbors** ("icon-label gap"), not
+  generically, when a component has several different gaps.
+- **Adaptation levers**: form factor (map to different tokens per device
+  class) and density (vertical padding is THE density lever). Text scaled
+  to 200% keeps the SAME spacing tokens — never shrink spacing to
+  compensate for font scale.
+- **Pattern tokens**: when several surfaces adapt spacing identically
+  (cards + sheets sharing content h-padding), tokenize the pattern once
+  (e.g. surface-content.padding.horizontal) instead of per-component.
+- **Reference values** (from spec diagrams): standard button = h-padding
+  space200, v-padding space125, icon-label gap space100; buttons scale
+  paddings with size tier (small→large: bottom space200→400, leading
+  space300→600). Compose is the only platform with the tokens wired.

@@ -600,7 +600,7 @@ private fun LinkRow(
             ) {
                 Favicon(host = faviconHost(link.originalUrl), size = 26.dp)
             }
-            Spacer(Modifier.width(15.dp))
+            Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(
@@ -644,7 +644,7 @@ private fun LinkRow(
                         }
                     }
                 }
-                Spacer(Modifier.height(1.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
                     style = MaterialTheme.typography.bodySmall,
@@ -664,7 +664,7 @@ private fun LinkRow(
                         },
                         modifier = Modifier.alignByBaseline(),
                     )
-                    Spacer(Modifier.width(5.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         text = "clicks",
                         style = MaterialTheme.typography.labelMedium,
