@@ -96,7 +96,7 @@ fun StatsContent(
                 val total = stats.dailyClicks.sum()
                 Text(
                     numbers.format(total),
-                    style = MaterialTheme.typography.displayMedium.hero(key = total),
+                    style = MaterialTheme.typography.displayLarge.hero(key = total),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

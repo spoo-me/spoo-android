@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import me.spoo.android.R
 
 /** Tabular figures for anything that counts — metrics never jitter. */
@@ -64,7 +65,7 @@ fun spooTypography(base: Typography = Typography()) = base.copy(
     titleMediumEmphasized = base.titleMediumEmphasized.brand(650, 105f),
 )
 
-private fun heroFamily(weight: Int) = flex(weight, 108f)
+private fun heroFamily(weight: Int) = flex(weight, 112f)
 
 /**
  * Hero style with the M3E animated-axis signature: the number lands at a
@@ -78,7 +79,12 @@ fun TextStyle.hero(key: Any?): TextStyle {
     val spring = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
     LaunchedEffect(key) {
         weight.snapTo(450f)
-        weight.animateTo(800f, animationSpec = spring)
+        weight.animateTo(860f, animationSpec = spring)
     }
-    return copy(fontFamily = heroFamily(weight.value.toInt())).tabular
+    return copy(
+        fontFamily = heroFamily(weight.value.toInt()),
+        fontSize = 64.sp,
+        lineHeight = 68.sp,
+        color = MaterialTheme.colorScheme.primary,
+    ).tabular
 }
