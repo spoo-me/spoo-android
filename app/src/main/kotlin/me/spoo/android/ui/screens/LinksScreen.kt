@@ -84,6 +84,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -212,6 +215,24 @@ fun LinksScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
+        val refreshing by viewModel.refreshing.collectAsState()
+        val pullState = rememberPullToRefreshState()
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = viewModel::refresh,
+            state = pullState,
+            modifier = Modifier.fillMaxSize(),
+            indicator = {
+                // The M3E loading indicator IS the pull-to-refresh spinner.
+                PullToRefreshDefaults.LoadingIndicator(
+                    state = pullState,
+                    isRefreshing = refreshing,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = padding.calculateTopPadding()),
+                )
+            },
+        ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -342,6 +363,7 @@ fun LinksScreen(
                     )
                 }
             }
+        }
         }
 
         BottomFade()
@@ -840,9 +862,16 @@ private fun LinkMenu(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }) {
+        // Expressive menu skin: rounded tonal container, icon per item.
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = { onMenuOpenChange(false) },
+            shape = MaterialTheme.shapes.large,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
             DropdownMenuItem(
                 text = { Text("Copy") },
+                leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
                 onClick = {
                     onMenuOpenChange(false)
                     clipboard.setText(AnnotatedString("https://${link.shortUrl}"))
@@ -851,6 +880,7 @@ private fun LinkMenu(
             if (showShare) {
                 DropdownMenuItem(
                     text = { Text("Share") },
+                    leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
                     onClick = {
                         onMenuOpenChange(false)
                         val send = Intent(Intent.ACTION_SEND).apply {
@@ -863,14 +893,23 @@ private fun LinkMenu(
             }
             DropdownMenuItem(
                 text = { Text("QR code") },
+                leadingIcon = { Icon(Icons.Outlined.QrCode, contentDescription = null) },
                 onClick = { onMenuOpenChange(false); onQr() },
             )
             DropdownMenuItem(
                 text = { Text("Edit") },
+                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                 onClick = { onMenuOpenChange(false); onEdit() },
             )
             DropdownMenuItem(
                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
                 onClick = { onMenuOpenChange(false); onDelete() },
             )
         }

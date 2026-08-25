@@ -22,7 +22,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.BrightnessAuto
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
@@ -341,15 +346,33 @@ private fun SwipeActionRow(
             Spacer(Modifier.width(16.dp))
             Switch(checked = enabled, onCheckedChange = onEnabled)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            SwipeAction.entries.forEach { action ->
+        // Expressive menu skin; QR is a view, not a swipe-able verb.
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            shape = MaterialTheme.shapes.large,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            SwipeAction.entries.filterNot { it == SwipeAction.Qr }.forEach { action ->
                 DropdownMenuItem(
                     text = { Text(action.label) },
+                    leadingIcon = {
+                        Icon(action.menuIcon(), contentDescription = null)
+                    },
                     onClick = { open = false; onSelect(action) },
                 )
             }
         }
     }
+}
+
+private fun SwipeAction.menuIcon() = when (this) {
+    SwipeAction.None -> Icons.Outlined.Block
+    SwipeAction.Copy -> Icons.Outlined.ContentCopy
+    SwipeAction.Share -> Icons.Outlined.Share
+    SwipeAction.Edit -> Icons.Outlined.Edit
+    SwipeAction.Qr -> Icons.Outlined.QrCode
+    SwipeAction.Delete -> Icons.Outlined.Delete
 }
 
 @Composable

@@ -39,6 +39,19 @@ class LinksViewModel(
         viewModelScope.launch { runCatching { repository.refresh() } }
     }
 
+    /** Pull-to-refresh. */
+    val refreshing = MutableStateFlow(false)
+
+    fun refresh() {
+        if (refreshing.value) return
+        viewModelScope.launch {
+            refreshing.value = true
+            runCatching { repository.refresh() }
+                .onFailure { actionMessage.value = "Couldn't refresh" }
+            refreshing.value = false
+        }
+    }
+
     val query = MutableStateFlow("")
     val sort = MutableStateFlow(LinkSort.Recent)
     val filter = MutableStateFlow(LinksFilter())

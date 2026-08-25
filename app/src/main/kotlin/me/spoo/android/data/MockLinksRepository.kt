@@ -35,7 +35,9 @@ class MockLinksRepository : LinksRepository {
     private val _links = MutableStateFlow(seed)
     override val links: StateFlow<List<SpooLink>> = _links.asStateFlow()
 
-    override suspend fun refresh() = Unit
+    override suspend fun refresh() {
+        delay(650) // pull-to-refresh should feel like it did something
+    }
 
     override suspend fun create(request: CreateLinkRequest): SpooLink {
         delay(500)

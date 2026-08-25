@@ -25,7 +25,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MediumFlexibleTopAppBar
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -99,7 +99,7 @@ fun AnalyticsScreen() {
                         .padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    LoadingIndicator(modifier = Modifier.size(56.dp))
+                    ContainedLoadingIndicator(modifier = Modifier.size(64.dp))
                 }
             } else {
                 StatsContent(

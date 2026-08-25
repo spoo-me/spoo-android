@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MediumFlexibleTopAppBar
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -69,7 +69,7 @@ fun StatsScreen(shortCode: String) {
                     .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
-                LoadingIndicator(modifier = Modifier.size(56.dp))
+                ContainedLoadingIndicator(modifier = Modifier.size(64.dp))
             }
         } else {
             StatsContent(
