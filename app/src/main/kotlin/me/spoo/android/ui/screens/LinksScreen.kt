@@ -599,7 +599,7 @@ private fun LinkRow(
             ) {
                 Favicon(host = faviconHost(link.originalUrl), size = 26.dp)
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(15.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Row(
