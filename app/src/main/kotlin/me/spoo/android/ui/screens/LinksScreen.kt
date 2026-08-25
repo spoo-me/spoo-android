@@ -1,9 +1,11 @@
 package me.spoo.android.ui.screens
 
 import android.content.Intent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -26,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,6 +62,7 @@ import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,17 +110,22 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
+import me.spoo.android.R
 import me.spoo.android.data.LinkUiStatus
 import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.SpooLink
 import me.spoo.android.data.SwipeAction
 import me.spoo.android.ui.components.BottomFade
+import me.spoo.android.ui.theme.loaderContainerColor
 import me.spoo.android.ui.components.CreateLinkSheet
 import me.spoo.android.ui.components.FullScreenDateRangePicker
 import me.spoo.android.ui.components.EditLinkSheet
@@ -127,6 +136,7 @@ import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
 import me.spoo.android.ui.theme.cardChrome
 import me.spoo.android.ui.theme.cardContainerColor
+import me.spoo.android.ui.theme.hero
 import me.spoo.android.ui.theme.tabular
 
 /**
@@ -148,6 +158,7 @@ fun LinksScreen(
     swipeRight: SwipeAction = SwipeAction.Edit,
     swipeLeft: SwipeAction = SwipeAction.Delete,
     onOpenStats: (String) -> Unit,
+    onOpenSettings: () -> Unit = {},
     viewModel: LinksViewModel = viewModel(),
 ) {
     val links by viewModel.links.collectAsState()
@@ -178,14 +189,55 @@ fun LinksScreen(
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val totalClicks = links.sumOf { it.totalClicks }
-    val numbers = NumberFormat.getIntegerInstance()
     val selecting = selection.isNotEmpty()
 
+    // Pull-to-refresh owns the WHOLE screen: the entire UI (app bar
+    // included) rides down with the pull and springs back, the loader
+    // grows above it all — the M3 behavior, not a list-only shimmy.
+    val refreshing by viewModel.refreshing.collectAsState()
+    val pullState = rememberPullToRefreshState()
+    val pullThreshold = with(LocalDensity.current) {
+        PullToRefreshDefaults.PositionalThreshold.toPx()
+    }
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = viewModel::refresh,
+        state = pullState,
+        // Surface-painted: the strip revealed by the pull must match the
+        // content, not the window background (accidental duotone).
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+        indicator = {
+            // The doc's look at every phase: the contained disc with the
+            // dark morphing shape, growing with the pull. The stock pull
+            // indicator draws a hollow ring mid-pull instead.
+            ContainedLoadingIndicator(
+                containerColor = loaderContainerColor(),
+                indicatorColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp)
+                    .size(56.dp)
+                    .graphicsLayer {
+                        val progress = pullState.distanceFraction.coerceIn(0f, 1f)
+                        scaleX = progress
+                        scaleY = progress
+                        alpha = progress
+                    },
+            )
+        },
+    ) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
+    ) {
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbar) },
+        // No app bar announcing spoo.me — the hero metric IS the header.
+        // Selection mode keeps its contextual bar.
         topBar = {
             if (selecting) {
                 TopAppBar(
@@ -195,17 +247,6 @@ fun LinksScreen(
                             Icon(Icons.Outlined.Close, contentDescription = "Clear selection")
                         }
                     },
-                )
-            } else {
-                MediumFlexibleTopAppBar(
-                    title = { Text("spoo.me") },
-                    subtitle = {
-                        Text(
-                            "${links.size} links · ${numbers.format(totalClicks)} clicks",
-                            style = androidx.compose.material3.LocalTextStyle.current.tabular,
-                        )
-                    },
-                    scrollBehavior = scrollBehavior,
                 )
             }
         },
@@ -218,64 +259,56 @@ fun LinksScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
-        val refreshing by viewModel.refreshing.collectAsState()
-        val pullState = rememberPullToRefreshState()
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = viewModel::refresh,
-            state = pullState,
-            modifier = Modifier.fillMaxSize(),
-            indicator = {
-                // The M3E loading indicator IS the pull-to-refresh spinner.
-                PullToRefreshDefaults.LoadingIndicator(
-                    state = pullState,
-                    isRefreshing = refreshing,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = padding.calculateTopPadding()),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            },
-        ) {
-        // M3 behavior: the content itself rides down with the pull and
-        // springs back, revealing the loader above it.
-        val pullThreshold = with(LocalDensity.current) {
-            PullToRefreshDefaults.PositionalThreshold.toPx()
-        }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
-        ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                top = padding.calculateTopPadding(),
+                top = padding.calculateTopPadding() + 20.dp,
                 bottom = padding.calculateBottomPadding() + 96.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item(key = "search") {
-                // Filled, not outlined: quiet chrome over hairline chrome.
-                TextField(
-                    value = query,
-                    onValueChange = { viewModel.query.value = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search links") },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    singleLine = true,
-                    shape = CircleShape,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                    ),
-                )
+                // The M3E scaffold header: search pill + circular identity
+                // chip (brand ghost -> Settings, where the account lives).
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Filled, not outlined: quiet chrome over hairline chrome.
+                    TextField(
+                        value = query,
+                        onValueChange = { viewModel.query.value = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Search links") },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                        singleLine = true,
+                        shape = CircleShape,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                        ),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    val darkGlyph = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .clickable(onClick = onOpenSettings),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(
+                                if (darkGlyph) R.drawable.logo_black else R.drawable.logo_white,
+                            ),
+                            contentDescription = "Account",
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
             }
             item(key = "sort") {
                 Row(
@@ -379,8 +412,6 @@ fun LinksScreen(
                 }
             }
         }
-        }
-        }
 
         BottomFade()
 
@@ -403,16 +434,17 @@ fun LinksScreen(
                     Icon(Icons.Outlined.Timer, contentDescription = "Set expiry for selected")
                 }
                 IconButton(onClick = { confirmBulkDelete = true }) {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = "Delete selected",
-                        tint = MaterialTheme.colorScheme.error,
-                    )
+                    // Inherits the toolbar pair — error red clashes on the
+                    // vibrant container, and the confirm dialog carries the
+                    // destructive weight anyway.
+                    Icon(Icons.Outlined.Delete, contentDescription = "Delete selected")
                 }
             }
         }
         }
     }
+    } // pull-translation box
+    } // PullToRefreshBox
 
     if (showCreateSheet) {
         CreateLinkSheet(
@@ -703,7 +735,11 @@ private fun LinkUiStatus.dotColor() = when (this) {
     LinkUiStatus.Blocked -> MaterialTheme.colorScheme.error
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalSharedTransitionApi::class,
+)
 @Composable
 private fun LinkRow(
     link: SpooLink,
@@ -718,6 +754,18 @@ private fun LinkRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val numbers = NumberFormat.getIntegerInstance()
+
+    // Pairing law: on secondaryContainer everything speaks its on-color.
+    val primaryText = when {
+        selected -> MaterialTheme.colorScheme.onSecondaryContainer
+        link.active -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val mutedText = if (selected) {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     // The reference card anatomy: identity + title block up top with the
     // overflow pinned to the corner, then a bottom rail — the metric on
@@ -739,12 +787,14 @@ private fun LinkRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Identity shell: the app's one abstract shape — the spoo ghost
             // (MaterialShapes avatar-masking pattern, per shape doctrine).
+            // Tapping it toggles selection, the Gmail avatar gesture.
             Box(
                 modifier = Modifier
                     .width(50.dp)
                     .height(54.dp)
                     .clip(MaterialShapes.Ghostish.toShape())
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clickable(onClick = onLongClick),
                 contentAlignment = Alignment.Center,
             ) {
                 Favicon(host = faviconHost(link.originalUrl), size = 24.dp)
@@ -759,11 +809,7 @@ private fun LinkRow(
                         Text(
                             text = link.shortUrl,
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (link.active) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            color = primaryText,
                             modifier = Modifier.weight(1f, fill = false),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -774,7 +820,7 @@ private fun LinkRow(
                                 Icons.Outlined.Lock,
                                 contentDescription = "Password protected",
                                 modifier = Modifier.height(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = mutedText,
                             )
                         }
                     }
@@ -797,7 +843,7 @@ private fun LinkRow(
                 Text(
                     text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = mutedText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -806,18 +852,14 @@ private fun LinkRow(
                     Text(
                         text = numbers.format(link.totalClicks),
                         style = MaterialTheme.typography.titleMedium.tabular,
-                        color = if (link.active) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        color = primaryText,
                         modifier = Modifier.alignByBaseline(),
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = "clicks",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = mutedText,
                         modifier = Modifier.alignByBaseline(),
                     )
                     Spacer(Modifier.weight(1f))
@@ -827,7 +869,7 @@ private fun LinkRow(
                             append(link.createdLabel)
                         },
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = mutedText,
                         modifier = Modifier.alignByBaseline(),
                     )
                 }
