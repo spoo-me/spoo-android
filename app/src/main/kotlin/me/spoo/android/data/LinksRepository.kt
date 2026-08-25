@@ -17,4 +17,7 @@ interface LinksRepository {
     suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?)
     suspend fun stats(shortCode: String, params: StatsParams): LinkStats
     suspend fun accountStats(params: StatsParams): LinkStats
+
+    /** The accepted emoji-alias catalogue; changes rarely, cached upstream. */
+    suspend fun emojiCatalog(): EmojiCatalog
 }

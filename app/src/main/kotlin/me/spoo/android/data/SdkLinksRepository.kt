@@ -60,13 +60,27 @@ class SdkLinksRepository(
         }
     }
 
-    override suspend fun create(request: CreateLinkRequest): SpooLink {
+    /**
+     * A dead refresh token means signed-out, no matter which call finds
+     * out first: flag it globally, then let the caller surface the error.
+     */
+    private suspend fun <T> withSession(block: suspend () -> T): T = try {
+        block()
+    } catch (e: SessionExpiredException) {
+        onSessionExpired()
+        throw e
+    }
+
+    override suspend fun create(request: CreateLinkRequest): SpooLink = withSession {
         val created = clientProvider().links.create {
             longUrl = request.url
             alias = request.alias
             if (request.alias == null && request.emojiAlias) aliasType = AliasKind.EMOJI
             password = request.password
             maxClicks = request.maxClicks?.toLong()
+            expireAfter = request.expireAtMillis?.let { Instant.fromEpochMilliseconds(it) }
+            privateStats = request.privateStats
+            blockBots = request.blockBots
         }
         val ui = SpooLink(
             id = created.id,
@@ -75,12 +89,16 @@ class SdkLinksRepository(
             totalClicks = 0,
             createdLabel = "Just now",
             hasPassword = request.password != null,
+            maxClicks = request.maxClicks?.toLong(),
+            expireAtMillis = request.expireAtMillis,
+            privateStats = request.privateStats,
+            blockBots = request.blockBots,
         )
         _links.update { listOf(ui) + it.filterNot { l -> l.id == ui.id } }
-        return ui
+        ui
     }
 
-    override suspend fun update(id: String, edit: LinkEdit): SpooLink {
+    override suspend fun update(id: String, edit: LinkEdit): SpooLink = withSession {
         val updated = clientProvider().links.update(id) {
             edit.longUrl?.let { longUrl(it) }
             edit.alias?.let { alias(it) }
@@ -92,29 +110,40 @@ class SdkLinksRepository(
                 edit.clearMaxClicks -> removeMaxClicks()
                 edit.maxClicks != null -> maxClicks(edit.maxClicks)
             }
+            when {
+                edit.clearExpiry -> removeExpiry()
+                edit.expireAtMillis != null ->
+                    expireAfter(Instant.fromEpochMilliseconds(edit.expireAtMillis))
+            }
+            edit.privateStats?.let { privateStats(it) }
+            edit.blockBots?.let { blockBots(it) }
         }
         val old = _links.value.first { it.id == id }
         val ui = old.copy(
             shortCode = updated.alias ?: old.shortCode,
             originalUrl = updated.longUrl ?: old.originalUrl,
             hasPassword = updated.passwordSet,
+            maxClicks = updated.maxClicks,
+            expireAtMillis = updated.expireAfter?.toEpochMilliseconds(),
+            privateStats = updated.privateStats ?: old.privateStats,
+            blockBots = updated.blockBots ?: old.blockBots,
         )
         _links.update { list -> list.map { if (it.id == id) ui else it } }
-        return ui
+        ui
     }
 
-    override suspend fun delete(id: String) {
+    override suspend fun delete(id: String) = withSession {
         clientProvider().links.delete(id)
         _links.update { list -> list.filterNot { it.id == id } }
     }
 
-    override suspend fun bulkDelete(ids: List<String>) {
+    override suspend fun bulkDelete(ids: List<String>) = withSession {
         clientProvider().links.bulkDelete(ids)
         // Partial failure is data, not an exception: resync with the server.
         refresh()
     }
 
-    override suspend fun bulkSetStatus(ids: List<String>, active: Boolean) {
+    override suspend fun bulkSetStatus(ids: List<String>, active: Boolean) = withSession {
         clientProvider().links.bulkSetStatus(
             ids,
             if (active) SettableStatus.ACTIVE else SettableStatus.INACTIVE,
@@ -122,7 +151,7 @@ class SdkLinksRepository(
         refresh()
     }
 
-    override suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?) {
+    override suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?) = withSession {
         clientProvider().links.bulkSetExpiry(
             ids,
             expireAtMillis?.let { Instant.fromEpochMilliseconds(it) },
@@ -130,15 +159,35 @@ class SdkLinksRepository(
         refresh()
     }
 
-    override suspend fun stats(shortCode: String, params: StatsParams): LinkStats {
-        val link = _links.value.first { it.shortCode == shortCode }
-        val report = clientProvider().stats.forLink(urlId = link.id, query = params.toQuery())
-        return report.metrics.toLinkStats(link, params.metric.wire())
+    // The SDK ETag-caches per client, but the graph swaps clients on auth
+    // changes; the set is public and near-static, so one fetch per process.
+    private var cachedCatalog: EmojiCatalog? = null
+
+    override suspend fun emojiCatalog(): EmojiCatalog {
+        cachedCatalog?.let { return it }
+        val set = clientProvider().emoji.set()
+        return EmojiCatalog(
+            maxGraphemes = set.maxGraphemes,
+            entries = set.emoji.map {
+                EmojiChoice(
+                    char = it.character,
+                    name = it.name,
+                    group = it.group,
+                    keywords = it.keywords.orEmpty(),
+                )
+            },
+        ).also { cachedCatalog = it }
     }
 
-    override suspend fun accountStats(params: StatsParams): LinkStats {
+    override suspend fun stats(shortCode: String, params: StatsParams): LinkStats = withSession {
+        val link = _links.value.first { it.shortCode == shortCode }
+        val report = clientProvider().stats.forLink(urlId = link.id, query = params.toQuery())
+        report.metrics.toLinkStats(link, params.metric.wire())
+    }
+
+    override suspend fun accountStats(params: StatsParams): LinkStats = withSession {
         val report = clientProvider().stats.account(AccountStatsRequest(query = params.toQuery()))
-        return report.metrics.toLinkStats(link = null, params.metric.wire())
+        report.metrics.toLinkStats(link = null, params.metric.wire())
     }
 
     private fun StatsMetric.wire() = when (this) {
@@ -214,7 +263,10 @@ class SdkLinksRepository(
             LinkStatus.BLOCKED -> LinkUiStatus.Blocked
             else -> LinkUiStatus.Active
         },
-        clickLimited = maxClicks != null,
+        maxClicks = maxClicks,
+        expireAtMillis = expireAfter?.toEpochMilliseconds(),
+        privateStats = privateStats ?: false,
+        blockBots = blockBots ?: false,
         createdAtMillis = createdAt?.toEpochMilliseconds(),
     )
 

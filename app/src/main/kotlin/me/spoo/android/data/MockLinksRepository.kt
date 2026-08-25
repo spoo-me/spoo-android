@@ -17,19 +17,21 @@ import kotlinx.coroutines.flow.update
  */
 class MockLinksRepository : LinksRepository {
 
+    // Seed favors popular destinations with vibrant, distinct favicons so
+    // the link list demos well: green, red, blurple, multicolor, orange...
     private val seed = listOf(
-        link("m1", "ga1n", "https://github.com/spoo-me/spoo", 48_211, "Jul 2", ageDays = 49),
-        link("m2", "launch", "https://spoo.me/blog/android-app", 21_874, "Jul 9", ageDays = 42),
-        link("m3", "🚀🔗", "https://play.google.com/store/apps/details?id=me.spoo.android", 9_454, "Jul 14", ageDays = 37),
-        link("m4", "docs", "https://docs.spoo.me/getting-started/introduction", 6_120, "Jun 11", ageDays = 70),
-        link("m5", "yt-demo", "https://www.youtube.com/watch?v=T2QDL9uAnQI", 4_082, "Jul 21", ageDays = 30),
-        link("m6", "drop", "https://spoo.me/blog/self-hosting-guide", 2_310, "Aug 3", ageDays = 17, password = true, clickLimited = true),
-        link("m7", "api", "https://docs.spoo.me/api-reference/shorten", 1_207, "Aug 8", ageDays = 12),
-        link("m8", "promo", "https://spoo.me/pricing", 640, "Aug 11", ageDays = 9, status = LinkUiStatus.Inactive),
-        link("m9", "flash", "https://spoo.me/blog/flash-sale", 512, "Aug 12", ageDays = 8, status = LinkUiStatus.Expired, clickLimited = true),
-        link("m10", "blog", "https://spoo.me/blog", 214, "Aug 15", ageDays = 5),
+        link("m1", "mixtape", "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M", 48_211, "Jul 2", ageDays = 49),
+        link("m2", "trailer", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 21_874, "Jul 9", ageDays = 42),
+        link("m3", "🎮🔥", "https://discord.gg/8vXk3qYd", 9_454, "Jul 14", ageDays = 37),
+        link("m4", "handoff", "https://www.figma.com/design/Kx2fO1aB/checkout-flow-v3", 6_120, "Jun 11", ageDays = 70),
+        link("m5", "thread", "https://www.reddit.com/r/android/comments/1m2k3x/pixel_10_first_impressions/", 4_082, "Jul 21", ageDays = 30),
+        link("m6", "drop", "https://www.instagram.com/reel/C9tKf2xW/", 2_310, "Aug 3", ageDays = 17, password = true, maxClicks = 5_000, expiresInDays = 21),
+        link("m7", "notes", "https://www.notion.so/product-launch-checklist-8a2f31bc", 1_207, "Aug 8", ageDays = 12),
+        link("m8", "stream", "https://www.twitch.tv/directory/category/just-chatting", 640, "Aug 11", ageDays = 9, status = LinkUiStatus.Inactive),
+        link("m9", "flash", "https://www.amazon.com/dp/B0C7XKQ3L4", 512, "Aug 12", ageDays = 8, status = LinkUiStatus.Expired, maxClicks = 512, expiresInDays = -2),
+        link("m10", "stay", "https://www.airbnb.com/rooms/45872913", 214, "Aug 15", ageDays = 5),
         link("m11", "sus", "https://example-flagged.net/dl", 88, "Aug 16", ageDays = 4, status = LinkUiStatus.Blocked),
-        link("m12", "beta", "https://beta.spoo.me/onboarding", 37, "Aug 18", ageDays = 2),
+        link("m12", "sprint", "https://linear.app/team/issue/APP-142", 37, "Aug 18", ageDays = 2),
     )
 
     private val _links = MutableStateFlow(seed)
@@ -53,6 +55,10 @@ class MockLinksRepository : LinksRepository {
             totalClicks = 0,
             createdLabel = "Just now",
             hasPassword = request.password != null,
+            maxClicks = request.maxClicks?.toLong(),
+            expireAtMillis = request.expireAtMillis,
+            privateStats = request.privateStats,
+            blockBots = request.blockBots,
         )
         _links.update { listOf(created) + it }
         return created
@@ -69,6 +75,18 @@ class MockLinksRepository : LinksRepository {
                     edit.password != null -> true
                     else -> old.hasPassword
                 },
+                maxClicks = when {
+                    edit.clearMaxClicks -> null
+                    edit.maxClicks != null -> edit.maxClicks
+                    else -> old.maxClicks
+                },
+                expireAtMillis = when {
+                    edit.clearExpiry -> null
+                    edit.expireAtMillis != null -> edit.expireAtMillis
+                    else -> old.expireAtMillis
+                },
+                privateStats = edit.privateStats ?: old.privateStats,
+                blockBots = edit.blockBots ?: old.blockBots,
             )
         }
         _links.update { list -> list.map { if (it.id == id) updated else it } }
@@ -93,6 +111,14 @@ class MockLinksRepository : LinksRepository {
 
     override suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?) {
         delay(400)
+        _links.update { list ->
+            list.map { if (it.id in ids) it.copy(expireAtMillis = expireAtMillis) else it }
+        }
+    }
+
+    override suspend fun emojiCatalog(): EmojiCatalog {
+        delay(200)
+        return EmojiCatalog(maxGraphemes = 15, entries = MOCK_EMOJI)
     }
 
     override suspend fun stats(shortCode: String, params: StatsParams): LinkStats {
@@ -174,7 +200,8 @@ class MockLinksRepository : LinksRepository {
         ageDays: Int,
         password: Boolean = false,
         status: LinkUiStatus = LinkUiStatus.Active,
-        clickLimited: Boolean = false,
+        maxClicks: Long? = null,
+        expiresInDays: Int? = null,
     ) = SpooLink(
         id = id,
         shortCode = code,
@@ -183,7 +210,8 @@ class MockLinksRepository : LinksRepository {
         createdLabel = created,
         hasPassword = password,
         status = status,
-        clickLimited = clickLimited,
+        maxClicks = maxClicks,
+        expireAtMillis = expiresInDays?.let { System.currentTimeMillis() + it * 86_400_000L },
         createdAtMillis = System.currentTimeMillis() - ageDays * 86_400_000L,
     )
 
@@ -206,5 +234,46 @@ class MockLinksRepository : LinksRepository {
             "Android" to 0.38f, "Windows" to 0.27f, "iOS" to 0.14f,
             "macOS" to 0.12f, "Linux" to 0.09f,
         )
+
+        // Offline stand-in for /api/v1/emoji-set: real groups, tiny slices.
+        val MOCK_EMOJI = listOf(
+            "Smileys & Emotion" to listOf(
+                "😀" to "grinning face", "😂" to "face with tears of joy",
+                "😍" to "smiling face with heart-eyes", "😎" to "smiling face with sunglasses",
+                "🤔" to "thinking face", "🥳" to "partying face",
+                "😴" to "sleeping face", "🤯" to "exploding head",
+            ),
+            "People & Body" to listOf(
+                "👋" to "waving hand", "👍" to "thumbs up", "🙌" to "raising hands",
+                "💪" to "flexed biceps", "🧠" to "brain", "👀" to "eyes",
+            ),
+            "Animals & Nature" to listOf(
+                "🐶" to "dog face", "🐱" to "cat face", "🦊" to "fox",
+                "🐢" to "turtle", "🌵" to "cactus", "🌊" to "water wave",
+            ),
+            "Food & Drink" to listOf(
+                "🍕" to "pizza", "🍩" to "doughnut", "🍜" to "steaming bowl",
+                "🍿" to "popcorn", "☕" to "hot beverage", "🧋" to "bubble tea",
+            ),
+            "Travel & Places" to listOf(
+                "🌍" to "globe showing europe-africa", "🗻" to "mount fuji",
+                "🏝" to "desert island", "🚀" to "rocket", "🛸" to "flying saucer",
+            ),
+            "Activities" to listOf(
+                "🎉" to "party popper", "🎯" to "bullseye", "🎮" to "video game",
+                "🎧" to "headphone", "🏆" to "trophy", "✨" to "sparkles",
+            ),
+            "Objects" to listOf(
+                "🔗" to "link", "🔑" to "key", "💡" to "light bulb",
+                "📦" to "package", "🧲" to "magnet", "🔥" to "fire",
+            ),
+            "Symbols" to listOf(
+                "❤" to "red heart", "⚡" to "high voltage", "♻" to "recycling symbol",
+                "💯" to "hundred points", "✅" to "check mark button",
+            ),
+            "Flags" to listOf("🏁" to "chequered flag", "🚩" to "triangular flag"),
+        ).flatMap { (group, entries) ->
+            entries.map { (char, name) -> EmojiChoice(char = char, name = name, group = group) }
+        }
     }
 }

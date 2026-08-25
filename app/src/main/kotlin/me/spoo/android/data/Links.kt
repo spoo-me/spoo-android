@@ -14,12 +14,19 @@ data class SpooLink(
     val createdLabel: String,
     val hasPassword: Boolean = false,
     val status: LinkUiStatus = LinkUiStatus.Active,
-    /** True when a max-clicks limit is set. */
-    val clickLimited: Boolean = false,
+    /** The click cap, when one is set — edit prefills from this. */
+    val maxClicks: Long? = null,
+    /** When the link expires, when an expiry is set. */
+    val expireAtMillis: Long? = null,
+    /** Whether the public stats page is owner-only. */
+    val privateStats: Boolean = true,
+    /** Whether known bots are kept from following the link. */
+    val blockBots: Boolean = false,
     val createdAtMillis: Long? = null,
 ) {
     val shortUrl: String get() = "spoo.me/$shortCode"
     val active: Boolean get() = status == LinkUiStatus.Active
+    val clickLimited: Boolean get() = maxClicks != null
 }
 
 /** Client-side filters for the links list, mirroring the webapp's set. */
@@ -53,6 +60,10 @@ data class CreateLinkRequest(
     val alias: String? = null,
     val password: String? = null,
     val maxClicks: Int? = null,
+    val expireAtMillis: Long? = null,
+    /** Owner-only stats page; the app's default is private. */
+    val privateStats: Boolean = true,
+    val blockBots: Boolean = false,
     val emojiAlias: Boolean = false,
 )
 
@@ -67,6 +78,28 @@ data class LinkEdit(
     val clearPassword: Boolean = false,
     val maxClicks: Long? = null,
     val clearMaxClicks: Boolean = false,
+    val expireAtMillis: Long? = null,
+    val clearExpiry: Boolean = false,
+    /** Booleans patch by presence: null = keep. */
+    val privateStats: Boolean? = null,
+    val blockBots: Boolean? = null,
+)
+
+/** One pickable emoji from the accepted alias catalogue. */
+data class EmojiChoice(
+    /** Canonical single-codepoint character, exactly as aliases store it. */
+    val char: String,
+    /** Lowercase human name: the primary search key. */
+    val name: String,
+    /** Unicode category display name, pre-sorted for picker sections. */
+    val group: String,
+    val keywords: List<String> = emptyList(),
+)
+
+/** The accepted emoji catalogue plus the alias-length policy. */
+data class EmojiCatalog(
+    val maxGraphemes: Int,
+    val entries: List<EmojiChoice>,
 )
 
 /** A dimension the stats screens can filter by. */

@@ -6,29 +6,37 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
 import me.spoo.android.data.CreateLinkRequest
+import me.spoo.android.data.EmojiCatalog
+import me.spoo.android.data.FriendlyError
 import me.spoo.android.data.LinkEdit
+import me.spoo.android.data.friendlyError
 import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SpooLink
 
 enum class LinkSort { Recent, Clicks }
 
+/** Floor for pull-to-refresh so the hold phase is visible (see refresh). */
+const val MIN_REFRESH_MS = 650L
+
 sealed interface CreateState {
     data object Idle : CreateState
     data object Submitting : CreateState
     data class Done(val link: SpooLink) : CreateState
-    data class Failed(val reason: String) : CreateState
+    data class Failed(val error: FriendlyError) : CreateState
 }
 
 sealed interface EditState {
     data object Idle : EditState
     data object Submitting : EditState
     data object Done : EditState
-    data class Failed(val reason: String) : EditState
+    data class Failed(val error: FriendlyError) : EditState
 }
 
 class LinksViewModel(
@@ -46,8 +54,13 @@ class LinksViewModel(
         if (refreshing.value) return
         viewModelScope.launch {
             refreshing.value = true
+            val started = System.currentTimeMillis()
             runCatching { repository.refresh() }
                 .onFailure { actionMessage.value = "Couldn't refresh" }
+            // A fast backend finishes before the finger lifts and the pull
+            // reads as a dead snap-back: hold the spinner long enough to
+            // look like work.
+            delay((MIN_REFRESH_MS - (System.currentTimeMillis() - started)).coerceAtLeast(0))
             refreshing.value = false
         }
     }
@@ -72,13 +85,29 @@ class LinksViewModel(
     private val _createState = MutableStateFlow<CreateState>(CreateState.Idle)
     val createState: StateFlow<CreateState> = _createState
 
+    /** Accepted emoji-alias catalogue; fetched once, on first demand. */
+    val emojiCatalog = MutableStateFlow<EmojiCatalog?>(null)
+    private var emojiCatalogRequested = false
+
+    fun ensureEmojiCatalog() {
+        if (emojiCatalogRequested) return
+        emojiCatalogRequested = true
+        viewModelScope.launch {
+            runCatching { repository.emojiCatalog() }
+                .onSuccess { emojiCatalog.value = it }
+                .onFailure { emojiCatalogRequested = false } // retry next open
+        }
+    }
+
     fun create(request: CreateLinkRequest) {
         _createState.value = CreateState.Submitting
         viewModelScope.launch {
             _createState.value = try {
                 CreateState.Done(repository.create(request))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                CreateState.Failed(e.message ?: "Could not shorten this link")
+                CreateState.Failed(friendlyError(e, "Could not shorten this link."))
             }
         }
     }
@@ -96,8 +125,10 @@ class LinksViewModel(
             _editState.value = try {
                 repository.update(id, edit)
                 EditState.Done
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                EditState.Failed(e.message ?: "Could not save changes")
+                EditState.Failed(friendlyError(e, "Could not save changes."))
             }
         }
     }
@@ -113,8 +144,10 @@ class LinksViewModel(
         viewModelScope.launch {
             try {
                 repository.delete(id)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                actionMessage.value = e.message ?: "Could not delete the link"
+                actionMessage.value = friendlyError(e, "Could not delete the link.").message
             }
         }
     }
@@ -148,8 +181,10 @@ class LinksViewModel(
                 op(ids)
                 selection.value = emptySet()
                 actionMessage.value = "${ids.size} ${if (ids.size == 1) "link" else "links"} $pastTense"
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                actionMessage.value = e.message ?: "Bulk action failed"
+                actionMessage.value = friendlyError(e, "Bulk action failed.").message
             }
         }
     }
