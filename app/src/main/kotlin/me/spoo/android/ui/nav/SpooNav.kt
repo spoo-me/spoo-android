@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarDefaults
 import androidx.compose.material3.ShortNavigationBarItem
@@ -26,6 +30,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -131,10 +137,26 @@ fun SpooNav(
                     }
                 },
             )
+            // Content dissolves into the bar instead of hitting an edge.
+            if (atRoot) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(28.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                            ),
+                        ),
+                )
+            }
         }
-        // The M3 Expressive navigation bar (the shorter redesign).
+        // The M3 Expressive navigation bar (the shorter redesign), sitting
+        // on the ground color so the fade above lands seamlessly.
         if (atRoot) {
             ShortNavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
                 windowInsets = ShortNavigationBarDefaults.windowInsets
                     .add(WindowInsets(top = 10.dp)),
             ) {

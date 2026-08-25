@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FilterList
@@ -40,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -48,14 +50,17 @@ import java.util.Locale
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
+import me.spoo.android.ui.theme.softCardShadow
+import me.spoo.android.ui.theme.tabular
 
 private val RANGES = listOf(7 to "7d", 30 to "30d", 90 to "90d", null to "All")
 private const val TOP_N = 6
 
 /**
  * The stats body shared by per-link and account-wide screens: hero count,
- * date-range switch (presets + custom range), wavy chart, choropleth, and
- * top-6 breakdowns. With [filterable], rows toggle themselves as filters.
+ * date-range switch (presets + custom range), wavy chart, activity grid,
+ * and carded breakdowns (countries carry the choropleth). With
+ * [filterable], rows toggle themselves as filters.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -81,13 +86,13 @@ fun StatsContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item(key = "hero") {
             Column {
                 Text(
                     numbers.format(stats.dailyClicks.sum()),
-                    style = MaterialTheme.typography.displayMedium,
+                    style = MaterialTheme.typography.displayMedium.tabular,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -105,7 +110,7 @@ fun StatsContent(
                         }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -148,22 +153,28 @@ fun StatsContent(
                         }
                     }
                 }
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
                 WavyClicksChart(
                     dailyClicks = stats.dailyClicks,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
+                        .height(170.dp),
                 )
             }
         }
 
-        if (stats.countries.isNotEmpty()) {
-            item(key = "map") {
-                WorldChoropleth(
-                    countries = stats.countries.associate { it.label.lowercase() to it.count },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+        // A contribution grid needs a run of weeks to read as one;
+        // short ranges skip it rather than render a lonely strip.
+        if (stats.dailyClicks.size >= 56) {
+            item(key = "activity") {
+                StatsCard(title = "Daily activity") {
+                    ClickHeatmap(
+                        dailyClicks = stats.dailyClicks,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(92.dp),
+                    )
+                }
             }
         }
 
@@ -176,6 +187,17 @@ fun StatsContent(
                 icon = { CountryFlag(it) },
                 onToggle = if (filterable) {
                     { onParamsChange(params.toggling(StatsDim.Country, it)) }
+                } else {
+                    null
+                },
+                header = if (stats.countries.isNotEmpty()) {
+                    {
+                        WorldChoropleth(
+                            countries = stats.countries.associate { it.label.lowercase() to it.count },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
                 } else {
                     null
                 },
@@ -258,6 +280,29 @@ fun StatsParams.toggling(dim: StatsDim, value: String): StatsParams =
         filters = if (filters[dim] == value) filters - dim else filters + (dim to value),
     )
 
+/** One framed section: quiet card, muted section label, content below. */
+@Composable
+private fun StatsCard(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.softCardShadow(RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
 @Composable
 private fun Breakdown(
     title: String,
@@ -266,68 +311,71 @@ private fun Breakdown(
     labelFor: (String) -> String,
     icon: @Composable (String) -> Unit,
     onToggle: ((String) -> Unit)?,
+    header: (@Composable () -> Unit)? = null,
 ) {
     val numbers = NumberFormat.getIntegerInstance()
     val top = slices.take(TOP_N)
     val max = top.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        if (top.isEmpty()) {
-            Text(
-                "No data in this range",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        top.forEach { slice ->
-            val active = slice.label == activeValue
-            Surface(
-                onClick = { onToggle?.invoke(slice.label) },
-                enabled = onToggle != null,
-                shape = MaterialTheme.shapes.medium,
-                color = if (active) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+    StatsCard(title = title) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            header?.invoke()
+            if (top.isEmpty()) {
+                Text(
+                    "No data in this range",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            top.forEach { slice ->
+                val active = slice.label == activeValue
+                Surface(
+                    onClick = { onToggle?.invoke(slice.label) },
+                    enabled = onToggle != null,
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (active) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        Color.Transparent
+                    },
                 ) {
-                    icon(slice.label)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                labelFor(slice.label),
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Text(
-                                numbers.format(slice.count),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                        ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        icon(slice.label)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    labelFor(slice.label),
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    numbers.format(slice.count),
+                                    style = MaterialTheme.typography.labelLarge.tabular,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth(slice.count / max.toFloat())
-                                    .height(6.dp)
+                                    .fillMaxWidth()
+                                    .height(5.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary),
-                            )
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(slice.count / max.toFloat())
+                                        .height(5.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                )
+                            }
                         }
                     }
                 }

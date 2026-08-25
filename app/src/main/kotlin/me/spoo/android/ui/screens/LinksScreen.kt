@@ -59,8 +59,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFloatingActionButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -100,6 +101,8 @@ import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.screens.links.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
+import me.spoo.android.ui.theme.softCardShadow
+import me.spoo.android.ui.theme.tabular
 
 /**
  * Home: link list with search + sort, favicons, create sheet via FAB,
@@ -170,7 +173,10 @@ fun LinksScreen(
                 LargeFlexibleTopAppBar(
                     title = { Text("spoo.me") },
                     subtitle = {
-                        Text("${links.size} links · ${numbers.format(totalClicks)} clicks")
+                        Text(
+                            "${links.size} links · ${numbers.format(totalClicks)} clicks",
+                            style = androidx.compose.material3.LocalTextStyle.current.tabular,
+                        )
                     },
                     scrollBehavior = scrollBehavior,
                 )
@@ -196,16 +202,22 @@ fun LinksScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item(key = "search") {
-                OutlinedTextField(
+                // Filled, not outlined: quiet chrome over hairline chrome.
+                TextField(
                     value = query,
                     onValueChange = { viewModel.query.value = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search links") },
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     singleLine = true,
-                    shape = MaterialTheme.shapes.extraLarge,
+                    shape = CircleShape,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                    ),
                 )
             }
             item(key = "sort") {
@@ -550,30 +562,42 @@ private fun LinkRow(
 
     Row(
         modifier = Modifier
+            .softCardShadow(MaterialTheme.shapes.large)
             .clip(MaterialTheme.shapes.large)
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
-                    MaterialTheme.colorScheme.surfaceContainer
+                    MaterialTheme.colorScheme.surfaceContainerLow
                 },
             )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+            .padding(start = 12.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Favicon(host = faviconHost(link.originalUrl), size = 22.dp)
-        Spacer(Modifier.width(14.dp))
+        // Identity in a tonal container: the row's anchor, not a floater.
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Favicon(host = faviconHost(link.originalUrl), size = 20.dp)
+        }
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = link.shortUrl,
+                    text = "/${link.shortCode}",
                     style = MaterialTheme.typography.titleMedium,
                     color = if (link.active) {
                         MaterialTheme.colorScheme.onSurface
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (link.hasPassword) {
                     Spacer(Modifier.width(6.dp))
@@ -587,18 +611,31 @@ private fun LinkRow(
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                text = link.originalUrl.removePrefix("https://").removePrefix("http://"),
+                text = buildString {
+                    if (!link.active) append("${link.status.name.lowercase()} · ")
+                    append(link.originalUrl.removePrefix("https://").removePrefix("http://"))
+                    append(" · ${link.createdLabel}")
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(2.dp))
+        }
+        // The one number this app is about, treated like it.
+        Spacer(Modifier.width(10.dp))
+        Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = buildString {
-                    if (!link.active) append("${link.status.name.lowercase()} · ")
-                    append("${numbers.format(link.totalClicks)} clicks · ${link.createdLabel}")
+                text = numbers.format(link.totalClicks),
+                style = MaterialTheme.typography.titleMedium.tabular,
+                color = if (link.active) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
+            )
+            Text(
+                text = "clicks",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

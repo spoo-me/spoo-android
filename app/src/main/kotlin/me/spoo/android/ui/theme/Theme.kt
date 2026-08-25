@@ -43,8 +43,23 @@ fun SpooTheme(
         )
     }
 
+    // Dynamic schemes tint every surface with the seed hue; the premium
+    // read needs a clean ground. Ground goes true white / near-black,
+    // containers keep their soft tint — tiers stay visible, cast goes.
+    val cleanGround = if (darkTheme) {
+        colorScheme.copy(
+            surface = Color(0xFF0B0B0D),
+            background = Color(0xFF0B0B0D),
+        )
+    } else {
+        colorScheme.copy(
+            surface = Color.White,
+            background = Color.White,
+        )
+    }
+
     MaterialExpressiveTheme(
-        colorScheme = colorScheme,
+        colorScheme = cleanGround,
         motionScheme = MotionScheme.expressive(),
         content = content,
     )
