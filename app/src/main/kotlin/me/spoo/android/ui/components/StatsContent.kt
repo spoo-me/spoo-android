@@ -52,6 +52,7 @@ import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.theme.cardChrome
 import me.spoo.android.ui.theme.cardContainerColor
+import me.spoo.android.ui.theme.hero
 import me.spoo.android.ui.theme.tabular
 
 private val RANGES = listOf(7 to "7d", 30 to "30d", 90 to "90d", null to "All")
@@ -91,9 +92,10 @@ fun StatsContent(
     ) {
         item(key = "hero") {
             Column {
+                val total = stats.dailyClicks.sum()
                 Text(
-                    numbers.format(stats.dailyClicks.sum()),
-                    style = MaterialTheme.typography.displayMedium.tabular,
+                    numbers.format(total),
+                    style = MaterialTheme.typography.displayMedium.hero(key = total),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
