@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -83,6 +84,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -181,6 +183,32 @@ fun LinksScreen(
                             style = androidx.compose.material3.LocalTextStyle.current.tabular,
                         )
                     },
+                    actions = {
+                        IconButton(onClick = { showLinkFilters = true }) {
+                            BadgedBox(
+                                badge = {
+                                    if (filter.count > 0) Badge { Text("${filter.count}") }
+                                },
+                            ) {
+                                Icon(
+                                    Icons.Outlined.FilterList,
+                                    contentDescription = "Filters",
+                                    // Mirrored: reads as refinement, not a menu.
+                                    modifier = Modifier.scale(scaleX = -1f, scaleY = 1f),
+                                )
+                            }
+                        }
+                        IconButton(onClick = { showCreatedPicker = true }) {
+                            BadgedBox(
+                                badge = { if (filter.createdRange != null) Badge() },
+                            ) {
+                                Icon(
+                                    Icons.Outlined.DateRange,
+                                    contentDescription = "Created date range",
+                                )
+                            }
+                        }
+                    },
                     scrollBehavior = scrollBehavior,
                 )
             }
@@ -241,26 +269,6 @@ fun LinksScreen(
                         onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                     ) { Text("Top clicks") }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { showLinkFilters = true }) {
-                        BadgedBox(
-                            badge = {
-                                if (filter.count > 0) Badge { Text("${filter.count}") }
-                            },
-                        ) {
-                            Icon(Icons.Outlined.FilterList, contentDescription = "Filters")
-                        }
-                    }
-                    IconButton(onClick = { showCreatedPicker = true }) {
-                        BadgedBox(
-                            badge = { if (filter.createdRange != null) Badge() },
-                        ) {
-                            Icon(
-                                Icons.Outlined.DateRange,
-                                contentDescription = "Created date range",
-                            )
-                        }
-                    }
                 }
             }
             items(links, key = { it.id }) { link ->
@@ -583,12 +591,12 @@ private fun LinkRow(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(52.dp)
+                    .aspectRatio(1f)
                     .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
-                Favicon(host = faviconHost(link.originalUrl), size = 22.dp)
+                Favicon(host = faviconHost(link.originalUrl), size = 26.dp)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -598,7 +606,7 @@ private fun LinkRow(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "/${link.shortCode}",
+                            text = link.shortUrl,
                             style = MaterialTheme.typography.titleMedium,
                             color = if (link.active) {
                                 MaterialTheme.colorScheme.onSurface
