@@ -187,3 +187,72 @@ icon in all masks.
   as the favicon-shell mask on link cards (the spoo ghost, avatar-masking
   pattern). It is the ONE abstract shape; everything else stays on the
   corner-radius scale.
+
+## Motion physics doctrine (m3.material.io/styles/motion, digested 2026-08-25)
+- The physics system REPLACED easing+duration; the old easing/duration
+  tables are "no longer maintained". Any `tween()` in this repo is a bug
+  unless it's inside a sanctioned legacy pattern — as of Aug 25 there are
+  ZERO tweens in the app; keep it that way.
+- Six spring tokens per scheme: {fast, default, slow} x {spatial, effects}.
+  The scheme (expressive/standard) is set ONCE at the theme
+  (MotionScheme.expressive() in Theme.kt) — call sites reference tokens
+  only, so the whole app retunes by swapping the scheme.
+- Spatial = position/size/rotation/corners, OVERSHOOTS (the bounce).
+  Effects = color/opacity, never overshoots. Never cross them.
+- Speed by size: fast = small components (switch handles, swipe lift),
+  default = partial-screen (sheets, rails), slow = FULL-SCREEN (nav
+  transitions, content refresh).
+- Sequential fades without delays: springs can't delay, so stagger by
+  SPEED — exit on fast effects (clears early), enter on slow effects.
+
+## Nav3 doctrine (hard-won, Aug 25)
+- Back stack: the start destination (Links) stays at the bottom under
+  every top-level tab — switchTab builds [Links] or [Links, tab]. Back
+  from any tab returns to start; back from start exits; details push.
+- **Per-destination transitions MUST go through entry metadata**
+  (`entry<Key>(metadata = NavDisplay.transitionSpec {...} +
+  NavDisplay.popTransitionSpec {...} + NavDisplay.predictivePopTransitionSpec
+  {...})`). Conditional logic inside the GLOBAL specs does not work the
+  way you expect: transitions animate between Scenes, a Scene's `key` is
+  never a NavKey, `NavEntry.key` is private, and scene-entry inspection
+  proved unreliable. Metadata wins; two failed attempts prove it.
+- Named patterns mapping: tabs = top level (sequential fade + 0.92 scale,
+  identical BOTH directions); hierarchical detail = forward/backward
+  (slow-spatial slides, mirrored on pop AND predictive pop). zingzy's
+  rule: "how it starts is how it ends" — every route owns one pattern in
+  both directions; mixing patterns across directions reads broken.
+- Container transform (SharedTransitionLayout + sharedBounds via
+  LocalNavAnimatedContentScope) WORKS with Nav3 but zingzy rejected it
+  for card->stats ("does not look good") — don't re-propose.
+
+## Hard-won component gotchas (Aug 25 session)
+- **Pull-to-refresh, the M3E way**: PullToRefreshBox wraps the WHOLE
+  Scaffold (app bar included); content Box gets
+  `graphicsLayer { translationY = state.distanceFraction * thresholdPx }`;
+  indicator = ContainedLoadingIndicator scaling with distanceFraction
+  (the stock PullToRefreshDefaults.LoadingIndicator draws a hollow ring
+  mid-pull — rejected). Paint the box `background(surface)` or the pull
+  reveals the window background (duotone). Loader colors: NOT container
+  roles — medium contrast darkens/inverts them (MaterialKolor shifts
+  even Fixed roles); derive: primary@22% over surface + primary shape
+  (loaderContainerColor() in Effects.kt).
+- **contrastLevel 0.5** (medium) is wired in Theme.kt; light containers
+  additionally lerp 50% toward white so cards read neutral-with-a-
+  whisper, not accent-colored components.
+- **DateRangePicker is full-screen only** — never inside DatePickerDialog
+  (clips/overlaps). Dialog(usePlatformDefaultWidth=false,
+  decorFitsSystemWindows=false) + Surface(surfaceContainerHigh) so the
+  top bar isn't two-tone.
+- **FilterChip leadingIcon slot pads 8/16** — fine with 18dp icons,
+  hollow-looking with small swatches; size swatches ~14dp to match.
+- **Accent-tinted shapes**: children must speak the container's on-color
+  (Surface provides it); progress tracks on accent containers use
+  on-color state-layer alpha (~15%), never surface roles.
+- **Menus**: expressive skin = shape large + surfaceContainer container +
+  leading icon per item; destructive item in error pair. Swipe-action
+  pickers exclude view-verbs (QR) and redundant offs (the toggle is off).
+- **Verification rule (zingzy, binding)**: build -> install -> SEE it
+  (screenshot/recording, zoomed crops for small elements) -> only then
+  claim it works; commit ONLY on his explicit sign-off. Screen recording
+  + ffmpeg frame tiling is the reliable way to verify animations;
+  rebuilds race `am start` — install FIRST, then drive.
