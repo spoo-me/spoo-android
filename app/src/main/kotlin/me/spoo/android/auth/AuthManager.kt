@@ -65,7 +65,10 @@ class AuthManager(
             val pending = store.readPending()
             store.clearPending()
             if (code.isNullOrBlank() || pending == null || echoedState != pending.state) {
-                return@launch // CSRF mismatch or malformed callback: drop the flow
+                // CSRF mismatch or malformed callback: drop the flow, but
+                // tell the gate the attempt died instead of failing mute.
+                _state.value = AuthState.SignInFailed
+                return@launch
             }
             _state.value = AuthState.Authorizing
             try {
@@ -75,7 +78,7 @@ class AuthManager(
                 _session.value = sessionOf(granted.tokens())
                 _state.value = AuthState.SignedIn(username)
             } catch (_: Exception) {
-                _state.value = AuthState.SignedOut
+                _state.value = AuthState.SignInFailed
             }
         }
     }

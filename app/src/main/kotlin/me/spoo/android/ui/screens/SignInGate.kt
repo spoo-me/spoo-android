@@ -61,13 +61,21 @@ fun SignInGate(
             Button(
                 onClick = onSignIn,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = authState is AuthState.SignedOut,
+                enabled = authState !is AuthState.Authorizing,
             ) {
                 if (authState is AuthState.Authorizing) {
                     LoadingIndicator(modifier = Modifier.height(24.dp))
                 } else {
                     Text("Sign in with spoo.me")
                 }
+            }
+            if (authState is AuthState.SignInFailed) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Sign-in didn't complete. Try again.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
