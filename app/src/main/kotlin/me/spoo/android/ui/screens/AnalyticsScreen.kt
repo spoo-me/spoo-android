@@ -1,5 +1,6 @@
 package me.spoo.android.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +28,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -37,16 +42,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.components.BottomFade
+import me.spoo.android.ui.theme.loaderContainerColor
 import me.spoo.android.ui.components.BrandIcon
 import me.spoo.android.ui.components.CountryFlag
 import me.spoo.android.ui.components.Favicon
@@ -76,20 +86,57 @@ fun AnalyticsScreen() {
         }.getOrNull() ?: vocab
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
     var showFilters by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            MediumFlexibleTopAppBar(
-                title = { Text("Analytics") },
-                subtitle = { Text("All your links") },
-                scrollBehavior = scrollBehavior,
+    // Pull-to-refresh over the whole screen, same grammar as Links.
+    var refreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val pullState = rememberPullToRefreshState()
+    val pullThreshold = with(LocalDensity.current) {
+        PullToRefreshDefaults.PositionalThreshold.toPx()
+    }
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            scope.launch {
+                refreshing = true
+                runCatching {
+                    SpooApp.graph.linksRepository.accountStats(params)
+                }.getOrNull()?.let { stats = it }
+                refreshing = false
+            }
+        },
+        state = pullState,
+        // Surface-painted: the strip revealed by the pull must match the
+        // content, not the window background (accidental duotone).
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+        indicator = {
+            ContainedLoadingIndicator(
+                containerColor = loaderContainerColor(),
+                indicatorColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp)
+                    .size(56.dp)
+                    .graphicsLayer {
+                        val progress = pullState.distanceFraction.coerceIn(0f, 1f)
+                        scaleX = progress
+                        scaleY = progress
+                        alpha = progress
+                    },
             )
         },
-    ) { padding ->
+    ) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
+    ) {
+    // No page header: the hero count leads, content starts at the top.
+    Scaffold { padding ->
         Box(Modifier.fillMaxSize()) {
             val loaded = stats
             if (loaded == null) {
@@ -99,7 +146,11 @@ fun AnalyticsScreen() {
                         .padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ContainedLoadingIndicator(modifier = Modifier.size(64.dp))
+                    ContainedLoadingIndicator(
+                        modifier = Modifier.size(64.dp),
+                        containerColor = loaderContainerColor(),
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                    )
                 }
             } else {
                 StatsContent(
@@ -110,7 +161,7 @@ fun AnalyticsScreen() {
                     contentPadding = PaddingValues(
                         start = 20.dp,
                         end = 20.dp,
-                        top = padding.calculateTopPadding() + 8.dp,
+                        top = padding.calculateTopPadding() + 28.dp,
                         bottom = padding.calculateBottomPadding() + 32.dp,
                     ),
                 )
@@ -118,6 +169,8 @@ fun AnalyticsScreen() {
             BottomFade()
         }
     }
+    } // pull-translation box
+    } // PullToRefreshBox
 
     if (showFilters) {
         FilterSheet(
