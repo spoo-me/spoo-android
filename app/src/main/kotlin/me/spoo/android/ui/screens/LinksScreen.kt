@@ -35,7 +35,7 @@ import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Timer
@@ -591,12 +591,12 @@ private fun LinkRow(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .aspectRatio(1f)
+                    .width(56.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
-                Favicon(host = faviconHost(link.originalUrl), size = 26.dp)
+                Favicon(host = faviconHost(link.originalUrl), size = 24.dp)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -701,9 +701,9 @@ private fun LinkMenu(
             modifier = Modifier.size(30.dp),
         ) {
             Icon(
-                Icons.Outlined.MoreVert,
+                Icons.Outlined.MoreHoriz,
                 contentDescription = "More actions for ${link.shortUrl}",
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
