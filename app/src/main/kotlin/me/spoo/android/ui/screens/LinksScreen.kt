@@ -496,20 +496,17 @@ private fun LinksFilterSheet(
                                 filter.copy(status = if (filter.status == status) null else status),
                             )
                         },
-                        // Icon lives in the label so the chip pads 16/16;
-                        // the leadingIcon slot forces a lopsided 8/16.
-                        label = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    Modifier
-                                        .size(10.dp)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .background(status.dotColor()),
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(status.name)
-                            }
+                        leadingIcon = {
+                            // Sized like the icon chips so the slot's 8dp
+                            // start inset reads balanced, not hollow.
+                            Box(
+                                Modifier
+                                    .size(14.dp)
+                                    .clip(RoundedCornerShape(4.5.dp))
+                                    .background(status.dotColor()),
+                            )
                         },
+                        label = { Text(status.name) },
                     )
                 }
             }
