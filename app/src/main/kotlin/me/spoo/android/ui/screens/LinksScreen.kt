@@ -586,13 +586,12 @@ private fun LinkRow(
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
     ) {
-        Row(Modifier.height(IntrinsicSize.Min)) {
-            // Identity spans the card: one tall block, everything beside it.
+        Row {
+            // Identity shell sized to the icon, anchored to the title block.
             Box(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .width(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(13.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
