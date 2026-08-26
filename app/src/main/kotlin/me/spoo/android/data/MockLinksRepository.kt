@@ -1,5 +1,8 @@
 package me.spoo.android.data
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
@@ -34,11 +37,79 @@ class MockLinksRepository : LinksRepository {
         link("m12", "sprint", "https://linear.app/team/issue/APP-142", 37, "Aug 18", ageDays = 2),
     )
 
+    // Backing store (seed + a generated long tail so pagination is
+    // demonstrable); _links is the queried, paged view of it.
+    private val all = MutableStateFlow(seed + longTail())
+    private var query = LinksQuery()
+    private var visible = MOCK_PAGE
+
     private val _links = MutableStateFlow(seed)
     override val links: StateFlow<List<SpooLink>> = _links.asStateFlow()
 
-    override suspend fun refresh() {
+    private val _hasMore = MutableStateFlow(false)
+    override val hasMore: StateFlow<Boolean> = _hasMore.asStateFlow()
+
+    init {
+        applyQuery()
+    }
+
+    override suspend fun refresh(query: LinksQuery?) {
         delay(650) // pull-to-refresh should feel like it did something
+        query?.let { this.query = it }
+        visible = MOCK_PAGE
+        applyQuery()
+    }
+
+    override suspend fun loadMore() {
+        delay(500) // let the footer loader be seen
+        visible += MOCK_PAGE
+        applyQuery()
+    }
+
+    private fun applyQuery() {
+        val q = query.search?.takeIf { it.isNotBlank() }
+        val full = all.value
+            .filter(query.filter::matches)
+            .filter {
+                q == null || it.shortCode.contains(q, ignoreCase = true) ||
+                    it.originalUrl.contains(q, ignoreCase = true)
+            }
+            .let { list ->
+                when (query.sort) {
+                    LinkSort.Recent -> list
+                    LinkSort.Clicks -> list.sortedByDescending { it.totalClicks }
+                }
+            }
+        _links.value = full.take(visible)
+        _hasMore.value = full.size > visible
+    }
+
+    /** ~130 plausible extras behind the curated seed. */
+    private fun longTail(): List<SpooLink> {
+        val domains = listOf(
+            "www.youtube.com/watch?v=", "open.spotify.com/track/", "github.com/",
+            "medium.com/@", "www.twitch.tv/", "dev.to/", "www.behance.net/",
+            "soundcloud.com/", "www.etsy.com/listing/", "news.ycombinator.com/item?id=",
+        )
+        val words = listOf(
+            "promo", "beat", "guide", "setup", "merch", "vlog", "patch", "combo",
+            "remix", "board", "pitch", "study", "route", "batch",
+        )
+        val rng = Random(7)
+        return (1..130).map { i ->
+            val age = 20 + i
+            link(
+                id = "t$i",
+                code = "${words[i % words.size]}${100 + i}",
+                url = "https://${domains[i % domains.size]}mock-$i",
+                clicks = (9_000_000 / (i + 40) - 800 + rng.nextInt(500)).coerceAtLeast(5),
+                created = SimpleDateFormat("MMM d", Locale.US)
+                    .format(Date(System.currentTimeMillis() - age * 86_400_000L)),
+                ageDays = age,
+                password = i % 9 == 0,
+                maxClicks = if (i % 7 == 0) (i * 100L) else null,
+            )
+        }
     }
 
     override suspend fun create(request: CreateLinkRequest): SpooLink {
@@ -60,13 +131,15 @@ class MockLinksRepository : LinksRepository {
             privateStats = request.privateStats,
             blockBots = request.blockBots,
         )
-        _links.update { listOf(created) + it }
+        all.update { listOf(created) + it }
+        visible += 1
+        applyQuery()
         return created
     }
 
     override suspend fun update(id: String, edit: LinkEdit): SpooLink {
         delay(300)
-        val updated = _links.value.first { it.id == id }.let { old ->
+        val updated = all.value.first { it.id == id }.let { old ->
             old.copy(
                 originalUrl = edit.longUrl ?: old.originalUrl,
                 shortCode = edit.alias ?: old.shortCode,
@@ -89,31 +162,36 @@ class MockLinksRepository : LinksRepository {
                 blockBots = edit.blockBots ?: old.blockBots,
             )
         }
-        _links.update { list -> list.map { if (it.id == id) updated else it } }
+        all.update { list -> list.map { if (it.id == id) updated else it } }
+        applyQuery()
         return updated
     }
 
     override suspend fun delete(id: String) {
         delay(250)
-        _links.update { list -> list.filterNot { it.id == id } }
+        all.update { list -> list.filterNot { it.id == id } }
+        applyQuery()
     }
 
     override suspend fun bulkDelete(ids: List<String>) {
         delay(400)
-        _links.update { list -> list.filterNot { it.id in ids } }
+        all.update { list -> list.filterNot { it.id in ids } }
+        applyQuery()
     }
 
     override suspend fun bulkSetStatus(ids: List<String>, active: Boolean) {
         delay(400)
         val status = if (active) LinkUiStatus.Active else LinkUiStatus.Inactive
-        _links.update { list -> list.map { if (it.id in ids) it.copy(status = status) else it } }
+        all.update { list -> list.map { if (it.id in ids) it.copy(status = status) else it } }
+        applyQuery()
     }
 
     override suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?) {
         delay(400)
-        _links.update { list ->
+        all.update { list ->
             list.map { if (it.id in ids) it.copy(expireAtMillis = expireAtMillis) else it }
         }
+        applyQuery()
     }
 
     override suspend fun emojiCatalog(): EmojiCatalog {
@@ -123,7 +201,7 @@ class MockLinksRepository : LinksRepository {
 
     override suspend fun stats(shortCode: String, params: StatsParams): LinkStats {
         delay(450)
-        val link = _links.value.first { it.shortCode == shortCode }
+        val link = all.value.first { it.shortCode == shortCode }
         return generate(params, base = link.totalClicks, seed = link.id.hashCode(), link = link)
     }
 
@@ -131,7 +209,7 @@ class MockLinksRepository : LinksRepository {
         delay(550)
         return generate(
             params,
-            base = _links.value.sumOf { it.totalClicks },
+            base = all.value.sumOf { it.totalClicks },
             seed = 20_26,
             link = null,
         )
@@ -216,6 +294,8 @@ class MockLinksRepository : LinksRepository {
     )
 
     private companion object {
+        const val MOCK_PAGE = 25
+
         val COUNTRIES = listOf(
             "US" to 0.30f, "IN" to 0.17f, "DE" to 0.09f, "GB" to 0.08f,
             "BR" to 0.07f, "JP" to 0.06f, "FR" to 0.05f, "CA" to 0.05f,

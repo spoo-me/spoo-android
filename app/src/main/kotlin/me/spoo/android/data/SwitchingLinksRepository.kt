@@ -38,7 +38,12 @@ class SwitchingLinksRepository(
         .flatMapLatest { if (it) mock.links else real.links }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    override suspend fun refresh() = active.refresh()
+    override val hasMore: StateFlow<Boolean> = mockEnabled
+        .flatMapLatest { if (it) mock.hasMore else real.hasMore }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    override suspend fun refresh(query: LinksQuery?) = active.refresh(query)
+    override suspend fun loadMore() = active.loadMore()
     override suspend fun create(request: CreateLinkRequest) = active.create(request)
     override suspend fun update(id: String, edit: LinkEdit) = active.update(id, edit)
     override suspend fun delete(id: String) = active.delete(id)

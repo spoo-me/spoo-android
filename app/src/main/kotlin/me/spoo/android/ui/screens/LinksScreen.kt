@@ -64,6 +64,7 @@ import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,7 +94,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -136,7 +140,7 @@ import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.components.sheetBottomPadding
-import me.spoo.android.ui.screens.links.LinkSort
+import me.spoo.android.data.LinkSort
 import me.spoo.android.ui.screens.links.LinksViewModel
 import me.spoo.android.ui.theme.cardChrome
 import me.spoo.android.ui.theme.cardContainerColor
@@ -200,6 +204,7 @@ fun LinksScreen(
     // included) rides down with the pull and springs back, the loader
     // grows above it all — the M3 behavior, not a list-only shimmy.
     val refreshing by viewModel.refreshing.collectAsState()
+    val loadingMore by viewModel.loadingMore.collectAsState()
     val pullState = rememberPullToRefreshState()
     val pullThreshold = with(LocalDensity.current) {
         PullToRefreshDefaults.PositionalThreshold.toPx()
@@ -264,7 +269,19 @@ fun LinksScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
+        val listState = rememberLazyListState()
+        // Auto-pagination: ask for the next page as the end scrolls near.
+        LaunchedEffect(listState) {
+            snapshotFlow {
+                val info = listState.layoutInfo
+                val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                last >= info.totalItemsCount - 6
+            }
+                .distinctUntilChanged()
+                .collect { nearEnd -> if (nearEnd) viewModel.loadMore() }
+        }
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -419,6 +436,23 @@ fun LinksScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            if (loadingMore) {
+                item(key = "loading-more") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        // Bare morphing shape: inline with content, the
+                        // contained disc reads too heavy.
+                        LoadingIndicator(
+                            modifier = Modifier.size(40.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         }

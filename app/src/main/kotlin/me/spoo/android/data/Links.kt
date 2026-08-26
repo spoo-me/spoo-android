@@ -29,7 +29,21 @@ data class SpooLink(
     val clickLimited: Boolean get() = maxClicks != null
 }
 
-/** Client-side filters for the links list, mirroring the webapp's set. */
+/** Sort order for the links list. */
+enum class LinkSort { Recent, Clicks }
+
+/**
+ * The server-side view of the links list. Search, sort and filters ride
+ * the list endpoint so results are correct across the whole account,
+ * not just the loaded pages.
+ */
+data class LinksQuery(
+    val search: String? = null,
+    val sort: LinkSort = LinkSort.Recent,
+    val filter: LinksFilter = LinksFilter(),
+)
+
+/** Filters for the links list, mirroring the webapp's set. */
 data class LinksFilter(
     val status: LinkUiStatus? = null,
     val passwordProtected: Boolean = false,

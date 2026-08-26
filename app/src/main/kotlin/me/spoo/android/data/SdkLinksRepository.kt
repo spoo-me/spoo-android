@@ -25,6 +25,8 @@ import me.spoo.ListLinksRequest
 import me.spoo.SessionExpiredException
 import me.spoo.Metric
 import me.spoo.SettableStatus
+import me.spoo.SortBy
+import me.spoo.SortOrder
 import me.spoo.SpooClient
 import me.spoo.StatsQuery
 
@@ -42,23 +44,66 @@ class SdkLinksRepository(
     private val _links = MutableStateFlow<List<SpooLink>>(emptyList())
     override val links: StateFlow<List<SpooLink>> = _links.asStateFlow()
 
-    override suspend fun refresh() {
-        _links.value = try {
-            clientProvider().links
-                .list(ListLinksRequest(pageSize = 100))
-                .items
-                .map { it.toUi() }
+    private val _hasMore = MutableStateFlow(false)
+    override val hasMore: StateFlow<Boolean> = _hasMore.asStateFlow()
+
+    private var query = LinksQuery()
+    private var page = 1
+
+    override suspend fun refresh(query: LinksQuery?) {
+        query?.let { this.query = it }
+        page = 1
+        try {
+            val result = clientProvider().links.list(this.query.toRequest(page = 1))
+            _links.value = result.items.map { it.toUi() }
+            _hasMore.value = result.hasNext
         } catch (_: AuthenticationException) {
-            emptyList() // signed out: no owned links to show
+            _links.value = emptyList() // signed out: no owned links to show
+            _hasMore.value = false
         } catch (e: SessionExpiredException) {
             android.util.Log.w("SpooRepo", "session expired during refresh", e)
             onSessionExpired()
-            emptyList()
+            _links.value = emptyList()
+            _hasMore.value = false
         } catch (e: Exception) {
             android.util.Log.w("SpooRepo", "refresh failed", e)
             throw e
         }
     }
+
+    override suspend fun loadMore() {
+        if (!_hasMore.value) return
+        val result = withSession {
+            clientProvider().links.list(query.toRequest(page = page + 1))
+        }
+        page += 1
+        val known = _links.value.mapTo(mutableSetOf()) { it.id }
+        _links.value = _links.value + result.items.map { it.toUi() }.filterNot { it.id in known }
+        _hasMore.value = result.hasNext
+    }
+
+    private fun LinksQuery.toRequest(page: Int) = ListLinksRequest(
+        page = page,
+        pageSize = PAGE_SIZE,
+        sortBy = when (sort) {
+            LinkSort.Recent -> SortBy.CREATED_AT
+            LinkSort.Clicks -> SortBy.TOTAL_CLICKS
+        },
+        sortOrder = SortOrder.DESCENDING,
+        // The typed status param only speaks active/inactive; expired and
+        // blocked stay a client-side pass in the view model.
+        status = when (filter.status) {
+            LinkUiStatus.Active -> SettableStatus.ACTIVE
+            LinkUiStatus.Inactive -> SettableStatus.INACTIVE
+            else -> null
+        },
+        passwordSet = true.takeIf { filter.passwordProtected },
+        maxClicksSet = true.takeIf { filter.clickLimited },
+        createdAfter = filter.createdRange?.first?.let { Instant.fromEpochMilliseconds(it) },
+        createdBefore = filter.createdRange?.second
+            ?.let { Instant.fromEpochMilliseconds(it + 86_399_999) },
+        search = search?.takeIf { it.isNotBlank() },
+    )
 
     /**
      * A dead refresh token means signed-out, no matter which call finds
@@ -272,4 +317,8 @@ class SdkLinksRepository(
 
     private fun Instant.toDayLabel(): String =
         SimpleDateFormat("MMM d", Locale.US).format(Date(toEpochMilliseconds()))
+
+    private companion object {
+        const val PAGE_SIZE = 50
+    }
 }

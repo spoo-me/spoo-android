@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -15,12 +19,12 @@ import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.EmojiCatalog
 import me.spoo.android.data.FriendlyError
 import me.spoo.android.data.LinkEdit
+import me.spoo.android.data.LinkSort
+import me.spoo.android.data.LinksQuery
 import me.spoo.android.data.friendlyError
 import me.spoo.android.data.LinksFilter
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SpooLink
-
-enum class LinkSort { Recent, Clicks }
 
 /** Floor for pull-to-refresh so the hold phase is visible (see refresh). */
 const val MIN_REFRESH_MS = 650L
@@ -39,12 +43,26 @@ sealed interface EditState {
     data class Failed(val error: FriendlyError) : EditState
 }
 
+@OptIn(FlowPreview::class)
 class LinksViewModel(
     private val repository: LinksRepository = SpooApp.graph.linksRepository,
 ) : ViewModel() {
 
+    val query = MutableStateFlow("")
+    val sort = MutableStateFlow(LinkSort.Recent)
+    val filter = MutableStateFlow(LinksFilter())
+
     init {
-        viewModelScope.launch { runCatching { repository.refresh() } }
+        // Search, sort and filters are the server's job: every change
+        // re-runs page one, debounced so typing doesn't spam the API.
+        viewModelScope.launch {
+            combine(query, sort, filter) { q, s, f ->
+                LinksQuery(search = q.takeIf { it.isNotBlank() }, sort = s, filter = f)
+            }
+                .debounce(250)
+                .distinctUntilChanged()
+                .collectLatest { runCatching { repository.refresh(it) } }
+        }
     }
 
     /** Pull-to-refresh. */
@@ -65,22 +83,25 @@ class LinksViewModel(
         }
     }
 
-    val query = MutableStateFlow("")
-    val sort = MutableStateFlow(LinkSort.Recent)
-    val filter = MutableStateFlow(LinksFilter())
+    /** Auto-pagination: the list asks for more as the end scrolls near. */
+    val hasMore: StateFlow<Boolean> = repository.hasMore
+    val loadingMore = MutableStateFlow(false)
 
+    fun loadMore() {
+        if (loadingMore.value || !hasMore.value) return
+        viewModelScope.launch {
+            loadingMore.value = true
+            runCatching { repository.loadMore() }
+                .onFailure { actionMessage.value = friendlyError(it, "Couldn't load more").message }
+            loadingMore.value = false
+        }
+    }
+
+    // The server can't express expired/blocked in its status filter, so a
+    // light client pass covers those; it never contradicts the server.
     val links: StateFlow<List<SpooLink>> =
-        combine(repository.links, query, sort, filter) { all, q, sort, filter ->
-            val byFilter = all.filter(filter::matches)
-            val filtered = if (q.isBlank()) byFilter else byFilter.filter {
-                it.shortCode.contains(q, ignoreCase = true) ||
-                    it.originalUrl.contains(q, ignoreCase = true)
-            }
-            when (sort) {
-                LinkSort.Recent -> filtered
-                LinkSort.Clicks -> filtered.sortedByDescending { it.totalClicks }
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        combine(repository.links, filter) { all, f -> all.filter(f::matches) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _createState = MutableStateFlow<CreateState>(CreateState.Idle)
     val createState: StateFlow<CreateState> = _createState

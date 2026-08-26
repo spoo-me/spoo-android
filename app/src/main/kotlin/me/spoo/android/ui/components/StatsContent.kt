@@ -381,6 +381,9 @@ private fun Breakdown(
                                     style = MaterialTheme.typography.labelLarge.tabular,
                                 )
                             }
+                            // Flat share bars, deliberately: the wave is the
+                            // hero chart's signature — 24 squiggles per page
+                            // would spend it (tried, rejected).
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()

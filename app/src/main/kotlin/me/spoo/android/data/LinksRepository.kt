@@ -5,8 +5,17 @@ import kotlinx.coroutines.flow.StateFlow
 interface LinksRepository {
     val links: StateFlow<List<SpooLink>>
 
-    /** Reload from the source of truth; clears on auth loss. */
-    suspend fun refresh()
+    /** Whether another page exists beyond what [links] holds. */
+    val hasMore: StateFlow<Boolean>
+
+    /**
+     * Reload page one for [query]; null re-runs the last query. Clears
+     * on auth loss.
+     */
+    suspend fun refresh(query: LinksQuery? = null)
+
+    /** Append the next page, when one exists. */
+    suspend fun loadMore()
     suspend fun create(request: CreateLinkRequest): SpooLink
     suspend fun update(id: String, edit: LinkEdit): SpooLink
     suspend fun delete(id: String)
