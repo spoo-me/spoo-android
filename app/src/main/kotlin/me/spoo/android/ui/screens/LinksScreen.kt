@@ -100,6 +100,7 @@ import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -141,6 +142,7 @@ import me.spoo.android.ui.components.QrDialog
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.components.sheetBottomPadding
 import me.spoo.android.data.LinkSort
+import me.spoo.android.ui.screens.links.CreateState
 import me.spoo.android.ui.screens.links.LinksViewModel
 import me.spoo.android.ui.theme.cardChrome
 import me.spoo.android.ui.theme.cardContainerColor
@@ -490,7 +492,13 @@ fun LinksScreen(
     } // pull-translation box
     } // PullToRefreshBox
 
+    // Draft policy: the form's saveable state survives accidental
+    // dismissals (reopen and the text is back), but a SUCCESSFUL create
+    // bumps the generation so the next open starts clean instead of
+    // pre-filled with the previous link.
+    var draftGeneration by rememberSaveable { mutableStateOf(0) }
     if (showCreateSheet) {
+        key(draftGeneration) {
         CreateLinkSheet(
             initialUrl = sharedUrl,
             state = createState,
@@ -498,10 +506,12 @@ fun LinksScreen(
             onEmojiMode = viewModel::ensureEmojiCatalog,
             onSubmit = viewModel::create,
             onDismiss = {
+                if (createState is CreateState.Done) draftGeneration++
                 showCreateSheet = false
                 viewModel.resetCreate()
             },
         )
+        }
     }
 
     qrFor?.let { link ->
