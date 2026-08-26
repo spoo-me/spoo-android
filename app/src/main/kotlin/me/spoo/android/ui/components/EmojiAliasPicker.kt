@@ -205,7 +205,7 @@ private fun EmojiCell(
             .clickable(enabled = enabled) { onPick(choice) },
         contentAlignment = Alignment.Center,
     ) {
-        Text(choice.char.emojiPresentation(), fontSize = 22.sp)
+        FluentEmoji(char = choice.char, size = 30.dp)
     }
 }
 

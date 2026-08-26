@@ -401,19 +401,30 @@ private fun ResultPhase(
         ) {
             // Auto-shrink instead of guessing by length: URLs line-break
             // after "/", so on narrow screens a fixed size would wrap and
-            // maxLines=1 silently hides the alias line.
-            Text(
-                shortUrl,
-                style = MaterialTheme.typography.displaySmall
-                    .hero(key = shortUrl, fontSize = 40.sp, lineHeight = 46.sp),
-                maxLines = 1,
-                softWrap = false,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = 20.sp,
-                    maxFontSize = 40.sp,
-                    stepSize = 1.sp,
-                ),
-            )
+            // maxLines=1 silently hides the alias line. Emoji aliases skip
+            // autoSize and render as Fluent inline art at a fixed size.
+            if (shortUrl.all { it.code < 128 }) {
+                Text(
+                    shortUrl,
+                    style = MaterialTheme.typography.displaySmall
+                        .hero(key = shortUrl, fontSize = 40.sp, lineHeight = 46.sp),
+                    maxLines = 1,
+                    softWrap = false,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 20.sp,
+                        maxFontSize = 40.sp,
+                        stepSize = 1.sp,
+                    ),
+                )
+            } else {
+                EmojiText(
+                    shortUrl,
+                    style = MaterialTheme.typography.displaySmall
+                        .hero(key = shortUrl, fontSize = 34.sp, lineHeight = 42.sp),
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
             destination?.let {
                 Spacer(Modifier.height(6.dp))
                 Text(

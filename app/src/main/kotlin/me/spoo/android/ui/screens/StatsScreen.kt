@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import me.spoo.android.SpooApp
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsParams
+import me.spoo.android.ui.components.EmojiText
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.StatsContent
 import me.spoo.android.ui.components.StatsLoadFailure
@@ -82,7 +83,7 @@ fun StatsScreen(
                             Favicon(host = faviconHost(it.originalUrl), size = 24.dp)
                             Spacer(Modifier.width(10.dp))
                         }
-                        Text("/$shortCode")
+                        EmojiText("/$shortCode")
                     }
                 },
                 subtitle = {

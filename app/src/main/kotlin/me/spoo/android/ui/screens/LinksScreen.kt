@@ -129,6 +129,7 @@ import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.ui.theme.loaderContainerColor
 import me.spoo.android.ui.theme.railIconColors
 import me.spoo.android.ui.components.CreateLinkSheet
+import me.spoo.android.ui.components.EmojiText
 import me.spoo.android.ui.components.FullScreenDateRangePicker
 import me.spoo.android.ui.components.EditLinkSheet
 import me.spoo.android.ui.components.Favicon
@@ -815,7 +816,7 @@ private fun LinkRow(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
+                        EmojiText(
                             text = link.shortUrl,
                             style = MaterialTheme.typography.titleMedium,
                             color = primaryText,
