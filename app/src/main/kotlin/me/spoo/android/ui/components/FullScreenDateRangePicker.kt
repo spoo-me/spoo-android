@@ -41,10 +41,11 @@ fun FullScreenDateRangePicker(
     val state = rememberDateRangePickerState()
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false, // edge to edge, no dark strip
-        ),
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false, // edge to edge, no dark strip
+            ),
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -53,9 +54,10 @@ fun FullScreenDateRangePicker(
         ) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onDismiss) {
@@ -63,7 +65,10 @@ fun FullScreenDateRangePicker(
                     }
                     Spacer(Modifier.weight(1f))
                     if (neutralLabel != null && onNeutral != null) {
-                        TextButton(onClick = { onNeutral(); onDismiss() }) {
+                        TextButton(onClick = {
+                            onNeutral()
+                            onDismiss()
+                        }) {
                             Text(neutralLabel)
                         }
                         Spacer(Modifier.width(4.dp))

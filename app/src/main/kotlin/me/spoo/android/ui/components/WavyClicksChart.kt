@@ -45,39 +45,43 @@ fun WavyClicksChart(
         val chartHeight = size.height - inset * 2
         val max = dailyClicks.max().coerceAtLeast(1).toFloat()
 
-        val points = dailyClicks.mapIndexed { i, clicks ->
-            Offset(
-                x = size.width * i / (dailyClicks.size - 1),
-                y = inset + chartHeight * (1f - clicks / max),
-            )
-        }
+        val points =
+            dailyClicks.mapIndexed { i, clicks ->
+                Offset(
+                    x = size.width * i / (dailyClicks.size - 1),
+                    y = inset + chartHeight * (1f - clicks / max),
+                )
+            }
 
         // Catmull-Rom -> cubic Bezier control points for a smooth wave.
         // Control Ys are clamped so flat-then-spike series don't overshoot
         // the baseline or the top edge.
-        val path = Path().apply {
-            moveTo(points.first().x, points.first().y)
-            for (i in 0 until points.lastIndex) {
-                val p0 = points.getOrElse(i - 1) { points[i] }
-                val p1 = points[i]
-                val p2 = points[i + 1]
-                val p3 = points.getOrElse(i + 2) { p2 }
-                cubicTo(
-                    p1.x + (p2.x - p0.x) / 6f,
-                    (p1.y + (p2.y - p0.y) / 6f).coerceIn(inset, size.height),
-                    p2.x - (p3.x - p1.x) / 6f,
-                    (p2.y - (p3.y - p1.y) / 6f).coerceIn(inset, size.height),
-                    p2.x, p2.y,
-                )
+        val path =
+            Path().apply {
+                moveTo(points.first().x, points.first().y)
+                for (i in 0 until points.lastIndex) {
+                    val p0 = points.getOrElse(i - 1) { points[i] }
+                    val p1 = points[i]
+                    val p2 = points[i + 1]
+                    val p3 = points.getOrElse(i + 2) { p2 }
+                    cubicTo(
+                        p1.x + (p2.x - p0.x) / 6f,
+                        (p1.y + (p2.y - p0.y) / 6f).coerceIn(inset, size.height),
+                        p2.x - (p3.x - p1.x) / 6f,
+                        (p2.y - (p3.y - p1.y) / 6f).coerceIn(inset, size.height),
+                        p2.x,
+                        p2.y,
+                    )
+                }
             }
-        }
 
-        val fill = Path().apply {
-            addPath(path)
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
+        val fill =
+            Path().apply {
+                addPath(path)
+                lineTo(size.width, size.height)
+                lineTo(0f, size.height)
+                close()
+            }
         drawPath(
             path = fill,
             brush = Brush.verticalGradient(listOf(fillTop, fillTop.copy(alpha = 0f))),

@@ -16,15 +16,34 @@ interface LinksRepository {
 
     /** Append the next page, when one exists. */
     suspend fun loadMore()
+
     suspend fun create(request: CreateLinkRequest): SpooLink
-    suspend fun update(id: String, edit: LinkEdit): SpooLink
+
+    suspend fun update(
+        id: String,
+        edit: LinkEdit,
+    ): SpooLink
+
     suspend fun delete(id: String)
+
     suspend fun bulkDelete(ids: List<String>)
-    suspend fun bulkSetStatus(ids: List<String>, active: Boolean)
+
+    suspend fun bulkSetStatus(
+        ids: List<String>,
+        active: Boolean,
+    )
 
     /** null clears the expiry. */
-    suspend fun bulkSetExpiry(ids: List<String>, expireAtMillis: Long?)
-    suspend fun stats(shortCode: String, params: StatsParams): LinkStats
+    suspend fun bulkSetExpiry(
+        ids: List<String>,
+        expireAtMillis: Long?,
+    )
+
+    suspend fun stats(
+        shortCode: String,
+        params: StatsParams,
+    ): LinkStats
+
     suspend fun accountStats(params: StatsParams): LinkStats
 
     /**
@@ -32,7 +51,10 @@ interface LinksRepository {
      * these instantly and refetch silently (stale-while-revalidate).
      * Null [shortCode] addresses the account-wide report.
      */
-    fun cachedStats(shortCode: String?, params: StatsParams): LinkStats?
+    fun cachedStats(
+        shortCode: String?,
+        params: StatsParams,
+    ): LinkStats?
 
     /** The accepted emoji-alias catalogue; changes rarely, cached upstream. */
     suspend fun emojiCatalog(): EmojiCatalog

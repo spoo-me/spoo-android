@@ -3,7 +3,6 @@ package me.spoo.android.widget
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color as AndroidColor
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
@@ -15,6 +14,11 @@ import androidx.compose.ui.graphics.asAndroidPath
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
 import me.spoo.android.R
+import me.spoo.android.data.LinkStats
+import me.spoo.android.data.StatsDim
+import me.spoo.android.ui.components.WorldMapCache
+import me.spoo.android.ui.components.countryDisplayName
+import me.spoo.android.ui.components.flagEmoji
 import java.text.NumberFormat
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -22,11 +26,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
-import me.spoo.android.data.LinkStats
-import me.spoo.android.data.StatsDim
-import me.spoo.android.ui.components.WorldMapCache
-import me.spoo.android.ui.components.countryDisplayName
-import me.spoo.android.ui.components.flagEmoji
+import android.graphics.Color as AndroidColor
 
 /** Theme ints resolved by the caller (Glance or compose preview). */
 data class ChartPalette(
@@ -46,7 +46,6 @@ data class ChartPalette(
  * config-screen preview, so what you configure is literally what renders.
  */
 object WidgetChartRenderer {
-
     fun render(
         context: Context,
         config: WidgetConfig,
@@ -62,20 +61,28 @@ object WidgetChartRenderer {
         // Cap the pixel budget and let ContentScale.FillBounds stretch;
         // density scales along so strokes, text, and icons keep proportion.
         val maxPixels = 1_200_000f
-        val scale = if (width * height > maxPixels) {
-            kotlin.math.sqrt(maxPixels / (width * height))
-        } else {
-            1f
-        }
-        @Suppress("NAME_SHADOWING") val width = (width * scale).toInt()
-        @Suppress("NAME_SHADOWING") val height = (height * scale).toInt()
-        @Suppress("NAME_SHADOWING") val density = density * scale
+        val scale =
+            if (width * height > maxPixels) {
+                kotlin.math.sqrt(maxPixels / (width * height))
+            } else {
+                1f
+            }
 
-        val bitmap = Bitmap.createBitmap(
-            width.coerceAtLeast(2),
-            height.coerceAtLeast(2),
-            Bitmap.Config.ARGB_8888,
-        )
+        @Suppress("NAME_SHADOWING")
+        val width = (width * scale).toInt()
+
+        @Suppress("NAME_SHADOWING")
+        val height = (height * scale).toInt()
+
+        @Suppress("NAME_SHADOWING")
+        val density = density * scale
+
+        val bitmap =
+            Bitmap.createBitmap(
+                width.coerceAtLeast(2),
+                height.coerceAtLeast(2),
+                Bitmap.Config.ARGB_8888,
+            )
         val canvas = Canvas(bitmap)
         when (config.chart) {
             WidgetChart.Wave -> drawWave(canvas, data.series, palette, density)
@@ -92,31 +99,43 @@ object WidgetChartRenderer {
 
     private val numbers: NumberFormat = NumberFormat.getIntegerInstance()
 
-    private fun labelPaint(color: Int, density: Float) =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color
-            textSize = 12f * density
-        }
+    private fun labelPaint(
+        color: Int,
+        density: Float,
+    ) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        textSize = 12f * density
+    }
 
-    private fun countPaint(color: Int, density: Float) =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color
-            textSize = 10.5f * density
-            typeface = Typeface.MONOSPACE
-        }
+    private fun countPaint(
+        color: Int,
+        density: Float,
+    ) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        textSize = 10.5f * density
+        typeface = Typeface.MONOSPACE
+    }
 
     /**
      * Text on an accent-tinted shape can't use the surface roles — a bright
      * fill in dark theme (or a pale one in light) drowns them. Composite
      * the fill over the surface and pick near-black or near-white.
      */
-    private data class OnFill(val label: Int, val count: Int, val mark: Int)
+    private data class OnFill(
+        val label: Int,
+        val count: Int,
+        val mark: Int,
+    )
 
-    private fun textOnFill(palette: ChartPalette, fillAlpha: Int): OnFill {
-        val fill = ColorUtils.compositeColors(
-            ColorUtils.setAlphaComponent(palette.accent, fillAlpha),
-            palette.surface,
-        )
+    private fun textOnFill(
+        palette: ChartPalette,
+        fillAlpha: Int,
+    ): OnFill {
+        val fill =
+            ColorUtils.compositeColors(
+                ColorUtils.setAlphaComponent(palette.accent, fillAlpha),
+                palette.surface,
+            )
         return if (ColorUtils.calculateLuminance(fill) > 0.45) {
             OnFill(label = 0xDE000000.toInt(), count = 0x99000000.toInt(), mark = 0xB3000000.toInt())
         } else {
@@ -124,7 +143,10 @@ object WidgetChartRenderer {
         }
     }
 
-    private fun display(dim: StatsDim, label: String) = when (dim) {
+    private fun display(
+        dim: StatsDim,
+        label: String,
+    ) = when (dim) {
         StatsDim.Country -> countryDisplayName(label)
         else -> label
     }
@@ -148,19 +170,24 @@ object WidgetChartRenderer {
             val emoji = flagEmoji(label)
             if (emoji != null) {
                 canvas.drawText(
-                    emoji, left, top + size * 0.85f,
+                    emoji,
+                    left,
+                    top + size * 0.85f,
                     Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = size },
                 )
                 return
             }
         }
-        val icon = WidgetIconCache.hostFor(dim, label)
-            ?.let { WidgetIconCache.get(context, it) }
+        val icon =
+            WidgetIconCache
+                .hostFor(dim, label)
+                ?.let { WidgetIconCache.get(context, it) }
         if (icon != null) {
             val rect = RectF(left, top, left + size, top + size)
-            val clip = Path().apply {
-                addRoundRect(rect, size * 0.22f, size * 0.22f, Path.Direction.CW)
-            }
+            val clip =
+                Path().apply {
+                    addRoundRect(rect, size * 0.22f, size * 0.22f, Path.Direction.CW)
+                }
             canvas.save()
             canvas.clipPath(clip)
             canvas.drawBitmap(icon, null, rect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
@@ -168,14 +195,17 @@ object WidgetChartRenderer {
             return
         }
         canvas.drawCircle(
-            left + size / 2, top + size / 2, size / 2,
+            left + size / 2,
+            top + size / 2,
+            size / 2,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = ColorUtils.setAlphaComponent(monogramTint, 31)
             },
         )
         canvas.drawText(
             label.firstOrNull()?.uppercase() ?: "?",
-            left + size / 2, top + size * 0.71f,
+            left + size / 2,
+            top + size * 0.71f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = monogramTint
                 textSize = size * 0.56f
@@ -186,7 +216,12 @@ object WidgetChartRenderer {
 
     // ---- time charts --------------------------------------------------
 
-    private fun drawWave(canvas: Canvas, series: List<Int>, palette: ChartPalette, density: Float) {
+    private fun drawWave(
+        canvas: Canvas,
+        series: List<Int>,
+        palette: ChartPalette,
+        density: Float,
+    ) {
         if (series.size < 2) return
         val width = canvas.width
         val height = canvas.height
@@ -194,42 +229,50 @@ object WidgetChartRenderer {
         val inset = strokeWidth
         val chartHeight = height - inset * 2
         val maxValue = series.max().coerceAtLeast(1).toFloat()
-        val points = series.mapIndexed { i, clicks ->
-            (width.toFloat() * i / (series.size - 1)) to
-                (inset + chartHeight * (1f - clicks / maxValue))
-        }
-
-        val path = Path().apply {
-            moveTo(points.first().first, points.first().second)
-            for (i in 0 until points.lastIndex) {
-                val p0 = points.getOrElse(i - 1) { points[i] }
-                val p1 = points[i]
-                val p2 = points[i + 1]
-                val p3 = points.getOrElse(i + 2) { p2 }
-                cubicTo(
-                    p1.first + (p2.first - p0.first) / 6f,
-                    (p1.second + (p2.second - p0.second) / 6f).coerceIn(inset, height.toFloat()),
-                    p2.first - (p3.first - p1.first) / 6f,
-                    (p2.second - (p3.second - p1.second) / 6f).coerceIn(inset, height.toFloat()),
-                    p2.first, p2.second,
-                )
+        val points =
+            series.mapIndexed { i, clicks ->
+                (width.toFloat() * i / (series.size - 1)) to
+                    (inset + chartHeight * (1f - clicks / maxValue))
             }
-        }
 
-        val fill = Path(path).apply {
-            lineTo(width.toFloat(), height.toFloat())
-            lineTo(0f, height.toFloat())
-            close()
-        }
+        val path =
+            Path().apply {
+                moveTo(points.first().first, points.first().second)
+                for (i in 0 until points.lastIndex) {
+                    val p0 = points.getOrElse(i - 1) { points[i] }
+                    val p1 = points[i]
+                    val p2 = points[i + 1]
+                    val p3 = points.getOrElse(i + 2) { p2 }
+                    cubicTo(
+                        p1.first + (p2.first - p0.first) / 6f,
+                        (p1.second + (p2.second - p0.second) / 6f).coerceIn(inset, height.toFloat()),
+                        p2.first - (p3.first - p1.first) / 6f,
+                        (p2.second - (p3.second - p1.second) / 6f).coerceIn(inset, height.toFloat()),
+                        p2.first,
+                        p2.second,
+                    )
+                }
+            }
+
+        val fill =
+            Path(path).apply {
+                lineTo(width.toFloat(), height.toFloat())
+                lineTo(0f, height.toFloat())
+                close()
+            }
         canvas.drawPath(
             fill,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = LinearGradient(
-                    0f, 0f, 0f, height.toFloat(),
-                    ColorUtils.setAlphaComponent(palette.accent, 61), // 24%
-                    ColorUtils.setAlphaComponent(palette.accent, 0),
-                    Shader.TileMode.CLAMP,
-                )
+                shader =
+                    LinearGradient(
+                        0f,
+                        0f,
+                        0f,
+                        height.toFloat(),
+                        ColorUtils.setAlphaComponent(palette.accent, 61), // 24%
+                        ColorUtils.setAlphaComponent(palette.accent, 0),
+                        Shader.TileMode.CLAMP,
+                    )
             },
         )
         canvas.drawPath(
@@ -244,7 +287,12 @@ object WidgetChartRenderer {
         )
     }
 
-    private fun drawBars(canvas: Canvas, series: List<Int>, palette: ChartPalette, density: Float) {
+    private fun drawBars(
+        canvas: Canvas,
+        series: List<Int>,
+        palette: ChartPalette,
+        density: Float,
+    ) {
         if (series.isEmpty()) return
         val width = canvas.width
         val height = canvas.height
@@ -252,16 +300,17 @@ object WidgetChartRenderer {
         // with real gaps and full round caps, rest bars muted, the peak
         // carrying full accent — not a picket fence of skinny sticks.
         val maxBars = 14
-        val buckets = if (series.size <= maxBars) {
-            series
-        } else {
-            val per = series.size / maxBars.toFloat()
-            List(maxBars) { i ->
-                val from = (i * per).toInt()
-                val to = (((i + 1) * per).toInt()).coerceAtMost(series.size)
-                series.subList(from, to.coerceAtLeast(from + 1)).sum()
+        val buckets =
+            if (series.size <= maxBars) {
+                series
+            } else {
+                val per = series.size / maxBars.toFloat()
+                List(maxBars) { i ->
+                    val from = (i * per).toInt()
+                    val to = (((i + 1) * per).toInt()).coerceAtMost(series.size)
+                    series.subList(from, to.coerceAtLeast(from + 1)).sum()
+                }
             }
-        }
         val maxValue = buckets.max().coerceAtLeast(1).toFloat()
         val peak = buckets.indexOf(buckets.max())
         val slot = width.toFloat() / buckets.size
@@ -272,13 +321,16 @@ object WidgetChartRenderer {
         buckets.forEachIndexed { i, value ->
             val barHeight = (height * value / maxValue).coerceAtLeast(minBar)
             val left = i * slot + (slot - barWidth) / 2f
-            paint.color = ColorUtils.setAlphaComponent(
-                palette.accent,
-                if (i == peak) 255 else 140,
-            )
+            paint.color =
+                ColorUtils.setAlphaComponent(
+                    palette.accent,
+                    if (i == peak) 255 else 140,
+                )
             canvas.drawRoundRect(
                 RectF(left, height - barHeight, left + barWidth, height.toFloat()),
-                radius, radius, paint,
+                radius,
+                radius,
+                paint,
             )
         }
     }
@@ -296,29 +348,32 @@ object WidgetChartRenderer {
         maxWidthPx: Int = 0,
         font: WidgetFont = WidgetFont.Flex,
     ): Bitmap {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-            typeface = ResourcesCompat.getFont(
-                context,
-                when (font) {
-                    WidgetFont.Flex -> R.font.roboto_flex
-                    // Numeral-only subsets, instanced at their expressive
-                    // cuts (Serif: wght 800 / opsz 144; Mono: wght 700).
-                    WidgetFont.Serif -> R.font.roboto_serif_hero
-                    WidgetFont.Mono -> R.font.roboto_mono_hero
-                },
-            )
-            textSize = textSizePx
-            color = AndroidColor.WHITE
-            fontFeatureSettings = "tnum"
-        }
+        val paint =
+            Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+                typeface =
+                    ResourcesCompat.getFont(
+                        context,
+                        when (font) {
+                            WidgetFont.Flex -> R.font.roboto_flex
+                            // Numeral-only subsets, instanced at their expressive
+                            // cuts (Serif: wght 800 / opsz 144; Mono: wght 700).
+                            WidgetFont.Serif -> R.font.roboto_serif_hero
+                            WidgetFont.Mono -> R.font.roboto_mono_hero
+                        },
+                    )
+                textSize = textSizePx
+                color = AndroidColor.WHITE
+                fontFeatureSettings = "tnum"
+            }
         // Emphatic = the solo Number widget, where the count IS the widget:
         // Roboto Flex pushed to its corner (max weight, max width).
         if (font == WidgetFont.Flex) {
-            paint.fontVariationSettings = if (emphatic) {
-                "'wght' 1000, 'wdth' 151"
-            } else {
-                "'wght' 860, 'wdth' 112"
-            }
+            paint.fontVariationSettings =
+                if (emphatic) {
+                    "'wght' 1000, 'wdth' 151"
+                } else {
+                    "'wght' 860, 'wdth' 112"
+                }
         }
         if (maxWidthPx > 0) {
             val measured = paint.measureText(text)
@@ -348,21 +403,27 @@ object WidgetChartRenderer {
         if (top.isEmpty()) return
         val gap = 2f * density
         val radius = 3f * density
-        val rects = squarify(
-            top.map { it.count.toFloat() },
-            RectF(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat()),
-        )
+        val rects =
+            squarify(
+                top.map { it.count.toFloat() },
+                RectF(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat()),
+            )
         val icon = 16f * density
 
         rects.forEachIndexed { i, rect ->
-            val inner = RectF(
-                rect.left + gap / 2, rect.top + gap / 2,
-                rect.right - gap / 2, rect.bottom - gap / 2,
-            )
+            val inner =
+                RectF(
+                    rect.left + gap / 2,
+                    rect.top + gap / 2,
+                    rect.right - gap / 2,
+                    rect.bottom - gap / 2,
+                )
             // Rank-ramped accent, brightest cell first, like the dashboard.
             val alpha = (222 - i * 24).coerceAtLeast(56)
             canvas.drawRoundRect(
-                inner, radius, radius,
+                inner,
+                radius,
+                radius,
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = ColorUtils.setAlphaComponent(palette.accent, alpha)
                 },
@@ -381,7 +442,9 @@ object WidgetChartRenderer {
                     canvas.drawText(clipped, textLeft, inner.top + pad + 12.5f * density, labelP)
                     canvas.drawText(
                         numbers.format(top[i].count),
-                        inner.left + pad, inner.top + pad + icon + 14f * density, countP,
+                        inner.left + pad,
+                        inner.top + pad + icon + 14f * density,
+                        countP,
                     )
                 }
                 // Narrow: identity + count only, like the dashboard's tail cells.
@@ -389,7 +452,9 @@ object WidgetChartRenderer {
                     drawIcon(canvas, context, dim, top[i].label, inner.left + pad, inner.top + pad, icon, palette, onFill.mark)
                     canvas.drawText(
                         numbers.format(top[i].count),
-                        inner.left + pad, inner.top + pad + icon + 14f * density, countP,
+                        inner.left + pad,
+                        inner.top + pad + icon + 14f * density,
+                        countP,
                     )
                 }
                 // Squat but wide enough: icon + count on one line.
@@ -399,7 +464,8 @@ object WidgetChartRenderer {
                     canvas.drawText(
                         numbers.format(top[i].count),
                         inner.left + pad + small + 5f * density,
-                        inner.top + pad + small - 1.5f * density, countP,
+                        inner.top + pad + small - 1.5f * density,
+                        countP,
                     )
                 }
             }
@@ -407,7 +473,10 @@ object WidgetChartRenderer {
     }
 
     /** Squarified treemap (Bruls et al.): rows of near-square cells. */
-    private fun squarify(values: List<Float>, bounds: RectF): List<RectF> {
+    private fun squarify(
+        values: List<Float>,
+        bounds: RectF,
+    ): List<RectF> {
         val total = values.sum()
         val area = bounds.width() * bounds.height()
         val scaled = values.map { it / total * area }
@@ -416,7 +485,10 @@ object WidgetChartRenderer {
         var row = mutableListOf<Float>()
         var i = 0
 
-        fun worst(row: List<Float>, side: Float): Float {
+        fun worst(
+            row: List<Float>,
+            side: Float,
+        ): Float {
             val sum = row.sum()
             val maxV = row.max()
             val minV = row.min()
@@ -424,7 +496,10 @@ object WidgetChartRenderer {
             return max(side * side * maxV / s2, s2 / (side * side * minV))
         }
 
-        fun layoutRow(row: List<Float>, last: Boolean) {
+        fun layoutRow(
+            row: List<Float>,
+            last: Boolean,
+        ) {
             val sum = row.sum()
             val horizontal = free.width() >= free.height() // row fills the short side
             if (horizontal) {
@@ -479,7 +554,12 @@ object WidgetChartRenderer {
         val maxR = min(w, h) * 0.34f
         val margin = 2f * density
 
-        data class Bubble(val cx: Float, val cy: Float, val r: Float, val slice: LinkStats.Slice)
+        data class Bubble(
+            val cx: Float,
+            val cy: Float,
+            val r: Float,
+            val slice: LinkStats.Slice,
+        )
 
         val placed = mutableListOf<Bubble>()
         top.forEachIndexed { index, slice ->
@@ -508,7 +588,9 @@ object WidgetChartRenderer {
         placed.forEachIndexed { i, b ->
             val alpha = (222 - i * 22).coerceAtLeast(56)
             canvas.drawCircle(
-                b.cx, b.cy, b.r,
+                b.cx,
+                b.cy,
+                b.r,
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = ColorUtils.setAlphaComponent(palette.accent, alpha)
                 },
@@ -555,17 +637,22 @@ object WidgetChartRenderer {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         world.countries.forEach { country ->
             val clicks = counts[country.iso] ?: 0
-            paint.color = if (clicks == 0) {
-                palette.surfaceVariant
-            } else {
-                ColorUtils.blendARGB(palette.accentContainer, palette.accent, clicks / maxValue.toFloat())
-            }
+            paint.color =
+                if (clicks == 0) {
+                    palette.surfaceVariant
+                } else {
+                    ColorUtils.blendARGB(palette.accentContainer, palette.accent, clicks / maxValue.toFloat())
+                }
             canvas.drawPath(country.path.asAndroidPath(), paint)
         }
         canvas.restore()
     }
 
-    private fun clipText(text: String, paint: Paint, maxWidth: Float): String {
+    private fun clipText(
+        text: String,
+        paint: Paint,
+        maxWidth: Float,
+    ): String {
         if (paint.measureText(text) <= maxWidth) return text
         val count = paint.breakText(text, true, (maxWidth - paint.measureText("…")).coerceAtLeast(0f), null)
         return text.take(count).trimEnd() + "…"

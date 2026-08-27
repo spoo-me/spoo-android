@@ -20,17 +20,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MediumFlexibleTopAppBar
-import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -38,6 +35,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,12 +54,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
-import me.spoo.android.ui.screens.links.MIN_REFRESH_MS
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.components.BottomFade
-import me.spoo.android.ui.theme.loaderContainerColor
 import me.spoo.android.ui.components.BrandIcon
 import me.spoo.android.ui.components.CountryFlag
 import me.spoo.android.ui.components.Favicon
@@ -70,6 +68,8 @@ import me.spoo.android.ui.components.StatsSkeleton
 import me.spoo.android.ui.components.countryDisplayName
 import me.spoo.android.ui.components.sheetBottomPadding
 import me.spoo.android.ui.components.toggling
+import me.spoo.android.ui.screens.links.MIN_REFRESH_MS
+import me.spoo.android.ui.theme.loaderContainerColor
 
 /** Account-wide analytics tab — same vocabulary as the web dashboard. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -89,12 +89,17 @@ fun AnalyticsScreen() {
 
     LaunchedEffect(params, attempt) {
         loadFailed = false
-        SpooApp.graph.linksRepository.cachedStats(null, params)?.let { stats = it }
+        SpooApp.graph.linksRepository
+            .cachedStats(null, params)
+            ?.let { stats = it }
         runCatching { SpooApp.graph.linksRepository.accountStats(params) }
             .onSuccess { stats = it }
             .onFailure {
-                if (stats == null) loadFailed = true
-                else snackbar.showSnackbar("Couldn't update stats")
+                if (stats == null) {
+                    loadFailed = true
+                } else {
+                    snackbar.showSnackbar("Couldn't update stats")
+                }
             }
     }
     LaunchedEffect(params.days, params.customRange, attempt) {
@@ -110,9 +115,10 @@ fun AnalyticsScreen() {
     var refreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val pullState = rememberPullToRefreshState()
-    val pullThreshold = with(LocalDensity.current) {
-        PullToRefreshDefaults.PositionalThreshold.toPx()
-    }
+    val pullThreshold =
+        with(LocalDensity.current) {
+            PullToRefreshDefaults.PositionalThreshold.toPx()
+        }
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = {
@@ -130,74 +136,79 @@ fun AnalyticsScreen() {
         state = pullState,
         // Surface-painted: the strip revealed by the pull must match the
         // content, not the window background (accidental duotone).
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
         indicator = {
             ContainedLoadingIndicator(
                 containerColor = loaderContainerColor(),
                 indicatorColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 24.dp)
-                    .size(56.dp)
-                    .graphicsLayer {
-                        val progress = pullState.distanceFraction.coerceIn(0f, 1f)
-                        scaleX = progress
-                        scaleY = progress
-                        alpha = progress
-                    },
+                modifier =
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 24.dp)
+                        .size(56.dp)
+                        .graphicsLayer {
+                            val progress = pullState.distanceFraction.coerceIn(0f, 1f)
+                            scaleX = progress
+                            scaleY = progress
+                            alpha = progress
+                        },
             )
         },
     ) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
-    ) {
-    // No page header: the hero count leads, content starts at the top.
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Box(Modifier.fillMaxSize()) {
-            val loaded = stats
-            if (loaded == null) {
-                if (loadFailed) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        StatsLoadFailure(onRetry = { attempt++ })
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { translationY = pullState.distanceFraction * pullThreshold },
+        ) {
+            // No page header: the hero count leads, content starts at the top.
+            Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+                Box(Modifier.fillMaxSize()) {
+                    val loaded = stats
+                    if (loaded == null) {
+                        if (loadFailed) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(padding),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                StatsLoadFailure(onRetry = { attempt++ })
+                            }
+                        } else {
+                            StatsSkeleton(
+                                contentPadding =
+                                    PaddingValues(
+                                        start = 20.dp,
+                                        end = 20.dp,
+                                        top = padding.calculateTopPadding() + 28.dp,
+                                        bottom = padding.calculateBottomPadding(),
+                                    ),
+                            )
+                        }
+                    } else {
+                        StatsContent(
+                            stats = loaded,
+                            params = params,
+                            onParamsChange = { params = it },
+                            onOpenFilters = { showFilters = true },
+                            contentPadding =
+                                PaddingValues(
+                                    start = 20.dp,
+                                    end = 20.dp,
+                                    top = padding.calculateTopPadding() + 28.dp,
+                                    bottom = padding.calculateBottomPadding() + 32.dp,
+                                ),
+                        )
                     }
-                } else {
-                    StatsSkeleton(
-                        contentPadding = PaddingValues(
-                            start = 20.dp,
-                            end = 20.dp,
-                            top = padding.calculateTopPadding() + 28.dp,
-                            bottom = padding.calculateBottomPadding(),
-                        ),
-                    )
+                    BottomFade()
                 }
-            } else {
-                StatsContent(
-                    stats = loaded,
-                    params = params,
-                    onParamsChange = { params = it },
-                    onOpenFilters = { showFilters = true },
-                    contentPadding = PaddingValues(
-                        start = 20.dp,
-                        end = 20.dp,
-                        top = padding.calculateTopPadding() + 28.dp,
-                        bottom = padding.calculateBottomPadding() + 32.dp,
-                    ),
-                )
             }
-            BottomFade()
-        }
-    }
-    } // pull-translation box
+        } // pull-translation box
     } // PullToRefreshBox
 
     if (showFilters) {
@@ -221,9 +232,10 @@ private fun FilterSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -238,22 +250,38 @@ private fun FilterSheet(
                 }
             }
             FilterGroup(
-                "Country", stats?.countries, StatsDim.Country, params, onParamsChange,
+                "Country",
+                stats?.countries,
+                StatsDim.Country,
+                params,
+                onParamsChange,
                 labelFor = ::countryDisplayName,
                 icon = { CountryFlag(it, size = 18.dp) },
             )
             FilterGroup(
-                "Browser", stats?.browsers, StatsDim.Browser, params, onParamsChange,
+                "Browser",
+                stats?.browsers,
+                StatsDim.Browser,
+                params,
+                onParamsChange,
                 labelFor = { it },
                 icon = { BrandIcon(it, size = 18.dp) },
             )
             FilterGroup(
-                "Operating system", stats?.os, StatsDim.Os, params, onParamsChange,
+                "Operating system",
+                stats?.os,
+                StatsDim.Os,
+                params,
+                onParamsChange,
                 labelFor = { it },
                 icon = { BrandIcon(it, size = 18.dp) },
             )
             FilterGroup(
-                "Referrer", stats?.referrers, StatsDim.Referrer, params, onParamsChange,
+                "Referrer",
+                stats?.referrers,
+                StatsDim.Referrer,
+                params,
+                onParamsChange,
                 labelFor = { it },
                 icon = { value ->
                     if (value.contains('.')) Favicon(value, size = 18.dp) else Monogram(value, size = 18.dp)

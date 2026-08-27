@@ -43,12 +43,13 @@ class AuthManager(
     fun startSignIn(context: Context) {
         val pkce = generatePkcePair()
         val csrf = generateState()
-        val url = anonClient.oauth.authorizationUrl(
-            appId = BuildConfig.SPOO_APP_ID,
-            state = csrf,
-            codeChallenge = pkce.challenge,
-            redirectUri = BuildConfig.SPOO_REDIRECT_URI,
-        )
+        val url =
+            anonClient.oauth.authorizationUrl(
+                appId = BuildConfig.SPOO_APP_ID,
+                state = csrf,
+                codeChallenge = pkce.challenge,
+                redirectUri = BuildConfig.SPOO_REDIRECT_URI,
+            )
         scope.launch {
             store.writePending(csrf, pkce.verifier)
             withContext(Dispatchers.Main) {
@@ -92,8 +93,9 @@ class AuthManager(
         }
     }
 
-    private fun sessionOf(tokens: TokenPair) = Session(
-        tokens = tokens,
-        onRefresh = { rotated -> scope.launch { store.updateTokens(rotated) } },
-    )
+    private fun sessionOf(tokens: TokenPair) =
+        Session(
+            tokens = tokens,
+            onRefresh = { rotated -> scope.launch { store.updateTokens(rotated) } },
+        )
 }

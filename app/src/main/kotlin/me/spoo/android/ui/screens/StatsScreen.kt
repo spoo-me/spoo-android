@@ -12,12 +12,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MediumFlexibleTopAppBar
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -66,12 +66,17 @@ fun StatsScreen(
     // stale data announces itself instead of silently lying.
     LaunchedEffect(shortCode, params, attempt) {
         loadFailed = false
-        SpooApp.graph.linksRepository.cachedStats(shortCode, params)?.let { stats = it }
+        SpooApp.graph.linksRepository
+            .cachedStats(shortCode, params)
+            ?.let { stats = it }
         runCatching { SpooApp.graph.linksRepository.stats(shortCode, params) }
             .onSuccess { stats = it }
             .onFailure {
-                if (stats == null) loadFailed = true
-                else snackbar.showSnackbar("Couldn't update stats")
+                if (stats == null) {
+                    loadFailed = true
+                } else {
+                    snackbar.showSnackbar("Couldn't update stats")
+                }
             }
     }
 
@@ -116,9 +121,10 @@ fun StatsScreen(
         if (loaded == null) {
             if (loadFailed) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
                     StatsLoadFailure(onRetry = { attempt++ })
@@ -126,12 +132,13 @@ fun StatsScreen(
             } else {
                 // Shaped like the destination, so nothing jumps.
                 StatsSkeleton(
-                    contentPadding = PaddingValues(
-                        start = 20.dp,
-                        end = 20.dp,
-                        top = padding.calculateTopPadding() + 8.dp,
-                        bottom = padding.calculateBottomPadding(),
-                    ),
+                    contentPadding =
+                        PaddingValues(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = padding.calculateTopPadding() + 8.dp,
+                            bottom = padding.calculateBottomPadding(),
+                        ),
                 )
             }
         } else {
@@ -140,12 +147,13 @@ fun StatsScreen(
                 params = params,
                 onParamsChange = { params = it },
                 filterable = false,
-                contentPadding = PaddingValues(
-                    start = 20.dp,
-                    end = 20.dp,
-                    top = padding.calculateTopPadding() + 8.dp,
-                    bottom = padding.calculateBottomPadding() + 32.dp,
-                ),
+                contentPadding =
+                    PaddingValues(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = padding.calculateTopPadding() + 8.dp,
+                        bottom = padding.calculateBottomPadding() + 32.dp,
+                    ),
             )
         }
     }

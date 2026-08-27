@@ -30,7 +30,11 @@ import java.util.Locale
 
 /** Favicon for a host, globe fallback when the host has none. */
 @Composable
-fun Favicon(host: String?, size: Dp = 20.dp, modifier: Modifier = Modifier) {
+fun Favicon(
+    host: String?,
+    size: Dp = 20.dp,
+    modifier: Modifier = Modifier,
+) {
     val globe = rememberVectorPainter(Icons.Outlined.Public)
     if (host.isNullOrBlank()) {
         Icon(
@@ -42,12 +46,14 @@ fun Favicon(host: String?, size: Dp = 20.dp, modifier: Modifier = Modifier) {
         return
     }
     AsyncImage(
-        model = "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON" +
-            "&fallback_opts=TYPE,SIZE&url=https://$host&size=64",
+        model =
+            "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON" +
+                "&fallback_opts=TYPE,SIZE&url=https://$host&size=64",
         contentDescription = null,
-        modifier = modifier
-            .size(size)
-            .clip(MaterialTheme.shapes.extraSmall),
+        modifier =
+            modifier
+                .size(size)
+                .clip(MaterialTheme.shapes.extraSmall),
         error = globe,
         fallback = globe,
     )
@@ -55,7 +61,11 @@ fun Favicon(host: String?, size: Dp = 20.dp, modifier: Modifier = Modifier) {
 
 /** Flag emoji for an ISO-3166 alpha-2 code; a globe for unknowns. */
 @Composable
-fun CountryFlag(code: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
+fun CountryFlag(
+    code: String,
+    size: Dp = 20.dp,
+    modifier: Modifier = Modifier,
+) {
     val emoji = flagEmoji(code)
     if (emoji == null) {
         Icon(
@@ -76,19 +86,25 @@ fun CountryFlag(code: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
  * monogram fallback when the value is unknown or the icon can't load.
  */
 @Composable
-fun BrandIcon(name: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
+fun BrandIcon(
+    name: String,
+    size: Dp = 20.dp,
+    modifier: Modifier = Modifier,
+) {
     val domain = BRAND_DOMAINS[name.lowercase()]
     if (domain == null) {
         Monogram(name, size, modifier)
         return
     }
     SubcomposeAsyncImage(
-        model = "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON" +
-            "&fallback_opts=TYPE,SIZE&url=https://$domain&size=64",
+        model =
+            "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON" +
+                "&fallback_opts=TYPE,SIZE&url=https://$domain&size=64",
         contentDescription = null,
-        modifier = modifier
-            .size(size)
-            .clip(MaterialTheme.shapes.extraSmall),
+        modifier =
+            modifier
+                .size(size)
+                .clip(MaterialTheme.shapes.extraSmall),
         error = { Monogram(name, size) },
     )
 }
@@ -96,37 +112,43 @@ fun BrandIcon(name: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
 /** Vendor domain for a browser/OS name, null when unknown. */
 internal fun brandDomain(name: String): String? = BRAND_DOMAINS[name.lowercase()]
 
-private val BRAND_DOMAINS = mapOf(
-    "chrome" to "www.google.com/chrome",
-    "safari" to "www.apple.com",
-    "mobile safari" to "www.apple.com",
-    // Not always the vendor's main domain: picked for favicon quality
-    // (mozilla.org serves a wordmark glyph, opera.com a white-boxed JPEG).
-    "firefox" to "firefox.com",
-    "edge" to "www.microsoft.com/edge",
-    "samsung internet" to "www.samsung.com",
-    "opera" to "addons.opera.com",
-    "brave" to "brave.com",
-    "vivaldi" to "vivaldi.com",
-    "duckduckgo" to "duckduckgo.com",
-    "android" to "www.android.com",
-    "windows" to "www.microsoft.com/windows",
-    "ios" to "www.apple.com",
-    "macos" to "www.apple.com",
-    "mac os x" to "www.apple.com",
-    "linux" to "www.kernel.org",
-    "ubuntu" to "ubuntu.com",
-    "chrome os" to "chromeos.google",
-)
+private val BRAND_DOMAINS =
+    mapOf(
+        "chrome" to "www.google.com/chrome",
+        "safari" to "www.apple.com",
+        "mobile safari" to "www.apple.com",
+        // Not always the vendor's main domain: picked for favicon quality
+        // (mozilla.org serves a wordmark glyph, opera.com a white-boxed JPEG).
+        "firefox" to "firefox.com",
+        "edge" to "www.microsoft.com/edge",
+        "samsung internet" to "www.samsung.com",
+        "opera" to "addons.opera.com",
+        "brave" to "brave.com",
+        "vivaldi" to "vivaldi.com",
+        "duckduckgo" to "duckduckgo.com",
+        "android" to "www.android.com",
+        "windows" to "www.microsoft.com/windows",
+        "ios" to "www.apple.com",
+        "macos" to "www.apple.com",
+        "mac os x" to "www.apple.com",
+        "linux" to "www.kernel.org",
+        "ubuntu" to "ubuntu.com",
+        "chrome os" to "chromeos.google",
+    )
 
 /** Neutral monogram circle for values with no natural artwork (browsers). */
 @Composable
-fun Monogram(label: String, size: Dp = 20.dp, modifier: Modifier = Modifier) {
+fun Monogram(
+    label: String,
+    size: Dp = 20.dp,
+    modifier: Modifier = Modifier,
+) {
     Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        modifier =
+            modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -154,6 +176,10 @@ internal fun flagEmoji(code: String): String? {
 }
 
 /** Host of a URL for favicon lookups, null when unparsable. */
-fun faviconHost(url: String): String? = runCatching {
-    java.net.URI(url).host?.removePrefix("www.")
-}.getOrNull()
+fun faviconHost(url: String): String? =
+    runCatching {
+        java.net
+            .URI(url)
+            .host
+            ?.removePrefix("www.")
+    }.getOrNull()

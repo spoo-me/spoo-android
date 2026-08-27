@@ -15,9 +15,9 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -77,10 +77,11 @@ fun EditLinkSheet(
     // has); only plain-text aliases get the charset filter.
     val textAlias = link.shortCode.all(::isAliasChar)
     val urlOk = isLikelyUrl(longUrl)
-    val passwordOk = when (passwordMode) {
-        PwMode.Replace, PwMode.New -> password.isBlank() || isAcceptablePassword(password)
-        else -> true
-    }
+    val passwordOk =
+        when (passwordMode) {
+            PwMode.Replace, PwMode.New -> password.isBlank() || isAcceptablePassword(password)
+            else -> true
+        }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -88,9 +89,10 @@ fun EditLinkSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .imePadding(),
+            modifier =
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .imePadding(),
         ) {
             Text("Edit ${link.shortUrl}", style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(16.dp))
@@ -108,11 +110,12 @@ fun EditLinkSheet(
                     )
                 },
                 isError = (longUrl.isNotBlank() && !urlOk) || error?.field == ErrorField.Url,
-                supportingText = when {
-                    error?.field == ErrorField.Url -> ({ Text(error.message) })
-                    longUrl.isNotBlank() && !urlOk -> ({ Text("Enter a valid web address") })
-                    else -> null
-                },
+                supportingText =
+                    when {
+                        error?.field == ErrorField.Url -> ({ Text(error.message) })
+                        longUrl.isNotBlank() && !urlOk -> ({ Text("Enter a valid web address") })
+                        else -> null
+                    },
                 singleLine = true,
                 enabled = !submitting,
             )
@@ -124,134 +127,162 @@ fun EditLinkSheet(
                 label = { Text("Alias") },
                 prefix = { Text("spoo.me/") },
                 isError = error?.field == ErrorField.Alias,
-                supportingText = if (error?.field == ErrorField.Alias) {
-                    { Text(error.message) }
-                } else {
-                    null
-                },
+                supportingText =
+                    if (error?.field == ErrorField.Alias) {
+                        { Text(error.message) }
+                    } else {
+                        null
+                    },
                 singleLine = true,
                 enabled = !submitting,
             )
             Spacer(Modifier.height(12.dp))
             when (passwordMode) {
-                PwMode.Keep -> OutlinedTextField(
-                    value = "••••••••",
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Password") },
-                    isError = error?.field == ErrorField.Password,
-                    supportingText = if (error?.field == ErrorField.Password) {
-                        { Text(error.message) }
-                    } else {
-                        null
-                    },
-                    trailingIcon = {
-                        Row {
-                            IconButton(
-                                onClick = { password = ""; passwordMode = PwMode.Replace },
-                                enabled = !submitting,
-                            ) {
-                                Icon(Icons.Outlined.Edit, contentDescription = "Replace password")
+                PwMode.Keep ->
+                    OutlinedTextField(
+                        value = "••••••••",
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Password") },
+                        isError = error?.field == ErrorField.Password,
+                        supportingText =
+                            if (error?.field == ErrorField.Password) {
+                                { Text(error.message) }
+                            } else {
+                                null
+                            },
+                        trailingIcon = {
+                            Row {
+                                IconButton(
+                                    onClick = {
+                                        password = ""
+                                        passwordMode = PwMode.Replace
+                                    },
+                                    enabled = !submitting,
+                                ) {
+                                    Icon(Icons.Outlined.Edit, contentDescription = "Replace password")
+                                }
+                                IconButton(
+                                    onClick = {
+                                        password = ""
+                                        passwordMode = PwMode.Remove
+                                    },
+                                    enabled = !submitting,
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.DeleteOutline,
+                                        contentDescription = "Remove password",
+                                    )
+                                }
                             }
+                        },
+                        singleLine = true,
+                        enabled = !submitting,
+                    )
+                PwMode.Remove ->
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Password") },
+                        supportingText = { Text("Will be removed on save") },
+                        trailingIcon = {
                             IconButton(
-                                onClick = { password = ""; passwordMode = PwMode.Remove },
+                                onClick = { passwordMode = PwMode.Keep },
                                 enabled = !submitting,
                             ) {
                                 Icon(
-                                    Icons.Outlined.DeleteOutline,
-                                    contentDescription = "Remove password",
+                                    Icons.AutoMirrored.Outlined.Undo,
+                                    contentDescription = "Keep password",
                                 )
                             }
-                        }
-                    },
-                    singleLine = true,
-                    enabled = !submitting,
-                )
-                PwMode.Remove -> OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Password") },
-                    supportingText = { Text("Will be removed on save") },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { passwordMode = PwMode.Keep },
-                            enabled = !submitting,
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.Undo,
-                                contentDescription = "Keep password",
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    enabled = !submitting,
-                )
-                else -> OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = {
-                        Text(if (passwordMode == PwMode.Replace) "New password" else "Password")
-                    },
-                    isError = (password.isNotBlank() && !passwordOk) ||
-                        error?.field == ErrorField.Password,
-                    supportingText = when {
-                        error?.field == ErrorField.Password -> ({ Text(error.message) })
-                        password.isNotBlank() && !passwordOk ->
-                            ({ Text("8+ characters with a letter, a number, and @ or .") })
-                        else -> null
-                    },
-                    trailingIcon = if (passwordMode == PwMode.Replace) {
-                        {
-                            IconButton(
-                                onClick = { password = ""; passwordMode = PwMode.Keep },
-                                enabled = !submitting,
-                            ) {
-                                Icon(Icons.Outlined.Close, contentDescription = "Keep current password")
-                            }
-                        }
-                    } else {
-                        null
-                    },
-                    singleLine = true,
-                    enabled = !submitting,
-                )
+                        },
+                        singleLine = true,
+                        enabled = !submitting,
+                    )
+                else ->
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text(if (passwordMode == PwMode.Replace) "New password" else "Password")
+                        },
+                        isError =
+                            (password.isNotBlank() && !passwordOk) ||
+                                error?.field == ErrorField.Password,
+                        supportingText =
+                            when {
+                                error?.field == ErrorField.Password -> ({ Text(error.message) })
+                                password.isNotBlank() && !passwordOk ->
+                                    ({ Text("8+ characters with a letter, a number, and @ or .") })
+                                else -> null
+                            },
+                        trailingIcon =
+                            if (passwordMode == PwMode.Replace) {
+                                {
+                                    IconButton(
+                                        onClick = {
+                                            password = ""
+                                            passwordMode = PwMode.Keep
+                                        },
+                                        enabled = !submitting,
+                                    ) {
+                                        Icon(Icons.Outlined.Close, contentDescription = "Keep current password")
+                                    }
+                                }
+                            } else {
+                                null
+                            },
+                        singleLine = true,
+                        enabled = !submitting,
+                    )
             }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = maxClicks,
-                onValueChange = { maxClicks = it.filter(Char::isDigit); maxClicksTouched = true },
+                onValueChange = {
+                    maxClicks = it.filter(Char::isDigit)
+                    maxClicksTouched = true
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Max clicks") },
                 placeholder = { Text("empty to remove") },
                 isError = error?.field == ErrorField.MaxClicks,
-                supportingText = if (error?.field == ErrorField.MaxClicks) {
-                    { Text(error.message) }
-                } else {
-                    null
-                },
-                trailingIcon = if (maxClicks.isNotEmpty()) {
-                    {
-                        IconButton(
-                            onClick = { maxClicks = ""; maxClicksTouched = true },
-                            enabled = !submitting,
-                        ) {
-                            Icon(Icons.Outlined.Close, contentDescription = "Clear click limit")
+                supportingText =
+                    if (error?.field == ErrorField.MaxClicks) {
+                        { Text(error.message) }
+                    } else {
+                        null
+                    },
+                trailingIcon =
+                    if (maxClicks.isNotEmpty()) {
+                        {
+                            IconButton(
+                                onClick = {
+                                    maxClicks = ""
+                                    maxClicksTouched = true
+                                },
+                                enabled = !submitting,
+                            ) {
+                                Icon(Icons.Outlined.Close, contentDescription = "Clear click limit")
+                            }
                         }
-                    }
-                } else {
-                    null
-                },
+                    } else {
+                        null
+                    },
                 singleLine = true,
                 enabled = !submitting,
             )
             Spacer(Modifier.height(12.dp))
             ExpiryField(
                 millis = expiry,
-                onChange = { expiry = it; expiryTouched = true },
+                onChange = {
+                    expiry = it
+                    expiryTouched = true
+                },
                 enabled = !submitting,
                 modifier = Modifier.fillMaxWidth(),
                 errorText = error?.takeIf { it.field == ErrorField.Expiry }?.message,
@@ -288,10 +319,11 @@ fun EditLinkSheet(
                         LinkEdit(
                             longUrl = normalizeUrl(longUrl).takeIf { it != link.originalUrl },
                             alias = alias.trim().takeIf { it.isNotBlank() && it != link.shortCode },
-                            password = password.takeIf {
-                                (passwordMode == PwMode.Replace || passwordMode == PwMode.New) &&
-                                    it.isNotBlank()
-                            },
+                            password =
+                                password.takeIf {
+                                    (passwordMode == PwMode.Replace || passwordMode == PwMode.New) &&
+                                        it.isNotBlank()
+                                },
                             clearPassword = passwordMode == PwMode.Remove,
                             maxClicks = maxClicks.toLongOrNull().takeIf { maxClicksTouched },
                             clearMaxClicks = maxClicksTouched && maxClicks.isBlank(),

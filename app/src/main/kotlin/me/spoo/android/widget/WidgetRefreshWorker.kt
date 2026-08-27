@@ -19,7 +19,6 @@ class WidgetRefreshWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
-
     override suspend fun doWork(): Result {
         runCatching { SpooWidget().updateAll(applicationContext) }
         return Result.success()
@@ -32,11 +31,11 @@ class WidgetRefreshWorker(
                 ExistingPeriodicWorkPolicy.KEEP,
                 PeriodicWorkRequestBuilder<WidgetRefreshWorker>(30, TimeUnit.MINUTES)
                     .setConstraints(
-                        Constraints.Builder()
+                        Constraints
+                            .Builder()
                             .setRequiredNetworkType(NetworkType.CONNECTED)
                             .build(),
-                    )
-                    .build(),
+                    ).build(),
             )
         }
     }

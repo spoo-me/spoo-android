@@ -82,8 +82,13 @@ fun EmojiAliasPicker(
 }
 
 private sealed interface PickerItem {
-    data class Header(val group: String) : PickerItem
-    data class Cell(val choice: EmojiChoice) : PickerItem
+    data class Header(
+        val group: String,
+    ) : PickerItem
+
+    data class Cell(
+        val choice: EmojiChoice,
+    ) : PickerItem
 }
 
 @Composable
@@ -96,34 +101,37 @@ private fun PickerBody(
     val gridState = rememberLazyGridState()
 
     // Drop entries the device font can't draw — tofu never reaches the grid.
-    val renderable = remember(catalog) {
-        val paint = android.graphics.Paint()
-        catalog.entries.filter { paint.hasGlyph(it.char.emojiPresentation()) }
-    }
+    val renderable =
+        remember(catalog) {
+            val paint = android.graphics.Paint()
+            catalog.entries.filter { paint.hasGlyph(it.char.emojiPresentation()) }
+        }
 
-    val sections = remember(renderable) {
-        buildList {
-            var last: String? = null
-            renderable.forEach {
-                if (it.group != last) {
-                    add(PickerItem.Header(it.group))
-                    last = it.group
+    val sections =
+        remember(renderable) {
+            buildList {
+                var last: String? = null
+                renderable.forEach {
+                    if (it.group != last) {
+                        add(PickerItem.Header(it.group))
+                        last = it.group
+                    }
+                    add(PickerItem.Cell(it))
                 }
-                add(PickerItem.Cell(it))
             }
         }
-    }
 
-    val filtered = remember(renderable, query) {
-        val q = query.trim().lowercase()
-        if (q.isEmpty()) {
-            emptyList()
-        } else {
-            renderable.filter {
-                it.name.contains(q) || it.keywords.any { k -> k.contains(q) }
+    val filtered =
+        remember(renderable, query) {
+            val q = query.trim().lowercase()
+            if (q.isEmpty()) {
+                emptyList()
+            } else {
+                renderable.filter {
+                    it.name.contains(q) || it.keywords.any { k -> k.contains(q) }
+                }
             }
         }
-    }
 
     Column {
         TextField(
@@ -134,13 +142,14 @@ private fun PickerBody(
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             singleLine = true,
             shape = CircleShape,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-            ),
+            colors =
+                TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                ),
         )
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 44.dp),
@@ -161,14 +170,15 @@ private fun PickerBody(
                     },
                 ) { i ->
                     when (val item = sections[i]) {
-                        is PickerItem.Header -> Text(
-                            item.group,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            // Start inset optically aligns with the emoji
-                            // column (glyphs sit centered in 44dp cells).
-                            modifier = Modifier.padding(top = 12.dp, bottom = 6.dp, start = 8.dp),
-                        )
+                        is PickerItem.Header ->
+                            Text(
+                                item.group,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                // Start inset optically aligns with the emoji
+                                // column (glyphs sit centered in 44dp cells).
+                                modifier = Modifier.padding(top = 12.dp, bottom = 6.dp, start = 8.dp),
+                            )
                         is PickerItem.Cell -> EmojiCell(item.choice, enabled, onPick)
                     }
                 }
@@ -199,10 +209,11 @@ private fun EmojiCell(
     onPick: (EmojiChoice) -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .clickable(enabled = enabled) { onPick(choice) },
+        modifier =
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .clickable(enabled = enabled) { onPick(choice) },
         contentAlignment = Alignment.Center,
     ) {
         FluentEmoji(char = choice.char, size = 30.dp)
@@ -214,5 +225,4 @@ private fun EmojiCell(
  * symbols (single UTF-16 unit: ❤ ☕ ♻) default to text presentation
  * without the selector; astral emoji never need it.
  */
-internal fun String.emojiPresentation(): String =
-    if (length == 1) this + "\uFE0F" else this
+internal fun String.emojiPresentation(): String = if (length == 1) this + "\uFE0F" else this

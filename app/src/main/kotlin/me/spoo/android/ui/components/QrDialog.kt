@@ -24,8 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,8 +46,8 @@ import androidx.core.content.FileProvider
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.google.zxing.qrcode.encoder.Encoder
-import java.io.File
 import me.spoo.android.R
+import java.io.File
 
 /**
  * QR for a short URL in the qr.spoo.me language: circle modules, rounded
@@ -74,12 +74,13 @@ fun QrDialog(
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = "QR code for https://$shortUrl",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White)
-                        .padding(14.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White)
+                            .padding(14.dp),
                     contentScale = ContentScale.Fit,
                     filterQuality = FilterQuality.High,
                 )
@@ -101,11 +102,12 @@ fun QrDialog(
                     OutlinedButton(
                         onClick = {
                             val ok = saveQr(context, bitmap, shortUrl)
-                            Toast.makeText(
-                                context,
-                                if (ok) "Saved to Pictures/spoo" else "Couldn't save",
-                                Toast.LENGTH_SHORT,
-                            ).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    if (ok) "Saved to Pictures/spoo" else "Couldn't save",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                         },
                     ) { Text("Save") }
                     Spacer(Modifier.width(8.dp))
@@ -119,32 +121,43 @@ fun QrDialog(
 }
 
 /** Hands the rendered PNG to the share sheet via the cache FileProvider. */
-private fun shareQr(context: Context, bitmap: Bitmap, shortUrl: String) {
+private fun shareQr(
+    context: Context,
+    bitmap: Bitmap,
+    shortUrl: String,
+) {
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     val file = File(dir, "spoo-qr-${shortUrl.substringAfterLast('/')}.png")
     file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val send = Intent(Intent.ACTION_SEND).apply {
-        type = "image/png"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, "https://$shortUrl")
-        // The sheet only draws an image preview off clipData.
-        clipData = ClipData.newRawUri(null, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
+    val send =
+        Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TEXT, "https://$shortUrl")
+            // The sheet only draws an image preview off clipData.
+            clipData = ClipData.newRawUri(null, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
     context.startActivity(Intent.createChooser(send, null))
 }
 
 /** Saves the PNG into Pictures/spoo through MediaStore (no permissions). */
-private fun saveQr(context: Context, bitmap: Bitmap, shortUrl: String): Boolean {
-    val values = ContentValues().apply {
-        put(MediaStore.Images.Media.DISPLAY_NAME, "spoo-qr-${shortUrl.substringAfterLast('/')}.png")
-        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-        put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/spoo")
-    }
+private fun saveQr(
+    context: Context,
+    bitmap: Bitmap,
+    shortUrl: String,
+): Boolean {
+    val values =
+        ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "spoo-qr-${shortUrl.substringAfterLast('/')}.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/spoo")
+        }
     val resolver = context.contentResolver
-    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-        ?: return false
+    val uri =
+        resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: return false
     return runCatching {
         resolver.openOutputStream(uri)!!.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }.isSuccess
@@ -152,12 +165,17 @@ private fun saveQr(context: Context, bitmap: Bitmap, shortUrl: String): Boolean 
 
 private const val INK = 0xFF1B1B1F.toInt()
 
-private fun qrBitmap(context: Context, content: String, sizePx: Int = 1024): Bitmap {
-    val code = Encoder.encode(
-        content,
-        ErrorCorrectionLevel.H,
-        mapOf(EncodeHintType.CHARACTER_SET to "UTF-8"),
-    )
+private fun qrBitmap(
+    context: Context,
+    content: String,
+    sizePx: Int = 1024,
+): Bitmap {
+    val code =
+        Encoder.encode(
+            content,
+            ErrorCorrectionLevel.H,
+            mapOf(EncodeHintType.CHARACTER_SET to "UTF-8"),
+        )
     val m = code.matrix
     val modules = m.width
     val margin = 2
@@ -174,10 +192,15 @@ private fun qrBitmap(context: Context, content: String, sizePx: Int = 1024): Bit
     val holeStart = (modules - hole) / 2
     val holeEnd = holeStart + hole
 
-    fun inFinder(x: Int, y: Int) =
-        (x < 7 && y < 7) || (x >= modules - 7 && y < 7) || (x < 7 && y >= modules - 7)
+    fun inFinder(
+        x: Int,
+        y: Int,
+    ) = (x < 7 && y < 7) || (x >= modules - 7 && y < 7) || (x < 7 && y >= modules - 7)
 
-    fun inHole(x: Int, y: Int) = x in holeStart until holeEnd && y in holeStart until holeEnd
+    fun inHole(
+        x: Int,
+        y: Int,
+    ) = x in holeStart until holeEnd && y in holeStart until holeEnd
 
     for (y in 0 until modules) {
         for (x in 0 until modules) {
@@ -192,11 +215,17 @@ private fun qrBitmap(context: Context, content: String, sizePx: Int = 1024): Bit
     }
 
     // Finder eyes: rounded ring plus rounded pupil, the qr.spoo.me look.
-    fun eye(mx: Int, my: Int) {
+    fun eye(
+        mx: Int,
+        my: Int,
+    ) {
         val left = origin + mx * cell
         val top = origin + my * cell
-        fun rect(inset: Float, span: Float) =
-            RectF(left + inset * cell, top + inset * cell, left + span * cell, top + span * cell)
+
+        fun rect(
+            inset: Float,
+            span: Float,
+        ) = RectF(left + inset * cell, top + inset * cell, left + span * cell, top + span * cell)
         paint.color = INK
         canvas.drawRoundRect(rect(0f, 7f), 2.4f * cell, 2.4f * cell, paint)
         paint.color = android.graphics.Color.WHITE
@@ -209,16 +238,18 @@ private fun qrBitmap(context: Context, content: String, sizePx: Int = 1024): Bit
     eye(0, modules - 7)
 
     // The ghost mark, one module of breathing room inside the window.
-    val logo = (ContextCompat.getDrawable(context, R.drawable.logo_black) as? BitmapDrawable)
-        ?.bitmap
+    val logo =
+        (ContextCompat.getDrawable(context, R.drawable.logo_black) as? BitmapDrawable)
+            ?.bitmap
     if (logo != null) {
         val pad = 1f * cell
-        val dst = RectF(
-            origin + holeStart * cell + pad,
-            origin + holeStart * cell + pad,
-            origin + holeEnd * cell - pad,
-            origin + holeEnd * cell - pad,
-        )
+        val dst =
+            RectF(
+                origin + holeStart * cell + pad,
+                origin + holeStart * cell + pad,
+                origin + holeEnd * cell - pad,
+                origin + holeEnd * cell - pad,
+            )
         canvas.drawBitmap(logo, null, dst, Paint(Paint.FILTER_BITMAP_FLAG))
     }
     return bitmap

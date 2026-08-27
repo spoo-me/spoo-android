@@ -18,10 +18,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.AddReaction
@@ -44,27 +44,27 @@ import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTooltipState
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.EmojiCatalog
 import me.spoo.android.data.ErrorField
@@ -92,10 +92,11 @@ fun CreateLinkSheet(
     val scope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState())
-                .imePadding(),
+            modifier =
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
         ) {
             // The hero moment gets the expressive budget: form -> result on
             // spatial-spring scale + effects fade, exits clearing early on
@@ -189,11 +190,12 @@ private fun FormPhase(
                 )
             },
             isError = (url.isNotBlank() && !urlOk) || error?.field == ErrorField.Url,
-            supportingText = when {
-                error?.field == ErrorField.Url -> ({ Text(error.message) })
-                url.isNotBlank() && !urlOk -> ({ Text("Enter a valid web address") })
-                else -> null
-            },
+            supportingText =
+                when {
+                    error?.field == ErrorField.Url -> ({ Text(error.message) })
+                    url.isNotBlank() && !urlOk -> ({ Text("Enter a valid web address") })
+                    else -> null
+                },
             singleLine = true,
             enabled = !submitting,
         )
@@ -239,12 +241,13 @@ private fun FormPhase(
                     }
                 }
             },
-            supportingText = when {
-                error?.field == ErrorField.Alias -> ({ Text(error.message) })
-                emojiAlias && emojiCatalog != null && emojiCount > 0 ->
-                    ({ Text("$emojiCount/${emojiCatalog.maxGraphemes}") })
-                else -> null
-            },
+            supportingText =
+                when {
+                    error?.field == ErrorField.Alias -> ({ Text(error.message) })
+                    emojiAlias && emojiCatalog != null && emojiCount > 0 ->
+                        ({ Text("$emojiCount/${emojiCatalog.maxGraphemes}") })
+                    else -> null
+                },
             singleLine = true,
             enabled = !submitting,
         )
@@ -271,12 +274,13 @@ private fun FormPhase(
                 modifier = Modifier.weight(1f),
                 label = { Text("Password") },
                 isError = (password.isNotBlank() && !passwordOk) || error?.field == ErrorField.Password,
-                supportingText = when {
-                    error?.field == ErrorField.Password -> ({ Text(error.message) })
-                    password.isNotBlank() && !passwordOk ->
-                        ({ Text("8+ characters with a letter, a number, and @ or .") })
-                    else -> null
-                },
+                supportingText =
+                    when {
+                        error?.field == ErrorField.Password -> ({ Text(error.message) })
+                        password.isNotBlank() && !passwordOk ->
+                            ({ Text("8+ characters with a letter, a number, and @ or .") })
+                        else -> null
+                    },
                 singleLine = true,
                 enabled = !submitting,
             )
@@ -286,23 +290,25 @@ private fun FormPhase(
                 modifier = Modifier.weight(1f),
                 label = { Text("Max clicks") },
                 isError = error?.field == ErrorField.MaxClicks,
-                supportingText = if (error?.field == ErrorField.MaxClicks) {
-                    { Text(error.message) }
-                } else {
-                    null
-                },
-                trailingIcon = if (maxClicks.isNotEmpty()) {
-                    {
-                        IconButton(
-                            onClick = { maxClicks = "" },
-                            enabled = !submitting,
-                        ) {
-                            Icon(Icons.Outlined.Close, contentDescription = "Clear click limit")
+                supportingText =
+                    if (error?.field == ErrorField.MaxClicks) {
+                        { Text(error.message) }
+                    } else {
+                        null
+                    },
+                trailingIcon =
+                    if (maxClicks.isNotEmpty()) {
+                        {
+                            IconButton(
+                                onClick = { maxClicks = "" },
+                                enabled = !submitting,
+                            ) {
+                                Icon(Icons.Outlined.Close, contentDescription = "Clear click limit")
+                            }
                         }
-                    }
-                } else {
-                    null
-                },
+                    } else {
+                        null
+                    },
                 singleLine = true,
                 enabled = !submitting,
             )
@@ -406,21 +412,24 @@ private fun ResultPhase(
             if (shortUrl.all { it.code < 128 }) {
                 Text(
                     shortUrl,
-                    style = MaterialTheme.typography.displaySmall
-                        .hero(key = shortUrl, fontSize = 40.sp, lineHeight = 46.sp),
+                    style =
+                        MaterialTheme.typography.displaySmall
+                            .hero(key = shortUrl, fontSize = 40.sp, lineHeight = 46.sp),
                     maxLines = 1,
                     softWrap = false,
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = 20.sp,
-                        maxFontSize = 40.sp,
-                        stepSize = 1.sp,
-                    ),
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = 20.sp,
+                            maxFontSize = 40.sp,
+                            stepSize = 1.sp,
+                        ),
                 )
             } else {
                 EmojiText(
                     shortUrl,
-                    style = MaterialTheme.typography.displaySmall
-                        .hero(key = shortUrl, fontSize = 34.sp, lineHeight = 42.sp),
+                    style =
+                        MaterialTheme.typography.displaySmall
+                            .hero(key = shortUrl, fontSize = 34.sp, lineHeight = 42.sp),
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -459,10 +468,11 @@ private fun ResultPhase(
             )
             FilledTonalButton(
                 onClick = {
-                    val send = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, fullUrl)
-                    }
+                    val send =
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, fullUrl)
+                        }
                     context.startActivity(Intent.createChooser(send, null))
                 },
             ) { Text("Share") }
@@ -518,8 +528,7 @@ internal fun LinkOptionRow(
 }
 
 /** The API's alias charset: a-z A-Z 0-9 _ - (or emoji-only, via the picker). */
-internal fun isAliasChar(c: Char): Boolean =
-    c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c == '_' || c == '-'
+internal fun isAliasChar(c: Char): Boolean = c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c == '_' || c == '-'
 
 private val SCHEME = Regex("^[a-zA-Z][a-zA-Z0-9+.\\-]*://")
 
@@ -547,17 +556,17 @@ internal fun isAcceptablePassword(p: String): Boolean =
         (p.contains('@') || p.contains('.'))
 
 /** Catalogue entries are single codepoints, so backspace is one codepoint. */
-private fun String.dropLastCodePoint(): String =
-    if (isEmpty()) this else dropLast(Character.charCount(codePointBefore(length)))
+private fun String.dropLastCodePoint(): String = if (isEmpty()) this else dropLast(Character.charCount(codePointBefore(length)))
 
 /** Display form of the whole composed alias (see [emojiPresentation]). */
-private fun String.emojiPresentationAll(): String = buildString {
-    var i = 0
-    while (i < this@emojiPresentationAll.length) {
-        val count = Character.charCount(this@emojiPresentationAll.codePointAt(i))
-        append(
-            this@emojiPresentationAll.substring(i, i + count).emojiPresentation(),
-        )
-        i += count
+private fun String.emojiPresentationAll(): String =
+    buildString {
+        var i = 0
+        while (i < this@emojiPresentationAll.length) {
+            val count = Character.charCount(this@emojiPresentationAll.codePointAt(i))
+            append(
+                this@emojiPresentationAll.substring(i, i + count).emojiPresentation(),
+            )
+            i += count
+        }
     }
-}

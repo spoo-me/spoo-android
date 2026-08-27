@@ -14,7 +14,9 @@ private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 enum class ThemeMode { System, Light, Dark }
 
 /** What a horizontal swipe on a link card does; user-mapped per side. */
-enum class SwipeAction(val label: String) {
+enum class SwipeAction(
+    val label: String,
+) {
     None("Nothing"),
     Copy("Copy link"),
     Share("Share"),
@@ -40,62 +42,59 @@ data class AppSettings(
         /** spoo violet. */
         const val DEFAULT_SEED = 0xFF8B5CF6
 
-        val SEED_CHOICES = listOf(
-            0xFF8B5CF6, // spoo violet
-            0xFF0EA5E9, // sky
-            0xFF10B981, // emerald
-            0xFFF59E0B, // amber
-            0xFFEF4444, // red
-            0xFFEC4899, // pink
-        )
+        val SEED_CHOICES =
+            listOf(
+                0xFF8B5CF6, // spoo violet
+                0xFF0EA5E9, // sky
+                0xFF10B981, // emerald
+                0xFFF59E0B, // amber
+                0xFFEF4444, // red
+                0xFFEC4899, // pink
+            )
     }
 }
 
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(
+    private val context: Context,
+) {
+    val settings: Flow<AppSettings> =
+        context.settingsDataStore.data.map { p ->
+            AppSettings(
+                themeMode =
+                    p[THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
+                        ?: ThemeMode.System,
+                useDeviceColors = p[USE_DEVICE_COLORS] ?: true,
+                seedColor = p[SEED_COLOR] ?: AppSettings.DEFAULT_SEED,
+                showShareInMenu = p[SHOW_SHARE] ?: true,
+                swipeRight =
+                    p[SWIPE_RIGHT]?.let { runCatching { SwipeAction.valueOf(it) }.getOrNull() }
+                        ?: SwipeAction.Edit,
+                swipeLeft =
+                    p[SWIPE_LEFT]?.let { runCatching { SwipeAction.valueOf(it) }.getOrNull() }
+                        ?: SwipeAction.Delete,
+                swipeRightEnabled = p[SWIPE_RIGHT_ON] ?: true,
+                swipeLeftEnabled = p[SWIPE_LEFT_ON] ?: true,
+                mockData = p[MOCK_DATA] ?: false,
+            )
+        }
 
-    val settings: Flow<AppSettings> = context.settingsDataStore.data.map { p ->
-        AppSettings(
-            themeMode = p[THEME_MODE]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
-                ?: ThemeMode.System,
-            useDeviceColors = p[USE_DEVICE_COLORS] ?: true,
-            seedColor = p[SEED_COLOR] ?: AppSettings.DEFAULT_SEED,
-            showShareInMenu = p[SHOW_SHARE] ?: true,
-            swipeRight = p[SWIPE_RIGHT]?.let { runCatching { SwipeAction.valueOf(it) }.getOrNull() }
-                ?: SwipeAction.Edit,
-            swipeLeft = p[SWIPE_LEFT]?.let { runCatching { SwipeAction.valueOf(it) }.getOrNull() }
-                ?: SwipeAction.Delete,
-            swipeRightEnabled = p[SWIPE_RIGHT_ON] ?: true,
-            swipeLeftEnabled = p[SWIPE_LEFT_ON] ?: true,
-            mockData = p[MOCK_DATA] ?: false,
-        )
-    }
+    suspend fun setThemeMode(mode: ThemeMode) = context.settingsDataStore.edit { it[THEME_MODE] = mode.name }
 
-    suspend fun setThemeMode(mode: ThemeMode) =
-        context.settingsDataStore.edit { it[THEME_MODE] = mode.name }
+    suspend fun setUseDeviceColors(value: Boolean) = context.settingsDataStore.edit { it[USE_DEVICE_COLORS] = value }
 
-    suspend fun setUseDeviceColors(value: Boolean) =
-        context.settingsDataStore.edit { it[USE_DEVICE_COLORS] = value }
+    suspend fun setSeedColor(argb: Long) = context.settingsDataStore.edit { it[SEED_COLOR] = argb }
 
-    suspend fun setSeedColor(argb: Long) =
-        context.settingsDataStore.edit { it[SEED_COLOR] = argb }
+    suspend fun setShowShareInMenu(value: Boolean) = context.settingsDataStore.edit { it[SHOW_SHARE] = value }
 
-    suspend fun setShowShareInMenu(value: Boolean) =
-        context.settingsDataStore.edit { it[SHOW_SHARE] = value }
+    suspend fun setSwipeRight(action: SwipeAction) = context.settingsDataStore.edit { it[SWIPE_RIGHT] = action.name }
 
-    suspend fun setSwipeRight(action: SwipeAction) =
-        context.settingsDataStore.edit { it[SWIPE_RIGHT] = action.name }
+    suspend fun setSwipeLeft(action: SwipeAction) = context.settingsDataStore.edit { it[SWIPE_LEFT] = action.name }
 
-    suspend fun setSwipeLeft(action: SwipeAction) =
-        context.settingsDataStore.edit { it[SWIPE_LEFT] = action.name }
+    suspend fun setSwipeRightEnabled(value: Boolean) = context.settingsDataStore.edit { it[SWIPE_RIGHT_ON] = value }
 
-    suspend fun setSwipeRightEnabled(value: Boolean) =
-        context.settingsDataStore.edit { it[SWIPE_RIGHT_ON] = value }
+    suspend fun setSwipeLeftEnabled(value: Boolean) = context.settingsDataStore.edit { it[SWIPE_LEFT_ON] = value }
 
-    suspend fun setSwipeLeftEnabled(value: Boolean) =
-        context.settingsDataStore.edit { it[SWIPE_LEFT_ON] = value }
-
-    suspend fun setMockData(value: Boolean) =
-        context.settingsDataStore.edit { it[MOCK_DATA] = value }
+    suspend fun setMockData(value: Boolean) = context.settingsDataStore.edit { it[MOCK_DATA] = value }
 
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")
