@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import me.spoo.android.AppGraph
+import me.spoo.android.data.AppSettings
 import me.spoo.android.data.LinkStats
+import me.spoo.android.data.ThemeMode
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsMetric
 import me.spoo.android.data.StatsParams
@@ -22,12 +24,21 @@ enum class WidgetChart(val timeChart: Boolean) {
 }
 
 /**
+ * Hero typeface for the solo Number widget — Google's expressive Roboto
+ * trio. Only Number exposes it; chart overlays stay on the Flex house cut.
+ * (A Cardfolio-style outlined-overflow cut was tried and rejected: digits
+ * at card height fit ~3 per line, and clipped digits misread the count.)
+ */
+enum class WidgetFont { Flex, Serif, Mono }
+
+/**
  * One placed widget's identity, chosen in [WidgetConfigActivity] and stored
  * in that instance's Glance state. The manifest presets ("shells" in the
  * widget picker) are just different prefills of this.
  */
 data class WidgetConfig(
     val chart: WidgetChart = WidgetChart.Wave,
+    val font: WidgetFont = WidgetFont.Flex,
     /** Breakdown dimension for treemap/bubbles; [WidgetChart.Map] is always Country. */
     val dimension: StatsDim = StatsDim.Browser,
     val metric: StatsMetric = StatsMetric.Clicks,
@@ -128,6 +139,7 @@ suspend fun fetchWidgetData(graph: AppGraph, config: WidgetConfig): WidgetData? 
 /** Glance-state keys: config + the per-instance data cache. */
 internal object WidgetKeys {
     val STYLE = stringPreferencesKey("style")
+    val FONT = stringPreferencesKey("font")
     val DIMENSION = stringPreferencesKey("dimension")
     val METRIC = stringPreferencesKey("metric")
     val SCOPE = stringPreferencesKey("scope")
@@ -137,11 +149,33 @@ internal object WidgetKeys {
     val CACHED_TOTAL = longPreferencesKey("cached_total")
     val CACHED_SERIES = stringPreferencesKey("cached_series")
     val CACHED_SLICES = stringPreferencesKey("cached_slices")
+
+    // The app's theme choice, mirrored into every widget's state so a
+    // warm session (which never re-runs provideGlance) can still recolor.
+    val THEME_MODE = stringPreferencesKey("theme_mode")
+    val THEME_USE_DEVICE = booleanPreferencesKey("theme_use_device")
+    val THEME_SEED = longPreferencesKey("theme_seed")
+}
+
+/** The theme trio as [AppSettings], for [spooColorScheme]-style builders. */
+internal fun Preferences.readWidgetTheme(): AppSettings = AppSettings(
+    themeMode = this[WidgetKeys.THEME_MODE]
+        ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.System,
+    useDeviceColors = this[WidgetKeys.THEME_USE_DEVICE] ?: true,
+    seedColor = this[WidgetKeys.THEME_SEED] ?: AppSettings.DEFAULT_SEED,
+)
+
+internal fun MutablePreferences.writeWidgetTheme(settings: AppSettings) {
+    this[WidgetKeys.THEME_MODE] = settings.themeMode.name
+    this[WidgetKeys.THEME_USE_DEVICE] = settings.useDeviceColors
+    this[WidgetKeys.THEME_SEED] = settings.seedColor
 }
 
 internal fun Preferences.readWidgetConfig(): WidgetConfig = WidgetConfig(
     chart = this[WidgetKeys.STYLE]
         ?.let { runCatching { WidgetChart.valueOf(it) }.getOrNull() } ?: WidgetChart.Wave,
+    font = this[WidgetKeys.FONT]
+        ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() } ?: WidgetFont.Flex,
     dimension = this[WidgetKeys.DIMENSION]
         ?.let { runCatching { StatsDim.valueOf(it) }.getOrNull() } ?: StatsDim.Browser,
     metric = this[WidgetKeys.METRIC]
@@ -160,6 +194,7 @@ internal fun Preferences.readWidgetConfig(): WidgetConfig = WidgetConfig(
 
 internal fun MutablePreferences.writeWidgetConfig(config: WidgetConfig) {
     this[WidgetKeys.STYLE] = config.chart.name
+    this[WidgetKeys.FONT] = config.font.name
     this[WidgetKeys.DIMENSION] = config.dimension.name
     this[WidgetKeys.METRIC] = config.metric.name
     config.scope?.let { this[WidgetKeys.SCOPE] = it } ?: remove(WidgetKeys.SCOPE)

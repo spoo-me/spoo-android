@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -88,6 +89,7 @@ import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.countryDisplayName
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.theme.SpooTheme
+import me.spoo.android.ui.theme.spooColorScheme
 
 /**
  * The widget builder: launched by the launcher when a shell is placed
@@ -265,6 +267,20 @@ private fun ConfigScreen(
                     onSelect = { config = config.copy(chart = it) },
                 )
             }
+            if (config.chart == WidgetChart.Number) {
+                item { SectionLabel("Type") }
+                item {
+                    ToggleRow(
+                        options = listOf(
+                            Triple<WidgetFont, String, ImageVector?>(WidgetFont.Flex, "Flex", null),
+                            Triple<WidgetFont, String, ImageVector?>(WidgetFont.Serif, "Serif", null),
+                            Triple<WidgetFont, String, ImageVector?>(WidgetFont.Mono, "Mono", null),
+                        ),
+                        selected = config.font,
+                        onSelect = { config = config.copy(font = it) },
+                    )
+                }
+            }
             if (config.chart == WidgetChart.Treemap || config.chart == WidgetChart.Bubbles) {
                 item { SectionLabel("Dimension") }
                 item {
@@ -377,24 +393,33 @@ private fun ConfigScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
-    val palette = ChartPalette(
-        accent = MaterialTheme.colorScheme.primary.toArgb(),
-        onSurface = MaterialTheme.colorScheme.onSurface.toArgb(),
-        onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
-        surface = MaterialTheme.colorScheme.surfaceContainerLow.toArgb(),
-        surfaceVariant = MaterialTheme.colorScheme.surfaceVariant.toArgb(),
-        accentContainer = MaterialTheme.colorScheme.primaryContainer.toArgb(),
-    )
     val context = LocalContext.current
     val density = LocalDensity.current.density
+    // The widget's OWN scheme, not the app theme's: same palette pass the
+    // launcher renders (soft tonal ground, system day/night), so the
+    // preview background matches the homescreen exactly.
+    val settings by SpooApp.graph.settingsRepository.settings
+        .collectAsState(initial = AppSettings())
+    val systemDark = isSystemInDarkTheme()
+    val widgetScheme = remember(settings, systemDark) {
+        spooColorScheme(context, settings, darkTheme = systemDark, cleanGround = false)
+    }
+    val palette = ChartPalette(
+        accent = widgetScheme.primary.toArgb(),
+        onSurface = widgetScheme.onSurface.toArgb(),
+        onSurfaceVariant = widgetScheme.onSurfaceVariant.toArgb(),
+        surface = widgetScheme.surface.toArgb(),
+        surfaceVariant = widgetScheme.surfaceVariant.toArgb(),
+        accentContainer = widgetScheme.primaryContainer.toArgb(),
+    )
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .aspectRatio(2.1f)
+            .aspectRatio(1.85f) // a real 4x2 slot is taller than it looks
             .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(widgetScheme.surface)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outlineVariant,
@@ -451,15 +476,37 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
                     config.label,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = widgetScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
-                Text(
-                    NumberFormat.getIntegerInstance().format(data.total),
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                Spacer(Modifier.height(4.dp))
+                // Same hero mask the real widget rasterizes, so the
+                // preview is honest about the type.
+                val label = NumberFormat.getIntegerInstance().format(data.total)
+                val solo = config.chart == WidgetChart.Number
+                val heroSp = if (solo) {
+                    72f
+                } else {
+                    when {
+                        label.length <= 7 -> 44f
+                        label.length <= 10 -> 36f
+                        else -> 28f
+                    }
+                }
+                val heroBitmap = remember(label, heroSp, solo, widthDp, config.font) {
+                    WidgetChartRenderer.renderHeroText(
+                        context, label, heroSp * density,
+                        emphatic = solo,
+                        maxWidthPx = ((widthDp.value - 36f) * density).toInt(),
+                        font = if (solo) config.font else WidgetFont.Flex,
+                    )
+                }
+                androidx.compose.foundation.Image(
+                    bitmap = heroBitmap.asImageBitmap(),
+                    contentDescription = label,
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                        widgetScheme.onSurface,
+                    ),
                 )
             }
         } else if (!hasChart) {
@@ -467,7 +514,7 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
                 Text(
                     "No data in this range",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = widgetScheme.onSurfaceVariant,
                 )
             }
         }

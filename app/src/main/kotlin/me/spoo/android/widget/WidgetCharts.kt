@@ -3,14 +3,18 @@ package me.spoo.android.widget
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color as AndroidColor
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
+import me.spoo.android.R
 import java.text.NumberFormat
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -244,8 +248,10 @@ object WidgetChartRenderer {
         if (series.isEmpty()) return
         val width = canvas.width
         val height = canvas.height
-        // Bucket long series down so bars stay readable at widget scale.
-        val maxBars = 24
+        // The M3E bar grammar (Pixel Weather, Fitbit): FEW chunky pills
+        // with real gaps and full round caps, rest bars muted, the peak
+        // carrying full accent — not a picket fence of skinny sticks.
+        val maxBars = 14
         val buckets = if (series.size <= maxBars) {
             series
         } else {
@@ -257,21 +263,75 @@ object WidgetChartRenderer {
             }
         }
         val maxValue = buckets.max().coerceAtLeast(1).toFloat()
+        val peak = buckets.indexOf(buckets.max())
         val slot = width.toFloat() / buckets.size
-        val barWidth = slot * 0.62f
-        val radius = min(barWidth / 2f, 3f * density)
-        val minBar = 2f * density // zero-ish days still leave a tick, not a gap
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = ColorUtils.setAlphaComponent(palette.accent, 217) // 85%
-        }
+        val barWidth = slot * 0.56f
+        val radius = barWidth / 2f // full pill
+        val minBar = barWidth // zero-ish days read as a dot, not a gap
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         buckets.forEachIndexed { i, value ->
             val barHeight = (height * value / maxValue).coerceAtLeast(minBar)
             val left = i * slot + (slot - barWidth) / 2f
+            paint.color = ColorUtils.setAlphaComponent(
+                palette.accent,
+                if (i == peak) 255 else 140,
+            )
             canvas.drawRoundRect(
-                RectF(left, height - barHeight, left + barWidth, height.toFloat() + radius),
+                RectF(left, height - barHeight, left + barWidth, height.toFloat()),
                 radius, radius, paint,
             )
         }
+    }
+
+    /**
+     * The count in the app's hero type (Roboto Flex, weight 860, width
+     * 112) — Glance text can't load fonts, so it ships as a WHITE mask
+     * bitmap the launcher tints (same trick as the time charts).
+     */
+    fun renderHeroText(
+        context: Context,
+        text: String,
+        textSizePx: Float,
+        emphatic: Boolean = false,
+        maxWidthPx: Int = 0,
+        font: WidgetFont = WidgetFont.Flex,
+    ): Bitmap {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+            typeface = ResourcesCompat.getFont(
+                context,
+                when (font) {
+                    WidgetFont.Flex -> R.font.roboto_flex
+                    // Numeral-only subsets, instanced at their expressive
+                    // cuts (Serif: wght 800 / opsz 144; Mono: wght 700).
+                    WidgetFont.Serif -> R.font.roboto_serif_hero
+                    WidgetFont.Mono -> R.font.roboto_mono_hero
+                },
+            )
+            textSize = textSizePx
+            color = AndroidColor.WHITE
+            fontFeatureSettings = "tnum"
+        }
+        // Emphatic = the solo Number widget, where the count IS the widget:
+        // Roboto Flex pushed to its corner (max weight, max width).
+        if (font == WidgetFont.Flex) {
+            paint.fontVariationSettings = if (emphatic) {
+                "'wght' 1000, 'wdth' 151"
+            } else {
+                "'wght' 860, 'wdth' 112"
+            }
+        }
+        if (maxWidthPx > 0) {
+            val measured = paint.measureText(text)
+            if (measured > maxWidthPx) paint.textSize = textSizePx * maxWidthPx / measured
+        }
+        val bounds = Rect()
+        paint.getTextBounds(text, 0, text.length, bounds)
+        val pad = (textSizePx * 0.06f).toInt().coerceAtLeast(2)
+        val width = (paint.measureText(text).toInt() + pad * 2).coerceAtLeast(1)
+        val height = bounds.height() + pad * 2
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        Canvas(bitmap).drawText(text, pad.toFloat(), (pad - bounds.top).toFloat(), paint)
+        return bitmap
     }
 
     // ---- breakdown charts ---------------------------------------------

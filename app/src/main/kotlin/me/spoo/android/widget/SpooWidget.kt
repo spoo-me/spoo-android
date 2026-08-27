@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
 import androidx.glance.Button
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -23,6 +24,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
+import androidx.compose.runtime.remember
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
@@ -40,8 +42,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import java.text.NumberFormat
 import kotlinx.coroutines.flow.first
+import androidx.glance.material3.ColorProviders
 import me.spoo.android.MainActivity
 import me.spoo.android.SpooApp
+import me.spoo.android.ui.theme.spooColorScheme
 
 /**
  * Home-screen widget, scoped per instance by [WidgetConfig] (chosen on
@@ -57,16 +61,17 @@ class SpooWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val graph = SpooApp.graph
+        val settings = graph.settingsRepository.settings.first()
         // TokenStore, not AuthManager state: a cold widget process may render
         // before restore() lands, and the token file is the durable truth.
-        val signedIn = graph.tokenStore.read() != null ||
-            graph.settingsRepository.settings.first().mockData
+        val signedIn = graph.tokenStore.read() != null || settings.mockData
 
         val config = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
             .readWidgetConfig()
         val fresh = if (signedIn) fetchWidgetData(graph, config) else null
         updateAppWidgetState(context, id) {
             it[WidgetKeys.SIGNED_IN] = signedIn
+            it.writeWidgetTheme(settings)
             fresh?.let(it::writeWidgetData) // fetch failed: keep the cache
         }
         if (!config.chart.timeChart) {
@@ -79,8 +84,22 @@ class SpooWidget : GlanceAppWidget() {
         }
 
         provideContent {
-            GlanceTheme {
-                val prefs = currentState<Preferences>()
+            val prefs = currentState<Preferences>()
+            // Colors from widget STATE, inside the composition: a warm
+            // session recomposes without re-running provideGlance, so
+            // anything captured outside would never recolor. Widgets skip
+            // the clean-ground pass — soft tonal surfaces sit better on a
+            // wallpaper than the app's stark ground.
+            // The app's PALETTE choice, but the SYSTEM's day/night: a
+            // forced-dark widget on a light launcher reads as broken.
+            val theme = prefs.readWidgetTheme()
+            val widgetColors = remember(theme) {
+                ColorProviders(
+                    light = spooColorScheme(context, theme, darkTheme = false, cleanGround = false),
+                    dark = spooColorScheme(context, theme, darkTheme = true, cleanGround = false),
+                )
+            }
+            GlanceTheme(colors = widgetColors) {
                 if (prefs[WidgetKeys.SIGNED_IN] != true) {
                     SignedOutContent(context)
                 } else {
@@ -126,6 +145,12 @@ class SpooWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomStart,
                 ) {
+                    // Time charts are single-hue: render them as a WHITE
+                    // alpha mask and tint with the theme provider, so the
+                    // LAUNCHER swaps the color on system light/dark flips
+                    // (a frozen app process can't re-render bitmaps).
+                    // Breakdown charts are multi-color and stay baked.
+                    val tintable = config.chart.timeChart
                     Image(
                         provider = ImageProvider(
                             WidgetChartRenderer.render(
@@ -135,12 +160,21 @@ class SpooWidget : GlanceAppWidget() {
                                 width = (size.width.value * density).toInt(),
                                 height = (chartHeight.value * density).toInt(),
                                 density = density,
-                                palette = palette,
+                                palette = if (tintable) {
+                                    palette.copy(accent = android.graphics.Color.WHITE)
+                                } else {
+                                    palette
+                                },
                             ),
                         ),
                         contentDescription = null,
                         modifier = GlanceModifier.fillMaxWidth().height(chartHeight),
                         contentScale = ContentScale.FillBounds,
+                        colorFilter = if (tintable) {
+                            ColorFilter.tint(GlanceTheme.colors.primary)
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -165,20 +199,35 @@ class SpooWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1,
                     )
+                    Spacer(GlanceModifier.height(4.dp))
                     val label = NumberFormat.getIntegerInstance().format(data.total)
                     val compact = size.width.value < 220f || size.height.value < 100f
-                    Text(
-                        label,
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurface,
-                            fontSize = when {
-                                label.length <= 7 -> if (compact) 34.sp else 44.sp
-                                label.length <= 10 -> if (compact) 27.sp else 36.sp
-                                else -> if (compact) 21.sp else 28.sp
-                            },
-                            fontWeight = FontWeight.Bold,
+                    val solo = config.chart == WidgetChart.Number
+                    // Number style IS the widget: start huge and let the
+                    // width clamp fit the count; overlays stay tiered.
+                    val heroSp = if (solo) {
+                        if (compact) 54f else 72f
+                    } else {
+                        when {
+                            label.length <= 7 -> if (compact) 34f else 44f
+                            label.length <= 10 -> if (compact) 27f else 36f
+                            else -> if (compact) 21f else 28f
+                        }
+                    }
+                    // The app's hero type, shipped as a tintable mask —
+                    // Glance text can't load Roboto Flex.
+                    Image(
+                        provider = ImageProvider(
+                            WidgetChartRenderer.renderHeroText(
+                                context, label,
+                                heroSp * context.resources.displayMetrics.scaledDensity,
+                                emphatic = solo,
+                                maxWidthPx = ((size.width.value - 36f) * density).toInt(),
+                                font = if (solo) config.font else WidgetFont.Flex,
+                            ),
                         ),
-                        maxLines = 1,
+                        contentDescription = label,
+                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface),
                     )
                 }
             } else if (!hasChart) {
