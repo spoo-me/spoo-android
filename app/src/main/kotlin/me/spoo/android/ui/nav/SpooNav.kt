@@ -112,6 +112,10 @@ fun SpooNav(
         Box(
             modifier = Modifier
                 .weight(1f)
+                // The top-level fade dips through this ground between the
+                // outgoing and incoming screens: it must be surface, or
+                // the window background flashes through (white, in dark).
+                .background(MaterialTheme.colorScheme.surface)
                 .then(
                     // The bar owns the bottom inset while it is visible.
                     if (atRoot) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier,
