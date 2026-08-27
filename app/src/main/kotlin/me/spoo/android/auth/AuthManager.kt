@@ -64,13 +64,15 @@ class AuthManager(
         val echoedState = uri.getQueryParameter("state")
         scope.launch {
             val pending = store.readPending()
-            store.clearPending()
             if (code.isNullOrBlank() || pending == null || echoedState != pending.state) {
                 // CSRF mismatch or malformed callback: drop the flow, but
                 // tell the gate the attempt died instead of failing mute.
+                // The pending handshake survives, so a forged callback
+                // can't kill a sign-in that's still in the browser.
                 _state.value = AuthState.SignInFailed
                 return@launch
             }
+            store.clearPending()
             _state.value = AuthState.Authorizing
             try {
                 val granted = anonClient.oauth.exchangeCode(code, pending.verifier)

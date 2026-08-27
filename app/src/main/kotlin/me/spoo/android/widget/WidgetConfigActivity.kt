@@ -117,14 +117,19 @@ class WidgetConfigActivity : ComponentActivity() {
             return
         }
 
-        val preset =
-            WidgetConfig.presetFor(
-                AppWidgetManager
-                    .getInstance(this)
-                    .getAppWidgetInfo(appWidgetId)
-                    ?.provider
-                    ?.className,
-            )
+        // Exported for the launcher, so any app can send an id; only
+        // configure widgets that are actually ours.
+        val provider =
+            AppWidgetManager
+                .getInstance(this)
+                .getAppWidgetInfo(appWidgetId)
+                ?.provider
+        if (provider?.packageName != packageName) {
+            finish()
+            return
+        }
+
+        val preset = WidgetConfig.presetFor(provider.className)
 
         setContent {
             val settings by SpooApp.graph.settingsRepository.settings
