@@ -21,12 +21,10 @@ import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
 import java.util.Locale
 
-/**
- * Identity icons for dimension values, mirroring the webapp: favicons for
- * hosts/referrers (gstatic 404s honestly, so Coil's error slot draws the
- * globe), flag emoji for countries, neutral monograms elsewhere. Identity
- * color lives in the icon; surrounding chrome stays neutral.
- */
+// Identity icons for dimension values, mirroring the webapp: favicons for
+// hosts/referrers (gstatic 404s honestly, so Coil's error slot draws the
+// globe), flag emoji for countries, neutral monograms elsewhere. Identity
+// color lives in the icon; surrounding chrome stays neutral.
 
 /** Favicon for a host, globe fallback when the host has none. */
 @Composable

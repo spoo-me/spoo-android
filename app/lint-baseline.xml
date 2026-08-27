@@ -156,200 +156,13 @@
     </issue>
 
     <issue
-        id="AndroidGradlePluginVersion"
-        message="A newer version of Gradle than 9.5.0 is available: 9.7.1"
-        errorLine1="distributionUrl=https\://services.gradle.org/distributions/gradle-9.5.0-bin.zip"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/wrapper/gradle-wrapper.properties"
-            line="3"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="AndroidGradlePluginVersion"
-        message="A newer version of com.android.application than 9.1.0 is available: 9.3.2. (There is also a newer version of 9.1.𝑥 available, if upgrading to 9.3.2 is difficult: 9.1.1)"
-        errorLine1="agp = &quot;9.1.0&quot;"
-        errorLine2="      ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="2"
-            column="7"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.compose.material3:material3 than 1.5.0-alpha26 is available: 1.5.0-alpha27"
-        errorLine1="material3 = &quot;1.5.0-alpha26&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="6"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.activity:activity-compose than 1.11.0 is available: 1.13.0"
-        errorLine1="activityCompose = &quot;1.11.0&quot;"
-        errorLine2="                  ~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="7"
-            column="19"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.navigation3:navigation3-runtime than 1.1.6 is available: 1.1.7"
-        errorLine1="navigation3 = &quot;1.1.6&quot;"
-        errorLine2="              ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="8"
-            column="15"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.navigation3:navigation3-ui than 1.1.6 is available: 1.1.7"
-        errorLine1="navigation3 = &quot;1.1.6&quot;"
-        errorLine2="              ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="8"
-            column="15"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.core:core-ktx than 1.16.0 is available: 1.19.0"
-        errorLine1="coreKtx = &quot;1.16.0&quot;"
-        errorLine2="          ~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="9"
-            column="11"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.9.2 is available: 2.11.0"
-        errorLine1="lifecycle = &quot;2.9.2&quot;"
-        errorLine2="            ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="10"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.9.2 is available: 2.11.0"
-        errorLine1="lifecycle = &quot;2.9.2&quot;"
-        errorLine2="            ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="10"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.browser:browser than 1.9.0 is available: 1.10.0"
-        errorLine1="androidx-browser = { module = &quot;androidx.browser:browser&quot;, version = &quot;1.9.0&quot; }"
-        errorLine2="                                                                    ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="20"
-            column="69"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.datastore:datastore-preferences than 1.1.7 is available: 1.2.1"
-        errorLine1="androidx-datastore-preferences = { module = &quot;androidx.datastore:datastore-preferences&quot;, version = &quot;1.1.7&quot; }"
-        errorLine2="                                                                                                  ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="21"
-            column="99"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.glance:glance-appwidget than 1.2.0-rc01 is available: 1.2.0"
-        errorLine1="glance-appwidget = { module = &quot;androidx.glance:glance-appwidget&quot;, version = &quot;1.2.0-rc01&quot; }"
-        errorLine2="                                                                            ~~~~~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="27"
-            column="77"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.glance:glance-material3 than 1.2.0-rc01 is available: 1.2.0"
-        errorLine1="glance-material3 = { module = &quot;androidx.glance:glance-material3&quot;, version = &quot;1.2.0-rc01&quot; }"
-        errorLine2="                                                                            ~~~~~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="28"
-            column="77"/>
-    </issue>
-
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.work:work-runtime-ktx than 2.10.3 is available: 2.11.2"
-        errorLine1="work-runtime = { module = &quot;androidx.work:work-runtime-ktx&quot;, version = &quot;2.10.3&quot; }"
-        errorLine2="                                                                      ~~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="29"
-            column="71"/>
-    </issue>
-
-    <issue
-        id="NewerVersionAvailable"
-        message="A newer version of com.google.zxing:core than 3.5.3 is available: 3.5.4"
-        errorLine1="zxing-core = { module = &quot;com.google.zxing:core&quot;, version = &quot;3.5.3&quot; }"
-        errorLine2="                                                           ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="22"
-            column="60"/>
-    </issue>
-
-    <issue
-        id="NewerVersionAvailable"
-        message="A newer version of io.coil-kt.coil3:coil-compose than 3.5.0 is available: 3.6.0"
-        errorLine1="coil-compose = { module = &quot;io.coil-kt.coil3:coil-compose&quot;, version = &quot;3.5.0&quot; }"
-        errorLine2="                                                                     ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="24"
-            column="70"/>
-    </issue>
-
-    <issue
-        id="NewerVersionAvailable"
-        message="A newer version of io.coil-kt.coil3:coil-network-okhttp than 3.5.0 is available: 3.6.0"
-        errorLine1="coil-network-okhttp = { module = &quot;io.coil-kt.coil3:coil-network-okhttp&quot;, version = &quot;3.5.0&quot; }"
-        errorLine2="                                                                                   ~~~~~~~">
-        <location
-            file="$HOME/spoo/spoo-android/gradle/libs.versions.toml"
-            line="25"
-            column="84"/>
-    </issue>
-
-    <issue
         id="ModifierParameter"
         message="Modifier parameter should be the first optional parameter"
         errorLine1="    modifier: Modifier = Modifier,"
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="36"
+            line="34"
             column="5"/>
     </issue>
 
@@ -360,7 +173,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="67"
+            line="65"
             column="5"/>
     </issue>
 
@@ -371,7 +184,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="92"
+            line="90"
             column="5"/>
     </issue>
 
@@ -382,7 +195,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="144"
+            line="142"
             column="5"/>
     </issue>
 
