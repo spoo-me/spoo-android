@@ -199,10 +199,16 @@ class MockLinksRepository : LinksRepository {
         return EmojiCatalog(maxGraphemes = 15, entries = MOCK_EMOJI)
     }
 
+    private val statsCache = mutableMapOf<String, LinkStats>()
+
+    override fun cachedStats(shortCode: String?, params: StatsParams): LinkStats? =
+        statsCache["$shortCode|$params"]
+
     override suspend fun stats(shortCode: String, params: StatsParams): LinkStats {
         delay(450)
         val link = all.value.first { it.shortCode == shortCode }
         return generate(params, base = link.totalClicks, seed = link.id.hashCode(), link = link)
+            .also { statsCache["$shortCode|$params"] = it }
     }
 
     override suspend fun accountStats(params: StatsParams): LinkStats {
@@ -212,7 +218,7 @@ class MockLinksRepository : LinksRepository {
             base = all.value.sumOf { it.totalClicks },
             seed = 20_26,
             link = null,
-        )
+        ).also { statsCache["null|$params"] = it }
     }
 
     private fun generate(params: StatsParams, base: Int, seed: Int, link: SpooLink?): LinkStats {

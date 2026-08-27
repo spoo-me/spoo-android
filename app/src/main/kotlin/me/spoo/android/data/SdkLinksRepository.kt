@@ -224,15 +224,29 @@ class SdkLinksRepository(
         ).also { cachedCatalog = it }
     }
 
+    // Small LRU so revisited stats paint instantly while refetching.
+    private val statsCache = object : LinkedHashMap<String, LinkStats>(32, 0.75f, true) {
+        override fun removeEldestEntry(eldest: Map.Entry<String, LinkStats>) = size > 32
+    }
+
+    private fun cacheKey(shortCode: String?, params: StatsParams) = "$shortCode|$params"
+
+    override fun cachedStats(shortCode: String?, params: StatsParams): LinkStats? =
+        synchronized(statsCache) { statsCache[cacheKey(shortCode, params)] }
+
     override suspend fun stats(shortCode: String, params: StatsParams): LinkStats = withSession {
         val link = _links.value.first { it.shortCode == shortCode }
         val report = clientProvider().stats.forLink(urlId = link.id, query = params.toQuery())
-        report.metrics.toLinkStats(link, params.metric.wire())
+        report.metrics.toLinkStats(link, params.metric.wire()).also {
+            synchronized(statsCache) { statsCache[cacheKey(shortCode, params)] = it }
+        }
     }
 
     override suspend fun accountStats(params: StatsParams): LinkStats = withSession {
         val report = clientProvider().stats.account(AccountStatsRequest(query = params.toQuery()))
-        report.metrics.toLinkStats(link = null, params.metric.wire())
+        report.metrics.toLinkStats(link = null, params.metric.wire()).also {
+            synchronized(statsCache) { statsCache[cacheKey(null, params)] = it }
+        }
     }
 
     private fun StatsMetric.wire() = when (this) {

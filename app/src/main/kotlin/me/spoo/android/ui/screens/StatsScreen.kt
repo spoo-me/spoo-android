@@ -41,8 +41,8 @@ import me.spoo.android.ui.components.EmojiText
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.StatsContent
 import me.spoo.android.ui.components.StatsLoadFailure
+import me.spoo.android.ui.components.StatsSkeleton
 import me.spoo.android.ui.components.faviconHost
-import me.spoo.android.ui.theme.loaderContainerColor
 
 /** Per-link stats: hero chart, choropleth, filterable breakdowns. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
@@ -52,7 +52,11 @@ fun StatsScreen(
     onBack: () -> Unit = {},
 ) {
     var params by remember { mutableStateOf(StatsParams()) }
-    var stats by remember { mutableStateOf<LinkStats?>(null) }
+    // Seed from the cache: revisits paint the last data instantly and
+    // refetch silently underneath (stale-while-revalidate).
+    var stats by remember {
+        mutableStateOf(SpooApp.graph.linksRepository.cachedStats(shortCode, StatsParams()))
+    }
     var loadFailed by remember { mutableStateOf(false) }
     var attempt by remember { mutableStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -62,6 +66,7 @@ fun StatsScreen(
     // stale data announces itself instead of silently lying.
     LaunchedEffect(shortCode, params, attempt) {
         loadFailed = false
+        SpooApp.graph.linksRepository.cachedStats(shortCode, params)?.let { stats = it }
         runCatching { SpooApp.graph.linksRepository.stats(shortCode, params) }
             .onSuccess { stats = it }
             .onFailure {
@@ -109,21 +114,25 @@ fun StatsScreen(
     ) { padding ->
         val loaded = stats
         if (loaded == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (loadFailed) {
+            if (loadFailed) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) {
                     StatsLoadFailure(onRetry = { attempt++ })
-                } else {
-                    ContainedLoadingIndicator(
-                        modifier = Modifier.size(64.dp),
-                        containerColor = loaderContainerColor(),
-                        indicatorColor = MaterialTheme.colorScheme.primary,
-                    )
                 }
+            } else {
+                // Shaped like the destination, so nothing jumps.
+                StatsSkeleton(
+                    contentPadding = PaddingValues(
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = padding.calculateTopPadding() + 8.dp,
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                )
             }
         } else {
             StatsContent(

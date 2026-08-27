@@ -55,5 +55,7 @@ class SwitchingLinksRepository(
     override suspend fun stats(shortCode: String, params: StatsParams) =
         active.stats(shortCode, params)
     override suspend fun accountStats(params: StatsParams) = active.accountStats(params)
+    override fun cachedStats(shortCode: String?, params: StatsParams) =
+        active.cachedStats(shortCode, params)
     override suspend fun emojiCatalog() = active.emojiCatalog()
 }

@@ -27,6 +27,13 @@ interface LinksRepository {
     suspend fun stats(shortCode: String, params: StatsParams): LinkStats
     suspend fun accountStats(params: StatsParams): LinkStats
 
+    /**
+     * Last fetched stats for this exact query, if any — screens paint
+     * these instantly and refetch silently (stale-while-revalidate).
+     * Null [shortCode] addresses the account-wide report.
+     */
+    fun cachedStats(shortCode: String?, params: StatsParams): LinkStats?
+
     /** The accepted emoji-alias catalogue; changes rarely, cached upstream. */
     suspend fun emojiCatalog(): EmojiCatalog
 }

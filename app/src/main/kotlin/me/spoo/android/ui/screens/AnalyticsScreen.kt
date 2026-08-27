@@ -66,6 +66,7 @@ import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.StatsContent
 import me.spoo.android.ui.components.StatsLoadFailure
+import me.spoo.android.ui.components.StatsSkeleton
 import me.spoo.android.ui.components.countryDisplayName
 import me.spoo.android.ui.components.sheetBottomPadding
 import me.spoo.android.ui.components.toggling
@@ -75,7 +76,10 @@ import me.spoo.android.ui.components.toggling
 @Composable
 fun AnalyticsScreen() {
     var params by remember { mutableStateOf(StatsParams()) }
-    var stats by remember { mutableStateOf<LinkStats?>(null) }
+    // Seed from the cache so tab revisits paint instantly (see StatsScreen).
+    var stats by remember {
+        mutableStateOf(SpooApp.graph.linksRepository.cachedStats(null, StatsParams()))
+    }
     var loadFailed by remember { mutableStateOf(false) }
     var attempt by remember { mutableStateOf(0) }
     val snackbar = remember { SnackbarHostState() }
@@ -85,6 +89,7 @@ fun AnalyticsScreen() {
 
     LaunchedEffect(params, attempt) {
         loadFailed = false
+        SpooApp.graph.linksRepository.cachedStats(null, params)?.let { stats = it }
         runCatching { SpooApp.graph.linksRepository.accountStats(params) }
             .onSuccess { stats = it }
             .onFailure {
@@ -156,21 +161,24 @@ fun AnalyticsScreen() {
         Box(Modifier.fillMaxSize()) {
             val loaded = stats
             if (loaded == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (loadFailed) {
+                if (loadFailed) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         StatsLoadFailure(onRetry = { attempt++ })
-                    } else {
-                        ContainedLoadingIndicator(
-                            modifier = Modifier.size(64.dp),
-                            containerColor = loaderContainerColor(),
-                            indicatorColor = MaterialTheme.colorScheme.primary,
-                        )
                     }
+                } else {
+                    StatsSkeleton(
+                        contentPadding = PaddingValues(
+                            start = 20.dp,
+                            end = 20.dp,
+                            top = padding.calculateTopPadding() + 28.dp,
+                            bottom = padding.calculateBottomPadding(),
+                        ),
+                    )
                 }
             } else {
                 StatsContent(
