@@ -28,6 +28,12 @@ android {
 
     defaultConfig.buildConfigField("String", "SPOO_APP_ID", "\"spoo-mobile\"")
 
+    lint {
+        warningsAsErrors = true
+        // Pre-existing warnings live in the baseline; new ones fail CI.
+        baseline = file("lint-baseline.xml")
+    }
+
     buildTypes {
         debug {
             // Local backend over the Mac's tailnet IP: reachable from the
