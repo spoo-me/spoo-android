@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.AddReaction
+import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
@@ -298,22 +299,32 @@ private fun FormPhase(
                         PasswordVisualTransformation()
                     },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon =
-                    if (password.isNotEmpty()) {
-                        {
-                            IconButton(
-                                onClick = { passwordVisible = !passwordVisible },
-                                enabled = !submitting,
-                            ) {
-                                Icon(
-                                    if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                )
-                            }
+                // One trailing affordance at a time: a dice fills the
+                // empty field (and reveals, webapp parity), an eye guards
+                // a filled one.
+                trailingIcon = {
+                    if (password.isEmpty()) {
+                        IconButton(
+                            onClick = {
+                                password = suggestPassword()
+                                passwordVisible = true
+                            },
+                            enabled = !submitting,
+                        ) {
+                            Icon(Icons.Outlined.Casino, contentDescription = "Suggest a password")
                         }
                     } else {
-                        null
-                    },
+                        IconButton(
+                            onClick = { passwordVisible = !passwordVisible },
+                            enabled = !submitting,
+                        ) {
+                            Icon(
+                                if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            )
+                        }
+                    }
+                },
                 singleLine = true,
                 enabled = !submitting,
             )

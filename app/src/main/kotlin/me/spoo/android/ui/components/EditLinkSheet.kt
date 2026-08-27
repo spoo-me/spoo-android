@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
@@ -239,7 +240,17 @@ fun EditLinkSheet(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
                             Row {
-                                if (password.isNotEmpty()) {
+                                if (password.isEmpty()) {
+                                    IconButton(
+                                        onClick = {
+                                            password = suggestPassword()
+                                            passwordVisible = true
+                                        },
+                                        enabled = !submitting,
+                                    ) {
+                                        Icon(Icons.Outlined.Casino, contentDescription = "Suggest a password")
+                                    }
+                                } else {
                                     IconButton(
                                         onClick = { passwordVisible = !passwordVisible },
                                         enabled = !submitting,
