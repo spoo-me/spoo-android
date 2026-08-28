@@ -10,6 +10,7 @@ coreKtx = "1.16.0"
 lifecycle = "2.9.2"
 kotlinxSerialization = "1.11.0"
 spooSdk = "0.1.0"
+coroutines = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -28,6 +29,10 @@ glance-appwidget = { module = "androidx.glance:glance-appwidget", version = "1.2
 glance-material3 = { module = "androidx.glance:glance-material3", version = "1.2.0-rc01" }
 work-runtime = { module = "androidx.work:work-runtime-ktx", version = "2.10.3" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+junit = { module = "junit:junit", version = "4.13.2" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+turbine = { module = "app.cash.turbine:turbine", version = "1.2.1" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }

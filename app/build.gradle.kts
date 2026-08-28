@@ -83,4 +83,9 @@ dependencies {
     implementation(libs.navigation3.ui)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.spoo.sdk)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }
