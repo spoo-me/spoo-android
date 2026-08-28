@@ -30,6 +30,7 @@ object WidgetIconCache {
             StatsDim.Browser, StatsDim.Os -> brandDomain(label)
             StatsDim.Referrer -> label.takeIf { it.contains('.') }
             StatsDim.Country -> null // flags are emoji, no fetch needed
+            StatsDim.Device, StatsDim.UtmSource -> null // no favicon identity
         }
 
     fun get(

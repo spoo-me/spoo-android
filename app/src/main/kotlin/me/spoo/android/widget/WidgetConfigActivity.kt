@@ -83,6 +83,7 @@ import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsMetric
 import me.spoo.android.ui.components.BrandIcon
 import me.spoo.android.ui.components.CountryFlag
+import me.spoo.android.ui.components.DeviceIcon
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.countryDisplayName
@@ -321,7 +322,19 @@ private fun ConfigScreen(
                                 Triple<StatsDim, String, ImageVector?>(StatsDim.Browser, "Browser", null),
                                 Triple<StatsDim, String, ImageVector?>(StatsDim.Os, "OS", null),
                                 Triple<StatsDim, String, ImageVector?>(StatsDim.Referrer, "Referrer", null),
+                            ),
+                        selected = config.dimension,
+                        onSelect = { config = config.copy(dimension = it) },
+                    )
+                }
+                item { Spacer(Modifier.height(6.dp)) }
+                item {
+                    ToggleRow(
+                        options =
+                            listOf(
                                 Triple<StatsDim, String, ImageVector?>(StatsDim.Country, "Country", null),
+                                Triple<StatsDim, String, ImageVector?>(StatsDim.Device, "Device", null),
+                                Triple<StatsDim, String, ImageVector?>(StatsDim.UtmSource, "UTM source", null),
                             ),
                         selected = config.dimension,
                         onSelect = { config = config.copy(dimension = it) },
@@ -428,6 +441,28 @@ private fun ConfigScreen(
                     icon = { value ->
                         if (value.contains('.')) Favicon(value, size = 18.dp) else Monogram(value, size = 18.dp)
                     },
+                )
+            }
+            item {
+                FilterGroup(
+                    "Device",
+                    stats?.devices,
+                    StatsDim.Device,
+                    config,
+                    onConfigChange = { config = it },
+                    labelFor = { it.replaceFirstChar(Char::uppercase) },
+                    icon = { DeviceIcon(it, size = 18.dp) },
+                )
+            }
+            item {
+                FilterGroup(
+                    "UTM source",
+                    stats?.utmSources,
+                    StatsDim.UtmSource,
+                    config,
+                    onConfigChange = { config = it },
+                    labelFor = { it },
+                    icon = { Monogram(it, size = 18.dp) },
                 )
             }
             item { Spacer(Modifier.height(16.dp)) }

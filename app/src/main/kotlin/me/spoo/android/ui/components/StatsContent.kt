@@ -233,6 +233,36 @@ fun StatsContent(
                     },
             )
         }
+        item(key = "devices") {
+            Breakdown(
+                title = "Devices",
+                slices = stats.devices,
+                activeValues = params.filters[StatsDim.Device].orEmpty(),
+                labelFor = { it.replaceFirstChar(Char::uppercase) },
+                icon = { DeviceIcon(it) },
+                onToggle =
+                    if (filterable) {
+                        { onParamsChange(params.toggling(StatsDim.Device, it)) }
+                    } else {
+                        null
+                    },
+            )
+        }
+        item(key = "utm-sources") {
+            Breakdown(
+                title = "UTM sources",
+                slices = stats.utmSources,
+                activeValues = params.filters[StatsDim.UtmSource].orEmpty(),
+                labelFor = { it },
+                icon = { Monogram(it) },
+                onToggle =
+                    if (filterable) {
+                        { onParamsChange(params.toggling(StatsDim.UtmSource, it)) }
+                    } else {
+                        null
+                    },
+            )
+        }
         item(key = "countries") {
             Breakdown(
                 title = "Countries",

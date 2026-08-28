@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.DeviceUnknown
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.TabletAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -133,6 +137,26 @@ private val BRAND_DOMAINS =
         "ubuntu" to "ubuntu.com",
         "chrome os" to "chromeos.google",
     )
+
+/** Device-type glyph: the values are a fixed vocabulary, so real icons. */
+@Composable
+fun DeviceIcon(
+    label: String,
+    size: Dp = 20.dp,
+    modifier: Modifier = Modifier,
+) {
+    Icon(
+        when (label.lowercase()) {
+            "mobile" -> Icons.Outlined.Smartphone
+            "tablet" -> Icons.Outlined.TabletAndroid
+            "desktop" -> Icons.Outlined.Computer
+            else -> Icons.Outlined.DeviceUnknown
+        },
+        contentDescription = label,
+        modifier = modifier.size(size),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
 
 /** Neutral monogram circle for values with no natural artwork (browsers). */
 @Composable

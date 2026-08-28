@@ -309,6 +309,8 @@ class SdkLinksRepository(
                     Dimension.BROWSER,
                     Dimension.OS,
                     Dimension.REFERRER,
+                    Dimension.DEVICE,
+                    Dimension.UTM_SOURCE,
                 ),
             metrics =
                 listOf(
@@ -324,6 +326,8 @@ class SdkLinksRepository(
                         StatsDim.Browser -> FilterDimension.BROWSER
                         StatsDim.Os -> FilterDimension.OS
                         StatsDim.Referrer -> FilterDimension.REFERRER
+                        StatsDim.Device -> FilterDimension.DEVICE
+                        StatsDim.UtmSource -> FilterDimension.UTM_SOURCE
                     } to values.toList()
                 },
         )
@@ -338,6 +342,8 @@ class SdkLinksRepository(
         browsers = slices("${metricKey}_by_browser", metricKey),
         os = slices("${metricKey}_by_os", metricKey),
         referrers = slices("${metricKey}_by_referrer", metricKey),
+        devices = slices("${metricKey}_by_device", metricKey),
+        utmSources = slices("${metricKey}_by_utm_source", metricKey),
     )
 
     private fun Map<String, List<JsonObject>>.slices(

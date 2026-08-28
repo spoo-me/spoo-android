@@ -132,6 +132,8 @@ fun LinkStats.toWidgetData(config: WidgetConfig) =
                 StatsDim.Browser -> browsers
                 StatsDim.Os -> os
                 StatsDim.Referrer -> referrers
+                StatsDim.Device -> devices
+                StatsDim.UtmSource -> utmSources
             },
     )
 

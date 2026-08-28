@@ -338,6 +338,8 @@ class MockLinksRepository : LinksRepository {
         share(REFERRERS, params.filters[StatsDim.Referrer])?.let { total *= it }
         share(BROWSERS, params.filters[StatsDim.Browser])?.let { total *= it }
         share(OSES, params.filters[StatsDim.Os])?.let { total *= it }
+        share(DEVICES, params.filters[StatsDim.Device])?.let { total *= it }
+        share(UTM_SOURCES, params.filters[StatsDim.UtmSource])?.let { total *= it }
 
         val points = days.coerceIn(7, 120)
         val weights =
@@ -371,6 +373,8 @@ class MockLinksRepository : LinksRepository {
             browsers = slices(BROWSERS, params.filters[StatsDim.Browser]),
             os = slices(OSES, params.filters[StatsDim.Os]),
             referrers = slices(REFERRERS, params.filters[StatsDim.Referrer]),
+            devices = slices(DEVICES, params.filters[StatsDim.Device]),
+            utmSources = slices(UTM_SOURCES, params.filters[StatsDim.UtmSource]),
         )
     }
 
@@ -451,6 +455,22 @@ class MockLinksRepository : LinksRepository {
                 "iOS" to 0.14f,
                 "macOS" to 0.12f,
                 "Linux" to 0.09f,
+            )
+
+        val DEVICES =
+            listOf(
+                "mobile" to 0.58f,
+                "desktop" to 0.33f,
+                "tablet" to 0.07f,
+                "unknown" to 0.02f,
+            )
+        val UTM_SOURCES =
+            listOf(
+                "(none)" to 0.61f,
+                "newsletter" to 0.14f,
+                "twitter" to 0.11f,
+                "producthunt" to 0.08f,
+                "discord" to 0.06f,
             )
 
         // Offline stand-in for /api/v1/emoji-set: real groups, tiny slices.

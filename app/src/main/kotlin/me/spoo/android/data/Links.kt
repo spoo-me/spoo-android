@@ -120,7 +120,7 @@ data class EmojiCatalog(
 )
 
 /** A dimension the stats screens can filter by. */
-enum class StatsDim { Country, Browser, Os, Referrer }
+enum class StatsDim { Country, Browser, Os, Referrer, Device, UtmSource }
 
 /** The countable thing a stats query asks for. */
 enum class StatsMetric { Clicks, UniqueClicks }
@@ -145,6 +145,8 @@ data class LinkStats(
     val browsers: List<Slice>,
     val os: List<Slice>,
     val referrers: List<Slice>,
+    val devices: List<Slice> = emptyList(),
+    val utmSources: List<Slice> = emptyList(),
 ) {
     data class Slice(
         val label: String,
