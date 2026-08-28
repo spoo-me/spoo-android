@@ -73,4 +73,20 @@ object WidgetIconCache {
         context: Context,
         host: String,
     ) = File(context.cacheDir, "widget-icons/${host.replace('/', '_')}.png")
+
+    /**
+     * Bundled Fluent artwork for one emoji codepoint, null when Fluent has
+     * no single-codepoint model for it. Assets are tiny webps; decoding
+     * once per process is fine for label-sized use.
+     */
+    fun emoji(
+        context: Context,
+        codePoint: Int,
+    ): Bitmap? {
+        val key = "emoji/${codePoint.toString(16)}"
+        memory[key]?.let { return it }
+        return runCatching {
+            context.assets.open("$key.webp").use(BitmapFactory::decodeStream)
+        }.getOrNull()?.also { memory[key] = it }
+    }
 }

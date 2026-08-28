@@ -30,11 +30,13 @@ import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.material3.ColorProviders
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontFamily
@@ -229,16 +231,7 @@ class SpooWidget : GlanceAppWidget() {
                             Alignment.Top
                         },
                 ) {
-                    Text(
-                        config.label,
-                        style =
-                            TextStyle(
-                                color = GlanceTheme.colors.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                            ),
-                        maxLines = 1,
-                    )
+                    EmojiLabel(context, config.label)
                     Spacer(GlanceModifier.height(4.dp))
                     val label = NumberFormat.getIntegerInstance().format(data.total)
                     val compact = size.width.value < 220f || size.height.value < 100f
@@ -285,6 +278,61 @@ class SpooWidget : GlanceAppWidget() {
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * The mono micro-label, with emoji drawn from the bundled Fluent
+     * artwork — Glance text can't load an emoji font, but a Row can mix
+     * text runs with asset-backed images. ASCII labels take the fast path.
+     */
+    @androidx.compose.runtime.Composable
+    private fun EmojiLabel(
+        context: Context,
+        label: String,
+    ) {
+        val style =
+            TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        if (label.all { it.code < 128 }) {
+            Text(label, style = style, maxLines = 1)
+            return
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            var run = StringBuilder()
+            var i = 0
+
+            @androidx.compose.runtime.Composable
+            fun flush() {
+                if (run.isNotEmpty()) {
+                    Text(run.toString(), style = style, maxLines = 1)
+                    run = StringBuilder()
+                }
+            }
+            while (i < label.length) {
+                val cp = label.codePointAt(i)
+                val count = Character.charCount(cp)
+                if (cp < 128) {
+                    run.append(label, i, i + count)
+                } else {
+                    val bitmap = WidgetIconCache.emoji(context, cp)
+                    if (bitmap != null) {
+                        flush()
+                        Image(
+                            provider = ImageProvider(bitmap),
+                            contentDescription = label.substring(i, i + count),
+                            modifier = GlanceModifier.size(13.dp),
+                        )
+                    } else {
+                        run.append(label, i, i + count)
+                    }
+                }
+                i += count
+            }
+            flush()
         }
     }
 

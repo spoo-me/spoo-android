@@ -228,14 +228,34 @@ private fun FormPhase(
         // icon swaps back. In emoji mode the field is a read-only composed
         // display, so an invalid alias can't be typed.
         OutlinedTextField(
-            value = if (emojiAlias) emojiPicks.emojiPresentationAll() else alias,
+            // Emoji live in the prefix slot as Fluent artwork. The text slot
+            // carries a zero-width space when picks exist: an empty unfocused
+            // field hides its prefix and floats the label back down.
+            value =
+                when {
+                    !emojiAlias -> alias
+                    emojiPicks.isEmpty() -> ""
+                    else -> "\u200B"
+                },
             // The API's alias charset, enforced at the keyboard: no error to show.
             onValueChange = { if (!emojiAlias) alias = it.filter(::isAliasChar) },
             modifier = Modifier.fillMaxWidth(),
             readOnly = emojiAlias,
             label = { Text(if (emojiAlias) "Emoji alias" else "Alias") },
-            placeholder = { Text("Random if empty", maxLines = 1) },
-            prefix = { Text("spoo.me/") },
+            placeholder =
+                if (emojiAlias && emojiPicks.isNotEmpty()) {
+                    null
+                } else {
+                    { Text("Random if empty", maxLines = 1) }
+                },
+            prefix = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("spoo.me/")
+                    if (emojiAlias && emojiPicks.isNotEmpty()) {
+                        EmojiText(emojiPicks.emojiPresentationAll(), maxLines = 1)
+                    }
+                }
+            },
             isError = aliasTaken || error?.field == ErrorField.Alias,
             trailingIcon = {
                 Row {

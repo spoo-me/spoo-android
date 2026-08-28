@@ -142,8 +142,8 @@ private val BRAND_DOMAINS =
 @Composable
 fun DeviceIcon(
     label: String,
-    size: Dp = 20.dp,
     modifier: Modifier = Modifier,
+    size: Dp = 20.dp,
 ) {
     Icon(
         when (label.lowercase()) {

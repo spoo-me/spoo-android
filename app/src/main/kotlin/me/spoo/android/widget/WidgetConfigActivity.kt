@@ -41,6 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.RadioButton
@@ -84,6 +85,7 @@ import me.spoo.android.data.StatsMetric
 import me.spoo.android.ui.components.BrandIcon
 import me.spoo.android.ui.components.CountryFlag
 import me.spoo.android.ui.components.DeviceIcon
+import me.spoo.android.ui.components.EmojiText
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.countryDisplayName
@@ -384,7 +386,7 @@ private fun ConfigScreen(
                 ) {
                     Favicon(host = faviconHost(link.originalUrl), size = 20.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text(
+                    EmojiText(
                         "/${link.shortCode}",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f),
@@ -564,10 +566,9 @@ private fun WidgetPreview(
                         Arrangement.Top
                     },
             ) {
-                Text(
+                EmojiText(
                     config.label,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
+                    style = LocalTextStyle.current.copy(fontSize = 11.sp, fontFamily = FontFamily.Monospace),
                     color = widgetScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
