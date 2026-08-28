@@ -62,6 +62,7 @@ fun EditLinkSheet(
     var password by rememberSaveable { mutableStateOf("") }
     // Plain remember: visibility resets on reopen, the draft does not.
     var passwordVisible by remember { mutableStateOf(false) }
+    SecureWhileVisible(passwordVisible && password.isNotEmpty())
     // The server never echoes the password, so editing is explicit modes:
     // keep (default, untouched), replace, remove — all reversible until
     // save. Mirrors the webapp's "Password is set · Replace / Remove".

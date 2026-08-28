@@ -130,6 +130,9 @@ class WidgetConfigActivity : ComponentActivity() {
         }
 
         val preset = WidgetConfig.presetFor(provider.className)
+        // Exported and it writes config: refuse taps routed through an
+        // overlay window.
+        window.decorView.filterTouchesWhenObscured = true
 
         setContent {
             val settings by SpooApp.graph.settingsRepository.settings

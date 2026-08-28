@@ -168,6 +168,7 @@ private fun FormPhase(
     var emojiAlias by rememberSaveable { mutableStateOf(false) }
     // Plain remember: visibility resets on reopen, the draft does not.
     var passwordVisible by remember { mutableStateOf(false) }
+    SecureWhileVisible(passwordVisible && password.isNotEmpty())
     // Canonical picks only — the picker is the sole input surface, so the
     // composed alias is valid by construction.
     var emojiPicks by rememberSaveable { mutableStateOf("") }
