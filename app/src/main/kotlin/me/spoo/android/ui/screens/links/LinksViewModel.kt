@@ -3,6 +3,7 @@ package me.spoo.android.ui.screens.links
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
@@ -55,7 +57,7 @@ sealed interface EditState {
     ) : EditState
 }
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class LinksViewModel(
     private val repository: LinksRepository = SpooApp.graph.linksRepository,
 ) : ViewModel() {
@@ -74,6 +76,22 @@ class LinksViewModel(
                 .collectLatest { runCatching { repository.refresh(it) } }
         }
     }
+
+    /** The alias currently typed in the create sheet, for live checking. */
+    val aliasInput = MutableStateFlow("")
+
+    /**
+     * Whether [aliasInput] is known to be taken. Prevention only: unknown
+     * or unchecked aliases pass, and the server stays the backstop.
+     */
+    val aliasTaken: StateFlow<Boolean> =
+        aliasInput
+            .debounce(400)
+            .distinctUntilChanged()
+            .mapLatest { alias ->
+                alias.isNotBlank() &&
+                    runCatching { !repository.aliasAvailable(alias) }.getOrDefault(false)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /** Pull-to-refresh. */
     val refreshing = MutableStateFlow(false)

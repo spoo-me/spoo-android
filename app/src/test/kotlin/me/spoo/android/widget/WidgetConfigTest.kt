@@ -1,10 +1,10 @@
 package me.spoo.android.widget
 
 import androidx.datastore.preferences.core.mutablePreferencesOf
-import kotlin.test.Test
-import kotlin.test.assertEquals
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsMetric
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class WidgetConfigTest {
     @Test
@@ -64,8 +64,10 @@ class WidgetConfigTest {
                 series = listOf(1, 1, 1),
                 slices =
                     listOf(
-                        me.spoo.android.data.LinkStats.Slice("Samsung Internet", 2),
-                        me.spoo.android.data.LinkStats.Slice("(none)", 1),
+                        me.spoo.android.data.LinkStats
+                            .Slice("Samsung Internet", 2),
+                        me.spoo.android.data.LinkStats
+                            .Slice("(none)", 1),
                     ),
             )
         val prefs = mutablePreferencesOf()

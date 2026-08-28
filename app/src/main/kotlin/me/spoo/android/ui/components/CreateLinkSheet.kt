@@ -54,6 +54,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +91,8 @@ fun CreateLinkSheet(
     initialUrl: String?,
     state: CreateState,
     emojiCatalog: EmojiCatalog?,
+    aliasTaken: Boolean,
+    onAliasChanged: (String) -> Unit,
     onEmojiMode: () -> Unit,
     onSubmit: (CreateLinkRequest) -> Unit,
     onDismiss: () -> Unit,
@@ -134,6 +137,8 @@ fun CreateLinkSheet(
                         submitting = state is CreateState.Submitting,
                         error = (state as? CreateState.Failed)?.error,
                         emojiCatalog = emojiCatalog,
+                        aliasTaken = aliasTaken,
+                        onAliasChanged = onAliasChanged,
                         onEmojiMode = {
                             onEmojiMode()
                             // The picker deserves the room: pop the sheet open.
@@ -155,6 +160,8 @@ private fun FormPhase(
     submitting: Boolean,
     error: FriendlyError?,
     emojiCatalog: EmojiCatalog?,
+    aliasTaken: Boolean,
+    onAliasChanged: (String) -> Unit,
     onEmojiMode: () -> Unit,
     onSubmit: (CreateLinkRequest) -> Unit,
 ) {
@@ -174,6 +181,11 @@ private fun FormPhase(
     var emojiPicks by rememberSaveable { mutableStateOf("") }
     val emojiCount = emojiPicks.codePointCount(0, emojiPicks.length)
     val emojiMax = emojiCatalog?.maxGraphemes ?: Int.MAX_VALUE
+
+    // Live availability: report the effective alias upstream, debounced
+    // and checked in the view model; "taken" comes back as [aliasTaken].
+    val effectiveAlias = if (emojiAlias) emojiPicks else alias.trim()
+    LaunchedEffect(effectiveAlias) { onAliasChanged(effectiveAlias) }
 
     // Prevention first, server as backstop: local checks gate the button;
     // whatever still comes back lands on the field the server names.
@@ -224,7 +236,7 @@ private fun FormPhase(
             label = { Text(if (emojiAlias) "Emoji alias" else "Alias") },
             placeholder = { Text("Random if empty", maxLines = 1) },
             prefix = { Text("spoo.me/") },
-            isError = error?.field == ErrorField.Alias,
+            isError = aliasTaken || error?.field == ErrorField.Alias,
             trailingIcon = {
                 Row {
                     if (emojiAlias && emojiPicks.isNotEmpty()) {
@@ -255,6 +267,7 @@ private fun FormPhase(
             supportingText =
                 when {
                     error?.field == ErrorField.Alias -> ({ Text(error.message) })
+                    aliasTaken -> ({ Text("Already taken") })
                     emojiAlias && emojiCatalog != null && emojiCount > 0 ->
                         ({ Text("$emojiCount/${emojiCatalog.maxGraphemes}") })
                     else -> null
@@ -410,7 +423,7 @@ private fun FormPhase(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !submitting && urlOk && passwordOk,
+            enabled = !submitting && urlOk && passwordOk && !aliasTaken,
         ) {
             if (submitting) {
                 LoadingIndicator(modifier = Modifier.height(24.dp))

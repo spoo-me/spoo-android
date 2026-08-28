@@ -90,6 +90,7 @@ class SdkLinksRepository(
                 when (sort) {
                     LinkSort.Recent -> SortBy.CREATED_AT
                     LinkSort.Clicks -> SortBy.TOTAL_CLICKS
+                    LinkSort.LastClick -> SortBy.LAST_CLICK
                 },
             sortOrder = SortOrder.DESCENDING,
             // The typed status param only speaks active/inactive; expired and
@@ -230,6 +231,11 @@ class SdkLinksRepository(
     // The SDK ETag-caches per client, but the graph swaps clients on auth
     // changes; the set is public and near-static, so one fetch per process.
     private var cachedCatalog: EmojiCatalog? = null
+
+    override suspend fun aliasAvailable(alias: String): Boolean =
+        withSession {
+            clientProvider().links.checkAlias(alias).available
+        }
 
     override suspend fun emojiCatalog(): EmojiCatalog {
         cachedCatalog?.let { return it }
@@ -380,6 +386,7 @@ class SdkLinksRepository(
             privateStats = privateStats ?: false,
             blockBots = blockBots ?: false,
             createdAtMillis = createdAt?.toEpochMilliseconds(),
+            lastClickMillis = lastClick?.toEpochMilliseconds(),
         )
 
     private fun Instant.toDayLabel(): String = SimpleDateFormat("MMM d", Locale.US).format(Date(toEpochMilliseconds()))

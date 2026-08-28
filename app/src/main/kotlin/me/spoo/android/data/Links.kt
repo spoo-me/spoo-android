@@ -23,6 +23,8 @@ data class SpooLink(
     /** Whether known bots are kept from following the link. */
     val blockBots: Boolean = false,
     val createdAtMillis: Long? = null,
+    /** Most recent click, when the link has ever been clicked. */
+    val lastClickMillis: Long? = null,
 ) {
     val shortUrl: String get() = "spoo.me/$shortCode"
     val active: Boolean get() = status == LinkUiStatus.Active
@@ -30,7 +32,7 @@ data class SpooLink(
 }
 
 /** Sort order for the links list. */
-enum class LinkSort { Recent, Clicks }
+enum class LinkSort { Recent, Clicks, LastClick }
 
 /**
  * The server-side view of the links list. Search, sort and filters ride

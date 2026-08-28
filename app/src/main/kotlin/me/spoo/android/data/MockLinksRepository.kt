@@ -113,6 +113,7 @@ class MockLinksRepository : LinksRepository {
                     when (query.sort) {
                         LinkSort.Recent -> list
                         LinkSort.Clicks -> list.sortedByDescending { it.totalClicks }
+                        LinkSort.LastClick -> list.sortedByDescending { it.lastClickMillis ?: Long.MIN_VALUE }
                     }
                 }
         _links.value = full.take(visible)
@@ -271,6 +272,11 @@ class MockLinksRepository : LinksRepository {
         return EmojiCatalog(maxGraphemes = 15, entries = MOCK_EMOJI)
     }
 
+    override suspend fun aliasAvailable(alias: String): Boolean {
+        delay(250)
+        return all.value.none { it.shortCode.equals(alias, ignoreCase = true) }
+    }
+
     private val statsCache = mutableMapOf<String, LinkStats>()
 
     override fun cachedStats(
@@ -390,6 +396,14 @@ class MockLinksRepository : LinksRepository {
         maxClicks = maxClicks,
         expireAtMillis = expiresInDays?.let { System.currentTimeMillis() + it * 86_400_000L },
         createdAtMillis = System.currentTimeMillis() - ageDays * 86_400_000L,
+        // Busy links were clicked recently; deterministic per link.
+        lastClickMillis =
+            if (clicks == 0) {
+                null
+            } else {
+                System.currentTimeMillis() -
+                    (3_600_000L + id.hashCode().mod(96) * 3_600_000L) * 200_000 / (clicks + 200)
+            },
     )
 
     private companion object {

@@ -1,10 +1,10 @@
 package me.spoo.android.data
 
+import me.spoo.SpooDecodeException
+import me.spoo.SpooIOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import me.spoo.SpooDecodeException
-import me.spoo.SpooIOException
 
 // SDK exceptions with internal constructors (validation, rate limit, ...)
 // are exercised end to end against the live backend instead; these cover
