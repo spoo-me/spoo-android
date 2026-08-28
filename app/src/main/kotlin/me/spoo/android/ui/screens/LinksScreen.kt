@@ -176,7 +176,7 @@ fun LinksScreen(
     val sort by viewModel.sort.collectAsState()
     val createState by viewModel.createState.collectAsState()
     val emojiCatalog by viewModel.emojiCatalog.collectAsState()
-    val aliasTaken by viewModel.aliasTaken.collectAsState()
+    val aliasStatus by viewModel.aliasStatus.collectAsState()
     val editState by viewModel.editState.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
     val selection by viewModel.selection.collectAsState()
@@ -520,7 +520,7 @@ fun LinksScreen(
                 initialUrl = sharedUrl,
                 state = createState,
                 emojiCatalog = emojiCatalog,
-                aliasTaken = aliasTaken,
+                aliasStatus = aliasStatus,
                 onAliasChanged = { viewModel.aliasInput.value = it },
                 onEmojiMode = viewModel::ensureEmojiCatalog,
                 onSubmit = viewModel::create,

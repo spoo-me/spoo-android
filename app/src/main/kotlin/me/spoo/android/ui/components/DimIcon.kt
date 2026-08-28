@@ -174,7 +174,7 @@ fun Monogram(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            label.firstOrNull()?.uppercase() ?: "?",
+            label.firstOrNull(Char::isLetterOrDigit)?.uppercase() ?: "?",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

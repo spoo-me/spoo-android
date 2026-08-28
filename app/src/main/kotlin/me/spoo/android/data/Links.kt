@@ -113,6 +113,9 @@ data class EmojiChoice(
     val keywords: List<String> = emptyList(),
 )
 
+/** Why an alias can't be used, or [Free] when it can. */
+enum class AliasStatus { Free, Taken, Reserved, Invalid, Unknown }
+
 /** The accepted emoji catalogue plus the alias-length policy. */
 data class EmojiCatalog(
     val maxGraphemes: Int,
@@ -120,7 +123,17 @@ data class EmojiCatalog(
 )
 
 /** A dimension the stats screens can filter by. */
-enum class StatsDim { Country, Browser, Os, Referrer, Device, UtmSource }
+enum class StatsDim(
+    /** Human label; the enum name alone reads UTMSOURCE. */
+    val display: String,
+) {
+    Country("Country"),
+    Browser("Browser"),
+    Os("OS"),
+    Referrer("Referrer"),
+    Device("Device"),
+    UtmSource("UTM source"),
+}
 
 /** The countable thing a stats query asks for. */
 enum class StatsMetric { Clicks, UniqueClicks }

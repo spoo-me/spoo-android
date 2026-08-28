@@ -2,6 +2,7 @@ package me.spoo.android.widget
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,8 @@ import androidx.glance.text.TextStyle
 import kotlinx.coroutines.flow.first
 import me.spoo.android.MainActivity
 import me.spoo.android.SpooApp
+import me.spoo.android.ui.components.VARIATION_SELECTOR_16
+import me.spoo.android.ui.components.isEmojiCodePoint
 import me.spoo.android.ui.theme.spooColorScheme
 import java.text.NumberFormat
 
@@ -283,8 +286,11 @@ class SpooWidget : GlanceAppWidget() {
 
     /**
      * The mono micro-label, with emoji drawn from the bundled Fluent
-     * artwork — Glance text can't load an emoji font, but a Row can mix
-     * text runs with asset-backed images. ASCII labels take the fast path.
+     * artwork: a Row can mix text runs with asset-backed images.
+     *
+     * Glance only ships generated layouts up to ten children, so a label
+     * that would need more falls back to one Text — the system font still
+     * draws the emoji, just not in Fluent.
      */
     @androidx.compose.runtime.Composable
     private fun EmojiLabel(
@@ -297,43 +303,51 @@ class SpooWidget : GlanceAppWidget() {
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
             )
-        if (label.all { it.code < 128 }) {
+        // Segment first so the child count is known before emitting: a
+        // Row that overflows Glance's cap renders nothing at all.
+        val parts = mutableListOf<Pair<String, Bitmap?>>()
+        val run = StringBuilder()
+        var i = 0
+        while (i < label.length) {
+            val cp = label.codePointAt(i)
+            val count = Character.charCount(cp)
+            val piece = label.substring(i, i + count)
+            val art = if (isEmojiCodePoint(cp)) WidgetIconCache.emoji(context, cp) else null
+            if (art == null) {
+                if (cp != VARIATION_SELECTOR_16) run.append(piece)
+            } else {
+                if (run.isNotEmpty()) {
+                    parts += run.toString() to null
+                    run.clear()
+                }
+                parts += piece to art
+            }
+            i += count
+        }
+        if (run.isNotEmpty()) parts += run.toString() to null
+
+        if (parts.none { it.second != null } || parts.size > MAX_LABEL_CHILDREN) {
             Text(label, style = style, maxLines = 1)
             return
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            var run = StringBuilder()
-            var i = 0
-
-            @androidx.compose.runtime.Composable
-            fun flush() {
-                if (run.isNotEmpty()) {
-                    Text(run.toString(), style = style, maxLines = 1)
-                    run = StringBuilder()
-                }
-            }
-            while (i < label.length) {
-                val cp = label.codePointAt(i)
-                val count = Character.charCount(cp)
-                if (cp < 128) {
-                    run.append(label, i, i + count)
+            parts.forEach { (text, art) ->
+                if (art == null) {
+                    Text(text, style = style, maxLines = 1)
                 } else {
-                    val bitmap = WidgetIconCache.emoji(context, cp)
-                    if (bitmap != null) {
-                        flush()
-                        Image(
-                            provider = ImageProvider(bitmap),
-                            contentDescription = label.substring(i, i + count),
-                            modifier = GlanceModifier.size(13.dp),
-                        )
-                    } else {
-                        run.append(label, i, i + count)
-                    }
+                    Image(
+                        provider = ImageProvider(art),
+                        contentDescription = text,
+                        modifier = GlanceModifier.size(13.dp),
+                    )
                 }
-                i += count
             }
-            flush()
         }
+    }
+
+    private companion object {
+        // Glance ships generated layouts for at most this many children.
+        const val MAX_LABEL_CHILDREN = 10
     }
 
     @androidx.compose.runtime.Composable

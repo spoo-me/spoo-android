@@ -60,6 +60,7 @@ import me.spoo.android.data.StatsParams
 import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.ui.components.BrandIcon
 import me.spoo.android.ui.components.CountryFlag
+import me.spoo.android.ui.components.DeviceIcon
 import me.spoo.android.ui.components.Favicon
 import me.spoo.android.ui.components.Monogram
 import me.spoo.android.ui.components.StatsContent
@@ -286,6 +287,24 @@ private fun FilterSheet(
                 icon = { value ->
                     if (value.contains('.')) Favicon(value, size = 18.dp) else Monogram(value, size = 18.dp)
                 },
+            )
+            FilterGroup(
+                "Device",
+                stats?.devices,
+                StatsDim.Device,
+                params,
+                onParamsChange,
+                labelFor = { it.replaceFirstChar(Char::uppercase) },
+                icon = { DeviceIcon(it, size = 18.dp) },
+            )
+            FilterGroup(
+                "UTM source",
+                stats?.utmSources,
+                StatsDim.UtmSource,
+                params,
+                onParamsChange,
+                labelFor = { it },
+                icon = { Monogram(it, size = 18.dp) },
             )
             Spacer(Modifier.height(sheetBottomPadding()))
         }

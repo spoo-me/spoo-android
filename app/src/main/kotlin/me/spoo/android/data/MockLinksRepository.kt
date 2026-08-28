@@ -272,9 +272,17 @@ class MockLinksRepository : LinksRepository {
         return EmojiCatalog(maxGraphemes = 15, entries = MOCK_EMOJI)
     }
 
-    override suspend fun aliasAvailable(alias: String): Boolean {
+    override suspend fun aliasStatus(alias: String): AliasStatus {
         delay(250)
-        return all.value.none { it.shortCode.equals(alias, ignoreCase = true) }
+        // Aliases are case-sensitive server-side; RESERVED_ALIASES stands in
+        // for the platform's reserved set so the copy path is demoable.
+        return when {
+            alias.lowercase() in RESERVED_ALIASES -> AliasStatus.Reserved
+            !alias.any(Char::isLetterOrDigit) && alias.isNotEmpty() -> AliasStatus.Free
+            alias.length < 3 && alias.all { it.code < 128 } -> AliasStatus.Invalid
+            all.value.any { it.shortCode == alias } -> AliasStatus.Taken
+            else -> AliasStatus.Free
+        }
     }
 
     private val statsCache = mutableMapOf<String, LinkStats>()
@@ -400,13 +408,15 @@ class MockLinksRepository : LinksRepository {
         maxClicks = maxClicks,
         expireAtMillis = expiresInDays?.let { System.currentTimeMillis() + it * 86_400_000L },
         createdAtMillis = System.currentTimeMillis() - ageDays * 86_400_000L,
-        // Busy links were clicked recently; deterministic per link.
+        // Busier links were clicked more recently, always inside the
+        // link's own lifetime; deterministic per link.
         lastClickMillis =
             if (clicks == 0) {
                 null
             } else {
-                System.currentTimeMillis() -
-                    (3_600_000L + id.hashCode().mod(96) * 3_600_000L) * 200_000 / (clicks + 200)
+                val lifetime = ageDays.coerceAtLeast(1) * 86_400_000L
+                val idle = lifetime / (1 + clicks / 500).coerceAtMost(24)
+                System.currentTimeMillis() - (idle + id.hashCode().mod(6) * 3_600_000L).coerceAtMost(lifetime)
             },
     )
 
@@ -472,6 +482,8 @@ class MockLinksRepository : LinksRepository {
                 "producthunt" to 0.08f,
                 "discord" to 0.06f,
             )
+
+        val RESERVED_ALIASES = setOf("api", "login", "signup", "admin", "stats", "dashboard")
 
         // Offline stand-in for /api/v1/emoji-set: real groups, tiny slices.
         val MOCK_EMOJI =

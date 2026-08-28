@@ -9,6 +9,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import me.spoo.AccountStatsRequest
+import me.spoo.AliasIssue
 import me.spoo.AliasKind
 import me.spoo.AuthenticationException
 import me.spoo.Dimension
@@ -232,9 +233,16 @@ class SdkLinksRepository(
     // changes; the set is public and near-static, so one fetch per process.
     private var cachedCatalog: EmojiCatalog? = null
 
-    override suspend fun aliasAvailable(alias: String): Boolean =
+    override suspend fun aliasStatus(alias: String): AliasStatus =
         withSession {
-            clientProvider().links.checkAlias(alias).available
+            val check = clientProvider().links.checkAlias(alias)
+            when {
+                check.available -> AliasStatus.Free
+                check.reason == AliasIssue.TAKEN -> AliasStatus.Taken
+                check.reason == AliasIssue.RESERVED -> AliasStatus.Reserved
+                check.reason != null -> AliasStatus.Invalid
+                else -> AliasStatus.Unknown
+            }
         }
 
     override suspend fun emojiCatalog(): EmojiCatalog {

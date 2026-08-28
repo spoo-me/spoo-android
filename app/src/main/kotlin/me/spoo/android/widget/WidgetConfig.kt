@@ -73,7 +73,7 @@ data class WidgetConfig(
         get() =
             listOfNotNull(
                 scope?.let { "/$it" },
-                if (chart.timeChart) null else effectiveDimension.name.uppercase(),
+                if (chart.timeChart) null else effectiveDimension.display.uppercase(),
                 metricLabel,
                 rangeLabel,
                 if (filters.isNotEmpty()) "FILTERED" else null,
@@ -109,7 +109,9 @@ data class WidgetData(
     val series: List<Int>,
     val slices: List<LinkStats.Slice>,
 ) {
-    fun encodeSlices() = slices.joinToString("\n") { "${it.label}\t${it.count}" }
+    // Tab-separated, newline-delimited: a label carrying either would
+    // corrupt the record, so escape on the way in.
+    fun encodeSlices() = slices.joinToString("\n") { "${it.label.escapeSeparators()}\t${it.count}" }
 
     companion object {
         fun decodeSlices(raw: String?): List<LinkStats.Slice> =
@@ -117,8 +119,42 @@ data class WidgetData(
                 val tab = line.lastIndexOf('\t')
                 if (tab <= 0) return@mapNotNull null
                 val count = line.substring(tab + 1).toIntOrNull() ?: return@mapNotNull null
-                LinkStats.Slice(line.substring(0, tab), count)
+                LinkStats.Slice(line.substring(0, tab).unescapeSeparators(), count)
             }
+
+        private fun String.escapeSeparators() = replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t")
+
+        private fun String.unescapeSeparators(): String {
+            val out = StringBuilder(length)
+            var i = 0
+            while (i < length) {
+                val c = this[i]
+                if (c == '\\' && i + 1 < length) {
+                    when (this[i + 1]) {
+                        'n' -> {
+                            out.append('\n')
+                            i += 2
+                        }
+                        't' -> {
+                            out.append('\t')
+                            i += 2
+                        }
+                        '\\' -> {
+                            out.append('\\')
+                            i += 2
+                        }
+                        else -> {
+                            out.append(c)
+                            i++
+                        }
+                    }
+                } else {
+                    out.append(c)
+                    i++
+                }
+            }
+            return out.toString()
+        }
     }
 }
 

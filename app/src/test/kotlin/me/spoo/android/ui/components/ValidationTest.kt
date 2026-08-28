@@ -63,7 +63,7 @@ class ValidationTest {
         repeat(200) {
             val suggestion = suggestPassword()
             assertTrue(isAcceptablePassword(suggestion), "rejected: $suggestion")
-            assertTrue(Regex("^[a-z]+\\.[a-z]+\\.\\d{2}$").matches(suggestion), "shape: $suggestion")
+            assertTrue(Regex("^[a-z]+\\.[a-z]+\\.[a-z]+\\.\\d{3}$").matches(suggestion), "shape: $suggestion")
         }
     }
 }

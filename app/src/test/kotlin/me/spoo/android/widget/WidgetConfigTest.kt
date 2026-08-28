@@ -57,6 +57,16 @@ class WidgetConfigTest {
     }
 
     @Test
+    fun `label uses display names, so UTM source does not read UTMSOURCE`() {
+        val config = WidgetConfig(chart = WidgetChart.Treemap, dimension = StatsDim.UtmSource)
+        assertEquals("UTM SOURCE · CLICKS · 30D", config.label)
+        assertEquals(
+            "DEVICE · CLICKS · 30D",
+            WidgetConfig(chart = WidgetChart.Bubbles, dimension = StatsDim.Device).label,
+        )
+    }
+
+    @Test
     fun `slices with tabs and newlines in labels round-trip`() {
         val data =
             WidgetData(
@@ -64,10 +74,12 @@ class WidgetConfigTest {
                 series = listOf(1, 1, 1),
                 slices =
                     listOf(
+                        // The encoding is tab-separated, newline-delimited:
+                        // both separators have to survive inside a label.
                         me.spoo.android.data.LinkStats
-                            .Slice("Samsung Internet", 2),
+                            .Slice("Samsung\tInternet", 2),
                         me.spoo.android.data.LinkStats
-                            .Slice("(none)", 1),
+                            .Slice("multi\nline", 1),
                     ),
             )
         val prefs = mutablePreferencesOf()

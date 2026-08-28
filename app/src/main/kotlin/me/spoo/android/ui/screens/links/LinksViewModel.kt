@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
+import me.spoo.android.data.AliasStatus
 import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.EmojiCatalog
 import me.spoo.android.data.FriendlyError
@@ -81,17 +82,20 @@ class LinksViewModel(
     val aliasInput = MutableStateFlow("")
 
     /**
-     * Whether [aliasInput] is known to be taken. Prevention only: unknown
-     * or unchecked aliases pass, and the server stays the backstop.
+     * Why [aliasInput] can't be used, or [AliasStatus.Free]. Prevention
+     * only: anything unknown passes and the server stays the backstop.
      */
-    val aliasTaken: StateFlow<Boolean> =
+    val aliasStatus: StateFlow<AliasStatus> =
         aliasInput
             .debounce(400)
             .distinctUntilChanged()
             .mapLatest { alias ->
-                alias.isNotBlank() &&
-                    runCatching { !repository.aliasAvailable(alias) }.getOrDefault(false)
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+                if (alias.isBlank()) {
+                    AliasStatus.Free
+                } else {
+                    runCatching { repository.aliasStatus(alias) }.getOrDefault(AliasStatus.Unknown)
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AliasStatus.Free)
 
     /** Pull-to-refresh. */
     val refreshing = MutableStateFlow(false)
@@ -164,6 +168,10 @@ class LinksViewModel(
 
     fun resetCreate() {
         _createState.value = CreateState.Idle
+        // A StateFlow conflates an identical value, so a surviving draft
+        // would never re-check its alias on reopen and could stay stuck
+        // on a stale "taken".
+        aliasInput.value = ""
     }
 
     private val _editState = MutableStateFlow<EditState>(EditState.Idle)
