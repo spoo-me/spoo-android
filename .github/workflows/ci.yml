@@ -40,7 +40,7 @@ jobs:
       # Unsigned, but proves the R8/minify path before launch week does.
       - name: Build release APK
         run: ./gradlew :app:assembleRelease
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
