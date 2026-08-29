@@ -80,6 +80,9 @@ android {
             // assetlinks.json ships.
             buildConfigField("String", "SPOO_REDIRECT_URI", "\"spoo://oauth/callback\"")
             isMinifyEnabled = true
+            // Unused resources go too, not just unused code: worth ~1MB and
+            // AGP lints for the mismatch if only one of the two is on.
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
