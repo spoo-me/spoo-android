@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Official icon ground: near-black behind the white ghost. -->
-    <color name="ic_launcher_background">#0B0B0D</color>
     <!-- Mirrors Theme.kt's cleanGround light surface. -->
     <color name="window_background">#FFFFFF</color>
 </resources>
