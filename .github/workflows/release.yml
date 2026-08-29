@@ -125,6 +125,11 @@ jobs:
           NAME="spoo-${VERSION}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$NAME"
           sha256sum "$NAME" > "${NAME}.sha256"
+          # Stable-named twin: releases/latest/download/spoo.apk is the
+          # public download URL, and it only resolves if every release
+          # carries an asset with this exact name.
+          cp "$NAME" spoo.apk
+          sha256sum spoo.apk > spoo.apk.sha256
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       - name: Tag, publish, attach
@@ -136,7 +141,9 @@ jobs:
             --title "$VERSION" \
             --generate-notes \
             "${{ steps.package.outputs.name }}" \
-            "${{ steps.package.outputs.name }}.sha256"
+            "${{ steps.package.outputs.name }}.sha256" \
+            spoo.apk \
+            spoo.apk.sha256
 
       - name: Shred the key
         if: always()
