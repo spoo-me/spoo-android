@@ -40,16 +40,25 @@ sha256sum -c spoo-v0.1.0.apk.sha256
 
 ## One-time setup: the signing key
 
-CI needs an upload key before it can publish anything. Create one with:
+CI needs an upload key before it can publish anything. Create one, then
+store it and its passwords in the `release` environment:
 
 ```bash
-./scripts/setup-release-signing.sh
+keytool -genkeypair -keystore ~/.spoo/upload-key.jks -alias upload \
+  -keyalg RSA -keysize 4096 -validity 10950 \
+  -dname "CN=spoo.me, O=spoo.me, C=IN"
+
+gh api -X PUT repos/spoo-me/spoo-android/environments/release
+base64 < ~/.spoo/upload-key.jks | tr -d '\n' \
+  | gh secret set KEYSTORE_BASE64 --env release
+gh secret set KEYSTORE_PASSWORD --env release
+gh secret set KEY_ALIAS --env release --body upload
+gh secret set KEY_PASSWORD --env release
 ```
 
-The wizard generates the keystore, verifies it opens, and stores it plus
-its passwords as secrets in the `release` environment. Run it **before**
-merging anything releasable, or the first release will fail on the missing
-key.
+Passwords must be at least six characters; `keytool` rejects shorter ones.
+Keep the keystore outside the repo, and do this **before** merging anything
+releasable, or the first release fails on the missing key.
 
 > [!IMPORTANT]
 > The upload key is the permanent identity of the app. Every future update
