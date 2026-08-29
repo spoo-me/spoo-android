@@ -1,0 +1,143 @@
+name: release
+
+# Releases publish themselves. Every push to main is inspected: if the
+# commits since the last tag contain a feature or a fix, the next version is
+# computed from them, tagged, published, and a signed APK is attached. No
+# tag to push, no release to draft, no APK to upload by hand.
+#
+# The git tag is the version. Nothing is committed back, so this can never
+# loop, and a build can always be traced to exactly one tag.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Force a release with this bump
+        required: true
+        type: choice
+        options: [patch, minor, major]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+      release: ${{ steps.next.outputs.release }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Work out the next version
+        id: next
+        env:
+          FORCED: ${{ inputs.bump }}
+        run: |
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          if [ -z "$LAST" ]; then
+            RANGE=""
+            BASE="0.0.0"
+          else
+            RANGE="${LAST}..HEAD"
+            BASE="${LAST#v}"
+          fi
+          LOG=$(git log --format='%s%n%b' $RANGE)
+
+          # Conventional commits decide the bump; a forced run overrides.
+          BUMP="${FORCED:-}"
+          if [ -z "$BUMP" ]; then
+            if grep -qE '^[a-z]+(\(.+\))?!:|^BREAKING CHANGE:' <<< "$LOG"; then
+              BUMP=major
+            elif grep -qE '^feat(\(.+\))?:' <<< "$LOG"; then
+              BUMP=minor
+            elif grep -qE '^(fix|perf)(\(.+\))?:' <<< "$LOG"; then
+              BUMP=patch
+            fi
+          fi
+          if [ -z "$BUMP" ]; then
+            echo "No feature or fix since ${LAST:-the beginning}; nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS=. read -r MAJOR MINOR PATCH <<< "$BASE"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          echo "version=v${MAJOR}.${MINOR}.${PATCH}" >> "$GITHUB_OUTPUT"
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "Releasing v${MAJOR}.${MINOR}.${PATCH} (${BUMP} over ${LAST:-nothing})."
+
+  publish:
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Restore the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 is unset. see docs/releasing.md"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build the signed APK
+        env:
+          SPOO_VERSION_NAME: ${{ needs.version.outputs.version }}
+          SPOO_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          SPOO_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SPOO_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SPOO_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+
+      - name: Refuse to publish an unsigned build
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -f "$APK" || { echo "::error::$APK missing"; exit 1; }
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs "$APK"
+
+      - name: Name it for the tag, and checksum it
+        id: package
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          NAME="spoo-${VERSION}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$NAME"
+          sha256sum "$NAME" > "${NAME}.sha256"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Tag, publish, attach
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --generate-notes \
+            "${{ steps.package.outputs.name }}" \
+            "${{ steps.package.outputs.name }}.sha256"
+
+      - name: Shred the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
