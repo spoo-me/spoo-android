@@ -31,7 +31,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
       # Lint and tests first: neither should cost a full APK build.
       - name: Lint
         run: ./gradlew :app:lintDebug
