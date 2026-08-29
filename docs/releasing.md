@@ -44,7 +44,12 @@ CI needs an upload key before it can publish anything. Create one, then
 store it and its passwords in the `release` environment:
 
 ```bash
-keytool -genkeypair -keystore ~/.spoo/upload-key.jks -alias upload \
+# macOS ships a keytool stub with no JDK behind it; call the real one.
+KEYTOOL=$(/usr/libexec/java_home 2>/dev/null)/bin/keytool
+[ -x "$KEYTOOL" ] || KEYTOOL=/opt/homebrew/opt/openjdk@21/bin/keytool
+
+mkdir -p ~/.spoo
+"$KEYTOOL" -genkeypair -keystore ~/.spoo/upload-key.jks -alias upload \
   -keyalg RSA -keysize 4096 -validity 10950 \
   -dname "CN=spoo.me, O=spoo.me, C=IN"
 
