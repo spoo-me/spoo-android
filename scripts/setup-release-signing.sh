@@ -192,7 +192,7 @@ GH_ENV="release"
 # these go there rather than to the repo scope.
 set_env_secret() {
   local name="$1" value="$2"
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  if command -v gh >/dev/null 2>&1 && gh api user >/dev/null 2>&1; then
     if printf '%s' "$value" | gh secret set "$name" --repo "$REPO" --env "$GH_ENV" >/dev/null 2>&1; then
       WRITTEN_SECRET+=("$name")
       printf '  %s✓ set%s %s in the %s environment\n' "$GREEN" "$RESET" "$name" "$GH_ENV"
@@ -223,8 +223,15 @@ for tool in keytool gh; do
     exit 1
   fi
 done
-gh auth status >/dev/null 2>&1 || { printf '  %s✗%s gh is not logged in: run gh auth login\n' "$RED" "$RESET"; exit 1; }
-printf '  %s✓%s gh is authenticated\n' "$GREEN" "$RESET"
+# Ask whether the active account can actually act, not whether every
+# configured account is healthy: a stale second account makes
+# "gh auth status" exit non-zero while the active one works fine.
+if gh api user --jq .login >/dev/null 2>&1; then
+  printf '  %s✓%s gh works as %s\n' "$GREEN" "$RESET" "$(gh api user --jq .login 2>/dev/null)"
+else
+  printf '  %s✗%s gh cannot reach the API: run gh auth login\n' "$RED" "$RESET"
+  exit 1
+fi
 confirm "Create the signing key now?" || exit 0
 
 # ── 2 ─────────────────────────────────────────────────────────────────────
