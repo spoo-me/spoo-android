@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pre-Android-12 twin of data_extraction_rules.xml: keep the
+     DataStores (auth tokens above all) out of auto-backup. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/" />
+</full-backup-content>

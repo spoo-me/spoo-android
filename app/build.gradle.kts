@@ -46,8 +46,10 @@ android {
         }
         release {
             buildConfigField("String", "SPOO_BASE_URL", "\"https://spoo.me\"")
-            // Placeholder until assetlinks.json + apps.yaml ship in prod.
-            buildConfigField("String", "SPOO_REDIRECT_URI", "\"https://spoo.me/oauth/android-callback\"")
+            // Custom-scheme deep link, the house pattern for native
+            // clients; a verified https App Link can supersede it once
+            // assetlinks.json ships.
+            buildConfigField("String", "SPOO_REDIRECT_URI", "\"spoo://oauth/callback\"")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

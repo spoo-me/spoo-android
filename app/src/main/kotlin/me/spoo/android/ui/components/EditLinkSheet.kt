@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -28,9 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import me.spoo.android.data.ErrorField
 import me.spoo.android.data.LinkEdit
@@ -52,6 +60,9 @@ fun EditLinkSheet(
     var longUrl by rememberSaveable { mutableStateOf(link.originalUrl) }
     var alias by rememberSaveable { mutableStateOf(link.shortCode) }
     var password by rememberSaveable { mutableStateOf("") }
+    // Plain remember: visibility resets on reopen, the draft does not.
+    var passwordVisible by remember { mutableStateOf(false) }
+    SecureWhileVisible(passwordVisible && password.isNotEmpty())
     // The server never echoes the password, so editing is explicit modes:
     // keep (default, untouched), replace, remove — all reversible until
     // save. Mirrors the webapp's "Password is set · Replace / Remove".
@@ -220,9 +231,38 @@ fun EditLinkSheet(
                                     ({ Text("8+ characters with a letter, a number, and @ or .") })
                                 else -> null
                             },
-                        trailingIcon =
-                            if (passwordMode == PwMode.Replace) {
-                                {
+                        // Password treatment keeps IMEs from learning the value.
+                        visualTransformation =
+                            if (passwordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            Row {
+                                if (password.isEmpty()) {
+                                    IconButton(
+                                        onClick = {
+                                            password = suggestPassword()
+                                            passwordVisible = true
+                                        },
+                                        enabled = !submitting,
+                                    ) {
+                                        Icon(Icons.Outlined.Casino, contentDescription = "Suggest a password")
+                                    }
+                                } else {
+                                    IconButton(
+                                        onClick = { passwordVisible = !passwordVisible },
+                                        enabled = !submitting,
+                                    ) {
+                                        Icon(
+                                            if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                        )
+                                    }
+                                }
+                                if (passwordMode == PwMode.Replace) {
                                     IconButton(
                                         onClick = {
                                             password = ""
@@ -233,9 +273,8 @@ fun EditLinkSheet(
                                         Icon(Icons.Outlined.Close, contentDescription = "Keep current password")
                                     }
                                 }
-                            } else {
-                                null
-                            },
+                            }
+                        },
                         singleLine = true,
                         enabled = !submitting,
                     )
