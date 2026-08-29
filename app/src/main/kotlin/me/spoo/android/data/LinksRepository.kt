@@ -58,4 +58,7 @@ interface LinksRepository {
 
     /** The accepted emoji-alias catalogue; changes rarely, cached upstream. */
     suspend fun emojiCatalog(): EmojiCatalog
+
+    /** Whether [alias] can be claimed, and when not, why. */
+    suspend fun aliasStatus(alias: String): AliasStatus
 }

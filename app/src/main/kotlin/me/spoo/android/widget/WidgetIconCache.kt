@@ -21,6 +21,10 @@ import java.util.concurrent.ConcurrentHashMap
 object WidgetIconCache {
     private val memory = ConcurrentHashMap<String, Bitmap>()
 
+    // Fluent has no model for a handful of multi-codepoint emoji; remember
+    // the misses so a widget doesn't retry the asset on every render.
+    private val missingEmoji = ConcurrentHashMap.newKeySet<Int>()
+
     /** The favicon host behind a dimension value, null when none applies. */
     fun hostFor(
         dim: StatsDim,
@@ -30,6 +34,7 @@ object WidgetIconCache {
             StatsDim.Browser, StatsDim.Os -> brandDomain(label)
             StatsDim.Referrer -> label.takeIf { it.contains('.') }
             StatsDim.Country -> null // flags are emoji, no fetch needed
+            StatsDim.Device, StatsDim.UtmSource -> null // no favicon identity
         }
 
     fun get(
@@ -72,4 +77,24 @@ object WidgetIconCache {
         context: Context,
         host: String,
     ) = File(context.cacheDir, "widget-icons/${host.replace('/', '_')}.png")
+
+    /**
+     * Bundled Fluent artwork for one emoji codepoint, null when Fluent has
+     * no single-codepoint model for it. Assets are tiny webps; decoding
+     * once per process is fine for label-sized use.
+     */
+    fun emoji(
+        context: Context,
+        codePoint: Int,
+    ): Bitmap? {
+        val key = "emoji/${codePoint.toString(16)}"
+        memory[key]?.let { return it }
+        if (codePoint in missingEmoji) return null
+        val bitmap =
+            runCatching {
+                context.assets.open("$key.webp").use(BitmapFactory::decodeStream)
+            }.getOrNull()
+        if (bitmap == null) missingEmoji += codePoint else memory[key] = bitmap
+        return bitmap
+    }
 }

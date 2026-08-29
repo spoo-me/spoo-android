@@ -9,6 +9,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import me.spoo.AccountStatsRequest
+import me.spoo.AliasIssue
 import me.spoo.AliasKind
 import me.spoo.AuthenticationException
 import me.spoo.Dimension
@@ -90,6 +91,7 @@ class SdkLinksRepository(
                 when (sort) {
                     LinkSort.Recent -> SortBy.CREATED_AT
                     LinkSort.Clicks -> SortBy.TOTAL_CLICKS
+                    LinkSort.LastClick -> SortBy.LAST_CLICK
                 },
             sortOrder = SortOrder.DESCENDING,
             // The typed status param only speaks active/inactive; expired and
@@ -231,6 +233,18 @@ class SdkLinksRepository(
     // changes; the set is public and near-static, so one fetch per process.
     private var cachedCatalog: EmojiCatalog? = null
 
+    override suspend fun aliasStatus(alias: String): AliasStatus =
+        withSession {
+            val check = clientProvider().links.checkAlias(alias)
+            when {
+                check.available -> AliasStatus.Free
+                check.reason == AliasIssue.TAKEN -> AliasStatus.Taken
+                check.reason == AliasIssue.RESERVED -> AliasStatus.Reserved
+                check.reason != null -> AliasStatus.Invalid
+                else -> AliasStatus.Unknown
+            }
+        }
+
     override suspend fun emojiCatalog(): EmojiCatalog {
         cachedCatalog?.let { return it }
         val set = clientProvider().emoji.set()
@@ -303,6 +317,8 @@ class SdkLinksRepository(
                     Dimension.BROWSER,
                     Dimension.OS,
                     Dimension.REFERRER,
+                    Dimension.DEVICE,
+                    Dimension.UTM_SOURCE,
                 ),
             metrics =
                 listOf(
@@ -318,6 +334,8 @@ class SdkLinksRepository(
                         StatsDim.Browser -> FilterDimension.BROWSER
                         StatsDim.Os -> FilterDimension.OS
                         StatsDim.Referrer -> FilterDimension.REFERRER
+                        StatsDim.Device -> FilterDimension.DEVICE
+                        StatsDim.UtmSource -> FilterDimension.UTM_SOURCE
                     } to values.toList()
                 },
         )
@@ -332,6 +350,8 @@ class SdkLinksRepository(
         browsers = slices("${metricKey}_by_browser", metricKey),
         os = slices("${metricKey}_by_os", metricKey),
         referrers = slices("${metricKey}_by_referrer", metricKey),
+        devices = slices("${metricKey}_by_device", metricKey),
+        utmSources = slices("${metricKey}_by_utm_source", metricKey),
     )
 
     private fun Map<String, List<JsonObject>>.slices(
@@ -380,6 +400,7 @@ class SdkLinksRepository(
             privateStats = privateStats ?: false,
             blockBots = blockBots ?: false,
             createdAtMillis = createdAt?.toEpochMilliseconds(),
+            lastClickMillis = lastClick?.toEpochMilliseconds(),
         )
 
     private fun Instant.toDayLabel(): String = SimpleDateFormat("MMM d", Locale.US).format(Date(toEpochMilliseconds()))

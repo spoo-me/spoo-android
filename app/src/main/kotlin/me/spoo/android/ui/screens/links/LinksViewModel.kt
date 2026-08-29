@@ -3,6 +3,7 @@ package me.spoo.android.ui.screens.links
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,9 +13,11 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
+import me.spoo.android.data.AliasStatus
 import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.EmojiCatalog
 import me.spoo.android.data.FriendlyError
@@ -55,7 +58,7 @@ sealed interface EditState {
     ) : EditState
 }
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class LinksViewModel(
     private val repository: LinksRepository = SpooApp.graph.linksRepository,
 ) : ViewModel() {
@@ -74,6 +77,25 @@ class LinksViewModel(
                 .collectLatest { runCatching { repository.refresh(it) } }
         }
     }
+
+    /** The alias currently typed in the create sheet, for live checking. */
+    val aliasInput = MutableStateFlow("")
+
+    /**
+     * Why [aliasInput] can't be used, or [AliasStatus.Free]. Prevention
+     * only: anything unknown passes and the server stays the backstop.
+     */
+    val aliasStatus: StateFlow<AliasStatus> =
+        aliasInput
+            .debounce(400)
+            .distinctUntilChanged()
+            .mapLatest { alias ->
+                if (alias.isBlank()) {
+                    AliasStatus.Free
+                } else {
+                    runCatching { repository.aliasStatus(alias) }.getOrDefault(AliasStatus.Unknown)
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AliasStatus.Free)
 
     /** Pull-to-refresh. */
     val refreshing = MutableStateFlow(false)
@@ -146,6 +168,10 @@ class LinksViewModel(
 
     fun resetCreate() {
         _createState.value = CreateState.Idle
+        // A StateFlow conflates an identical value, so a surviving draft
+        // would never re-check its alias on reopen and could stay stuck
+        // on a stale "taken".
+        aliasInput.value = ""
     }
 
     private val _editState = MutableStateFlow<EditState>(EditState.Idle)

@@ -43,6 +43,20 @@ fun FluentEmoji(
 }
 
 /**
+ * Whether a codepoint has bundled Fluent artwork. Deliberately narrow: a
+ * "not ASCII" test also catches the middle dot that separates every widget
+ * label, whose asset lookup then fails on every single render.
+ */
+internal fun isEmojiCodePoint(cp: Int): Boolean =
+    cp in 0x1F000..0x1FAFF ||
+        cp in 0x2600..0x27BF ||
+        cp in 0x2B00..0x2BFF ||
+        cp in 0x2190..0x21FF
+
+/** Variation selector 16: a presentation hint, never its own glyph. */
+internal const val VARIATION_SELECTOR_16 = 0xFE0F
+
+/**
  * Text whose emoji render as Fluent 3D inline images. Aliases are
  * emoji-only or ASCII-only (API rule), so anything non-ASCII here is an
  * emoji codepoint; plain ASCII strings take the fast path.
@@ -57,7 +71,7 @@ fun EmojiText(
     overflow: TextOverflow = TextOverflow.Clip,
     softWrap: Boolean = true,
 ) {
-    if (text.all { it.code < 128 }) {
+    if (text.codePoints().noneMatch(::isEmojiCodePoint)) {
         Text(
             text,
             modifier = modifier,
@@ -77,7 +91,11 @@ fun EmojiText(
                 val cp = text.codePointAt(i)
                 val count = Character.charCount(cp)
                 val piece = text.substring(i, i + count)
-                if (cp < 128) {
+                if (cp == VARIATION_SELECTOR_16) {
+                    i += count
+                    continue
+                }
+                if (!isEmojiCodePoint(cp)) {
                     append(piece)
                 } else {
                     val id = cp.toString(16)

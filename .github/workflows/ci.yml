@@ -32,9 +32,11 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v5
-      # Lint first: a lint failure should not cost a full APK build.
+      # Lint and tests first: neither should cost a full APK build.
       - name: Lint
         run: ./gradlew :app:lintDebug
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
       # Unsigned, but proves the R8/minify path before launch week does.

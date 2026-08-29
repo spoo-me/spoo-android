@@ -54,6 +54,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -73,6 +76,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import me.spoo.android.data.AliasStatus
 import me.spoo.android.data.CreateLinkRequest
 import me.spoo.android.data.EmojiCatalog
 import me.spoo.android.data.ErrorField
@@ -90,6 +94,8 @@ fun CreateLinkSheet(
     initialUrl: String?,
     state: CreateState,
     emojiCatalog: EmojiCatalog?,
+    aliasStatus: AliasStatus,
+    onAliasChanged: (String) -> Unit,
     onEmojiMode: () -> Unit,
     onSubmit: (CreateLinkRequest) -> Unit,
     onDismiss: () -> Unit,
@@ -134,6 +140,8 @@ fun CreateLinkSheet(
                         submitting = state is CreateState.Submitting,
                         error = (state as? CreateState.Failed)?.error,
                         emojiCatalog = emojiCatalog,
+                        aliasStatus = aliasStatus,
+                        onAliasChanged = onAliasChanged,
                         onEmojiMode = {
                             onEmojiMode()
                             // The picker deserves the room: pop the sheet open.
@@ -155,6 +163,8 @@ private fun FormPhase(
     submitting: Boolean,
     error: FriendlyError?,
     emojiCatalog: EmojiCatalog?,
+    aliasStatus: AliasStatus,
+    onAliasChanged: (String) -> Unit,
     onEmojiMode: () -> Unit,
     onSubmit: (CreateLinkRequest) -> Unit,
 ) {
@@ -174,6 +184,19 @@ private fun FormPhase(
     var emojiPicks by rememberSaveable { mutableStateOf("") }
     val emojiCount = emojiPicks.codePointCount(0, emojiPicks.length)
     val emojiMax = emojiCatalog?.maxGraphemes ?: Int.MAX_VALUE
+
+    // Live availability: report the effective alias upstream, debounced
+    // and checked in the view model; "taken" comes back as [aliasTaken].
+    val effectiveAlias = if (emojiAlias) emojiPicks else alias.trim()
+    LaunchedEffect(effectiveAlias) { onAliasChanged(effectiveAlias) }
+    val aliasBlocked = aliasStatus != AliasStatus.Free && aliasStatus != AliasStatus.Unknown
+    val aliasMessage =
+        when (aliasStatus) {
+            AliasStatus.Taken -> "Already taken"
+            AliasStatus.Reserved -> "Reserved by spoo.me"
+            AliasStatus.Invalid -> "Not a usable alias"
+            else -> null
+        }
 
     // Prevention first, server as backstop: local checks gate the button;
     // whatever still comes back lands on the field the server names.
@@ -216,15 +239,40 @@ private fun FormPhase(
         // icon swaps back. In emoji mode the field is a read-only composed
         // display, so an invalid alias can't be typed.
         OutlinedTextField(
-            value = if (emojiAlias) emojiPicks.emojiPresentationAll() else alias,
+            // Emoji live in the prefix slot as Fluent artwork. The text slot
+            // carries a zero-width space when picks exist: an empty unfocused
+            // field hides its prefix and floats the label back down.
+            value =
+                when {
+                    !emojiAlias -> alias
+                    emojiPicks.isEmpty() -> ""
+                    else -> "\u200B"
+                },
             // The API's alias charset, enforced at the keyboard: no error to show.
             onValueChange = { if (!emojiAlias) alias = it.filter(::isAliasChar) },
             modifier = Modifier.fillMaxWidth(),
             readOnly = emojiAlias,
             label = { Text(if (emojiAlias) "Emoji alias" else "Alias") },
-            placeholder = { Text("Random if empty", maxLines = 1) },
-            prefix = { Text("spoo.me/") },
-            isError = error?.field == ErrorField.Alias,
+            placeholder =
+                if (emojiAlias && emojiPicks.isNotEmpty()) {
+                    null
+                } else {
+                    { Text("Random if empty", maxLines = 1) }
+                },
+            prefix = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("spoo.me/")
+                    if (emojiAlias && emojiPicks.isNotEmpty()) {
+                        EmojiText(
+                            emojiPicks.emojiPresentationAll(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.semantics { contentDescription = "Alias $emojiPicks" },
+                        )
+                    }
+                }
+            },
+            isError = aliasBlocked || error?.field == ErrorField.Alias,
             trailingIcon = {
                 Row {
                     if (emojiAlias && emojiPicks.isNotEmpty()) {
@@ -241,7 +289,10 @@ private fun FormPhase(
                     IconButton(
                         onClick = {
                             emojiAlias = !emojiAlias
-                            if (emojiAlias) onEmojiMode()
+                            // Leaving emoji mode drops the picks: keeping them
+                            // hidden would submit a random code while the user
+                            // believes an alias is set.
+                            if (emojiAlias) onEmojiMode() else emojiPicks = ""
                         },
                         enabled = !submitting,
                     ) {
@@ -255,6 +306,7 @@ private fun FormPhase(
             supportingText =
                 when {
                     error?.field == ErrorField.Alias -> ({ Text(error.message) })
+                    aliasMessage != null -> ({ Text(aliasMessage) })
                     emojiAlias && emojiCatalog != null && emojiCount > 0 ->
                         ({ Text("$emojiCount/${emojiCatalog.maxGraphemes}") })
                     else -> null
@@ -410,7 +462,7 @@ private fun FormPhase(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !submitting && urlOk && passwordOk,
+            enabled = !submitting && urlOk && passwordOk && !aliasBlocked,
         ) {
             if (submitting) {
                 LoadingIndicator(modifier = Modifier.height(24.dp))

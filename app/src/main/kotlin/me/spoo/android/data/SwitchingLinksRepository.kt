@@ -81,4 +81,6 @@ class SwitchingLinksRepository(
     ) = active.cachedStats(shortCode, params)
 
     override suspend fun emojiCatalog() = active.emojiCatalog()
+
+    override suspend fun aliasStatus(alias: String) = active.aliasStatus(alias)
 }

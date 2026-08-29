@@ -176,6 +176,7 @@ fun LinksScreen(
     val sort by viewModel.sort.collectAsState()
     val createState by viewModel.createState.collectAsState()
     val emojiCatalog by viewModel.emojiCatalog.collectAsState()
+    val aliasStatus by viewModel.aliasStatus.collectAsState()
     val editState by viewModel.editState.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
     val selection by viewModel.selection.collectAsState()
@@ -357,8 +358,13 @@ fun LinksScreen(
                                 ToggleButton(
                                     checked = sort == LinkSort.Clicks,
                                     onCheckedChange = { viewModel.sort.value = LinkSort.Clicks },
-                                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                                 ) { Text("Top clicks") }
+                                ToggleButton(
+                                    checked = sort == LinkSort.LastClick,
+                                    onCheckedChange = { viewModel.sort.value = LinkSort.LastClick },
+                                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                                ) { Text("Active") }
                                 Spacer(Modifier.weight(1f))
                                 // Bare at rest; a secondaryContainer tint appears only
                                 // while a filter is active (state via affordance, no
@@ -514,6 +520,8 @@ fun LinksScreen(
                 initialUrl = sharedUrl,
                 state = createState,
                 emojiCatalog = emojiCatalog,
+                aliasStatus = aliasStatus,
+                onAliasChanged = { viewModel.aliasInput.value = it },
                 onEmojiMode = viewModel::ensureEmojiCatalog,
                 onSubmit = viewModel::create,
                 onDismiss = {

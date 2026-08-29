@@ -2,6 +2,7 @@ package me.spoo.android.widget
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
@@ -30,11 +31,13 @@ import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.material3.ColorProviders
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontFamily
@@ -44,6 +47,8 @@ import androidx.glance.text.TextStyle
 import kotlinx.coroutines.flow.first
 import me.spoo.android.MainActivity
 import me.spoo.android.SpooApp
+import me.spoo.android.ui.components.VARIATION_SELECTOR_16
+import me.spoo.android.ui.components.isEmojiCodePoint
 import me.spoo.android.ui.theme.spooColorScheme
 import java.text.NumberFormat
 
@@ -229,16 +234,7 @@ class SpooWidget : GlanceAppWidget() {
                             Alignment.Top
                         },
                 ) {
-                    Text(
-                        config.label,
-                        style =
-                            TextStyle(
-                                color = GlanceTheme.colors.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                            ),
-                        maxLines = 1,
-                    )
+                    EmojiLabel(context, config.label)
                     Spacer(GlanceModifier.height(4.dp))
                     val label = NumberFormat.getIntegerInstance().format(data.total)
                     val compact = size.width.value < 220f || size.height.value < 100f
@@ -286,6 +282,72 @@ class SpooWidget : GlanceAppWidget() {
                 }
             }
         }
+    }
+
+    /**
+     * The mono micro-label, with emoji drawn from the bundled Fluent
+     * artwork: a Row can mix text runs with asset-backed images.
+     *
+     * Glance only ships generated layouts up to ten children, so a label
+     * that would need more falls back to one Text — the system font still
+     * draws the emoji, just not in Fluent.
+     */
+    @androidx.compose.runtime.Composable
+    private fun EmojiLabel(
+        context: Context,
+        label: String,
+    ) {
+        val style =
+            TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        // Segment first so the child count is known before emitting: a
+        // Row that overflows Glance's cap renders nothing at all.
+        val parts = mutableListOf<Pair<String, Bitmap?>>()
+        val run = StringBuilder()
+        var i = 0
+        while (i < label.length) {
+            val cp = label.codePointAt(i)
+            val count = Character.charCount(cp)
+            val piece = label.substring(i, i + count)
+            val art = if (isEmojiCodePoint(cp)) WidgetIconCache.emoji(context, cp) else null
+            if (art == null) {
+                if (cp != VARIATION_SELECTOR_16) run.append(piece)
+            } else {
+                if (run.isNotEmpty()) {
+                    parts += run.toString() to null
+                    run.clear()
+                }
+                parts += piece to art
+            }
+            i += count
+        }
+        if (run.isNotEmpty()) parts += run.toString() to null
+
+        if (parts.none { it.second != null } || parts.size > MAX_LABEL_CHILDREN) {
+            Text(label, style = style, maxLines = 1)
+            return
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            parts.forEach { (text, art) ->
+                if (art == null) {
+                    Text(text, style = style, maxLines = 1)
+                } else {
+                    Image(
+                        provider = ImageProvider(art),
+                        contentDescription = text,
+                        modifier = GlanceModifier.size(13.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    private companion object {
+        // Glance ships generated layouts for at most this many children.
+        const val MAX_LABEL_CHILDREN = 10
     }
 
     @androidx.compose.runtime.Composable
