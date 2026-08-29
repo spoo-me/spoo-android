@@ -58,10 +58,16 @@ base64 < ~/.spoo/upload-key.jks | tr -d '\n' \
   | gh secret set KEYSTORE_BASE64 --env release
 gh secret set KEYSTORE_PASSWORD --env release
 gh secret set KEY_ALIAS --env release --body upload
-gh secret set KEY_PASSWORD --env release
+gh secret set KEY_PASSWORD --env release   # the same password again
 ```
 
 Passwords must be at least six characters; `keytool` rejects shorter ones.
+
+> [!IMPORTANT]
+> `KEY_PASSWORD` and `KEYSTORE_PASSWORD` must be identical. Keystores are
+> PKCS12 by default, which has no separate key password: pass `keytool` a
+> different one and it prints a warning, ignores it, and uses the store
+> password anyway. Signing then fails with "Get Key failed".
 Keep the keystore outside the repo, and do this **before** merging anything
 releasable, or the first release fails on the missing key.
 
