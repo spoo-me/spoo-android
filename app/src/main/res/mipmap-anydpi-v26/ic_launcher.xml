@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The supplied artwork, placed rather than redrawn. Android only ever shows
+  the central 72 of the 108dp canvas, so the art is padded out to that ratio
+  in matched black: the mask crops the padding, never the composition.
+
+  It sits in the background layer because the art is one flat picture. A
+  foreground layer would only earn its keep if the ghost were separate, and
+  splitting it would mean repainting the vignette underneath.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background" />
-    <!-- The exact android-spoo.png art, untouched (resize only). -->
-    <foreground android:drawable="@drawable/ic_launcher_full" />
-    <!-- Themed icons need an alpha silhouette; opaque art renders blank. -->
-    <monochrome android:drawable="@drawable/ic_launcher_mono" />
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@android:color/transparent" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
 </adaptive-icon>
