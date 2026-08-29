@@ -1,3 +1,12 @@
+/**
+ * Monotonic code from a semver name: 1.2.3 -> 10203. Play requires this to
+ * increase forever, so it is derived rather than hand-maintained.
+ */
+fun versionCodeOf(name: String): Int {
+    val (major, minor, patch) = name.split("-")[0].split(".").map(String::toInt)
+    return major * 10_000 + minor * 100 + patch
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -8,12 +17,17 @@ android {
     namespace = "me.spoo.android"
     compileSdk = 37
 
+    // The git tag is the version: CI passes it in, and local or PR builds
+    // fall back to the dev value below. The code is derived from the name
+    // so it can only ever go up.
+    val appVersionName = System.getenv("SPOO_VERSION_NAME")?.removePrefix("v") ?: "0.1.0"
+
     defaultConfig {
         applicationId = "me.spoo.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionName = appVersionName
+        versionCode = versionCodeOf(appVersionName)
     }
 
     buildFeatures {
@@ -37,6 +51,18 @@ android {
         disable += setOf("AndroidGradlePluginVersion", "GradleDependency", "NewerVersionAvailable")
     }
 
+    // Only present when CI hands us a keystore; an unsigned release APK
+    // still builds so the R8 path stays covered on every PR.
+    val keystore = System.getenv("SPOO_KEYSTORE_PATH")?.let(::file)?.takeIf { it.exists() }
+    if (keystore != null) {
+        signingConfigs.create("release") {
+            storeFile = keystore
+            storePassword = System.getenv("SPOO_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("SPOO_KEY_ALIAS")
+            keyPassword = System.getenv("SPOO_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         debug {
             // Local backend over the Mac's tailnet IP: reachable from the
@@ -45,6 +71,9 @@ android {
             buildConfigField("String", "SPOO_REDIRECT_URI", "\"spoo://oauth/callback\"")
         }
         release {
+            // Absent locally and on PR builds, where assembleRelease only
+            // has to prove that R8 still works.
+            signingConfig = signingConfigs.findByName("release")
             buildConfigField("String", "SPOO_BASE_URL", "\"https://spoo.me\"")
             // Custom-scheme deep link, the house pattern for native
             // clients; a verified https App Link can supersede it once

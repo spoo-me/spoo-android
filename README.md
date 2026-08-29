@@ -30,7 +30,19 @@
 
 # 🚀 Getting Started
 
-The app is not on the Play Store yet. Until it is, build it yourself:
+Grab the APK from [the latest release](https://github.com/spoo-me/spoo-android/releases/latest),
+or add this repository to [Obtainium](https://github.com/ImranR98/Obtainium)
+and updates arrive on their own. Verify what you downloaded first:
+
+```bash
+sha256sum -c spoo-v0.1.0.apk.sha256
+```
+
+> [!NOTE]
+> Not on the Play Store yet, so Android will ask you to allow installs from
+> your browser or file manager the first time.
+
+Prefer to build it yourself:
 
 ```bash
 git clone https://github.com/spoo-me/spoo-android.git
@@ -68,8 +80,12 @@ Kotlin and Jetpack Compose, with Material 3 Expressive. The API layer is the [of
 ```bash
 ./gradlew installDebug          # build and install the debug variant
 ./gradlew lintDebug             # Android Lint, warnings fail the build
+./gradlew testDebugUnitTest     # unit tests
 pre-commit run --all-files      # ktlint, autofix on
 ```
+
+Releases are automatic: conventional commits on `main` decide the version,
+and CI signs and publishes the APK. See [docs/releasing.md](docs/releasing.md).
 
 Settings has a mock-data switch in debug builds. Turn it on to browse a generated set of links and stats with no backend at all, which is the fastest way to work on UI.
 
