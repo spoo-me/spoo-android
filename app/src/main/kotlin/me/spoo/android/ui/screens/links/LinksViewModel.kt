@@ -2,6 +2,9 @@ package me.spoo.android.ui.screens.links
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -9,9 +12,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
@@ -20,34 +20,45 @@ import me.spoo.android.data.EmojiCatalog
 import me.spoo.android.data.FriendlyError
 import me.spoo.android.data.LinkEdit
 import me.spoo.android.data.LinkSort
-import me.spoo.android.data.LinksQuery
-import me.spoo.android.data.friendlyError
 import me.spoo.android.data.LinksFilter
+import me.spoo.android.data.LinksQuery
 import me.spoo.android.data.LinksRepository
 import me.spoo.android.data.SpooLink
+import me.spoo.android.data.friendlyError
 
 /** Floor for pull-to-refresh so the hold phase is visible (see refresh). */
 const val MIN_REFRESH_MS = 650L
 
 sealed interface CreateState {
     data object Idle : CreateState
+
     data object Submitting : CreateState
-    data class Done(val link: SpooLink) : CreateState
-    data class Failed(val error: FriendlyError) : CreateState
+
+    data class Done(
+        val link: SpooLink,
+    ) : CreateState
+
+    data class Failed(
+        val error: FriendlyError,
+    ) : CreateState
 }
 
 sealed interface EditState {
     data object Idle : EditState
+
     data object Submitting : EditState
+
     data object Done : EditState
-    data class Failed(val error: FriendlyError) : EditState
+
+    data class Failed(
+        val error: FriendlyError,
+    ) : EditState
 }
 
 @OptIn(FlowPreview::class)
 class LinksViewModel(
     private val repository: LinksRepository = SpooApp.graph.linksRepository,
 ) : ViewModel() {
-
     val query = MutableStateFlow("")
     val sort = MutableStateFlow(LinkSort.Recent)
     val filter = MutableStateFlow(LinksFilter())
@@ -58,8 +69,7 @@ class LinksViewModel(
         viewModelScope.launch {
             combine(query, sort, filter) { q, s, f ->
                 LinksQuery(search = q.takeIf { it.isNotBlank() }, sort = s, filter = f)
-            }
-                .debounce(250)
+            }.debounce(250)
                 .distinctUntilChanged()
                 .collectLatest { runCatching { repository.refresh(it) } }
         }
@@ -123,13 +133,14 @@ class LinksViewModel(
     fun create(request: CreateLinkRequest) {
         _createState.value = CreateState.Submitting
         viewModelScope.launch {
-            _createState.value = try {
-                CreateState.Done(repository.create(request))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                CreateState.Failed(friendlyError(e, "Could not shorten this link."))
-            }
+            _createState.value =
+                try {
+                    CreateState.Done(repository.create(request))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    CreateState.Failed(friendlyError(e, "Could not shorten this link."))
+                }
         }
     }
 
@@ -140,17 +151,21 @@ class LinksViewModel(
     private val _editState = MutableStateFlow<EditState>(EditState.Idle)
     val editState: StateFlow<EditState> = _editState
 
-    fun updateLink(id: String, edit: LinkEdit) {
+    fun updateLink(
+        id: String,
+        edit: LinkEdit,
+    ) {
         _editState.value = EditState.Submitting
         viewModelScope.launch {
-            _editState.value = try {
-                repository.update(id, edit)
-                EditState.Done
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                EditState.Failed(friendlyError(e, "Could not save changes."))
-            }
+            _editState.value =
+                try {
+                    repository.update(id, edit)
+                    EditState.Done
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    EditState.Failed(friendlyError(e, "Could not save changes."))
+                }
         }
     }
 
@@ -186,15 +201,17 @@ class LinksViewModel(
 
     fun deleteSelected() = bulk("deleted") { repository.bulkDelete(it) }
 
-    fun setSelectedStatus(active: Boolean) =
-        bulk(if (active) "enabled" else "disabled") { repository.bulkSetStatus(it, active) }
+    fun setSelectedStatus(active: Boolean) = bulk(if (active) "enabled" else "disabled") { repository.bulkSetStatus(it, active) }
 
     fun setSelectedExpiry(millis: Long?) =
         bulk(if (millis == null) "expiry cleared" else "set to expire") {
             repository.bulkSetExpiry(it, millis)
         }
 
-    private fun bulk(pastTense: String, op: suspend (List<String>) -> Unit) {
+    private fun bulk(
+        pastTense: String,
+        op: suspend (List<String>) -> Unit,
+    ) {
         val ids = selection.value.toList()
         if (ids.isEmpty()) return
         viewModelScope.launch {

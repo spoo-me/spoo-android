@@ -9,18 +9,24 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import me.spoo.android.AppGraph
 import me.spoo.android.data.AppSettings
 import me.spoo.android.data.LinkStats
-import me.spoo.android.data.ThemeMode
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsMetric
 import me.spoo.android.data.StatsParams
+import me.spoo.android.data.ThemeMode
 
 /**
  * Time charts carry the hero count; breakdown charts ARE the widget
  * (labels and counts live inside the cells).
  */
-enum class WidgetChart(val timeChart: Boolean) {
-    Wave(true), Bars(true), Number(true),
-    Treemap(false), Bubbles(false), Map(false),
+enum class WidgetChart(
+    val timeChart: Boolean,
+) {
+    Wave(true),
+    Bars(true),
+    Number(true),
+    Treemap(false),
+    Bubbles(false),
+    Map(false),
 }
 
 /**
@@ -56,40 +62,44 @@ data class WidgetConfig(
         get() = rangeDays?.let { "${it}D" } ?: "ALL TIME"
 
     val metricLabel: String
-        get() = when (metric) {
-            StatsMetric.Clicks -> "CLICKS"
-            StatsMetric.UniqueClicks -> "UNIQUE"
-        }
+        get() =
+            when (metric) {
+                StatsMetric.Clicks -> "CLICKS"
+                StatsMetric.UniqueClicks -> "UNIQUE"
+            }
 
     /** The mono micro-label: everything the widget claims to show. */
     val label: String
-        get() = listOfNotNull(
-            scope?.let { "/$it" },
-            if (chart.timeChart) null else effectiveDimension.name.uppercase(),
-            metricLabel,
-            rangeLabel,
-            if (filters.isNotEmpty()) "FILTERED" else null,
-        ).joinToString(" · ")
+        get() =
+            listOfNotNull(
+                scope?.let { "/$it" },
+                if (chart.timeChart) null else effectiveDimension.name.uppercase(),
+                metricLabel,
+                rangeLabel,
+                if (filters.isNotEmpty()) "FILTERED" else null,
+            ).joinToString(" · ")
 
-    fun toParams() = StatsParams(
-        days = rangeDays,
-        // Widget config stays single-select per dimension; the params
-        // surface takes sets.
-        filters = filters.mapValues { setOf(it.value) },
-        metric = metric,
-    )
+    fun toParams() =
+        StatsParams(
+            days = rangeDays,
+            // Widget config stays single-select per dimension; the params
+            // surface takes sets.
+            filters = filters.mapValues { setOf(it.value) },
+            metric = metric,
+        )
 
     companion object {
         /** Picker shells: provider receiver class -> prefill. */
-        fun presetFor(receiverClassName: String?) = when {
-            receiverClassName?.endsWith("BarsWidgetReceiver") == true ->
-                WidgetConfig(chart = WidgetChart.Bars, rangeDays = 7)
-            receiverClassName?.endsWith("CountWidgetReceiver") == true ->
-                WidgetConfig(chart = WidgetChart.Number, rangeDays = null)
-            receiverClassName?.endsWith("TreemapWidgetReceiver") == true ->
-                WidgetConfig(chart = WidgetChart.Treemap, dimension = StatsDim.Browser)
-            else -> WidgetConfig()
-        }
+        fun presetFor(receiverClassName: String?) =
+            when {
+                receiverClassName?.endsWith("BarsWidgetReceiver") == true ->
+                    WidgetConfig(chart = WidgetChart.Bars, rangeDays = 7)
+                receiverClassName?.endsWith("CountWidgetReceiver") == true ->
+                    WidgetConfig(chart = WidgetChart.Number, rangeDays = null)
+                receiverClassName?.endsWith("TreemapWidgetReceiver") == true ->
+                    WidgetConfig(chart = WidgetChart.Treemap, dimension = StatsDim.Browser)
+                else -> WidgetConfig()
+            }
     }
 }
 
@@ -112,19 +122,24 @@ data class WidgetData(
     }
 }
 
-fun LinkStats.toWidgetData(config: WidgetConfig) = WidgetData(
-    total = dailyClicks.sumOf { it.toLong() },
-    series = dailyClicks,
-    slices = when (config.effectiveDimension) {
-        StatsDim.Country -> countries
-        StatsDim.Browser -> browsers
-        StatsDim.Os -> os
-        StatsDim.Referrer -> referrers
-    },
-)
+fun LinkStats.toWidgetData(config: WidgetConfig) =
+    WidgetData(
+        total = dailyClicks.sumOf { it.toLong() },
+        series = dailyClicks,
+        slices =
+            when (config.effectiveDimension) {
+                StatsDim.Country -> countries
+                StatsDim.Browser -> browsers
+                StatsDim.Os -> os
+                StatsDim.Referrer -> referrers
+            },
+    )
 
 /** One fetch for whatever the config asks; null when the network says no. */
-suspend fun fetchWidgetStats(graph: AppGraph, config: WidgetConfig): LinkStats? =
+suspend fun fetchWidgetStats(
+    graph: AppGraph,
+    config: WidgetConfig,
+): LinkStats? =
     runCatching {
         val repo = graph.linksRepository
         if (repo.links.value.isEmpty()) repo.refresh()
@@ -133,8 +148,10 @@ suspend fun fetchWidgetStats(graph: AppGraph, config: WidgetConfig): LinkStats? 
             ?: repo.accountStats(config.toParams())
     }.getOrNull()
 
-suspend fun fetchWidgetData(graph: AppGraph, config: WidgetConfig): WidgetData? =
-    fetchWidgetStats(graph, config)?.toWidgetData(config)
+suspend fun fetchWidgetData(
+    graph: AppGraph,
+    config: WidgetConfig,
+): WidgetData? = fetchWidgetStats(graph, config)?.toWidgetData(config)
 
 /** Glance-state keys: config + the per-instance data cache. */
 internal object WidgetKeys {
@@ -158,12 +175,14 @@ internal object WidgetKeys {
 }
 
 /** The theme trio as [AppSettings], for [spooColorScheme]-style builders. */
-internal fun Preferences.readWidgetTheme(): AppSettings = AppSettings(
-    themeMode = this[WidgetKeys.THEME_MODE]
-        ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.System,
-    useDeviceColors = this[WidgetKeys.THEME_USE_DEVICE] ?: true,
-    seedColor = this[WidgetKeys.THEME_SEED] ?: AppSettings.DEFAULT_SEED,
-)
+internal fun Preferences.readWidgetTheme(): AppSettings =
+    AppSettings(
+        themeMode =
+            this[WidgetKeys.THEME_MODE]
+                ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.System,
+        useDeviceColors = this[WidgetKeys.THEME_USE_DEVICE] ?: true,
+        seedColor = this[WidgetKeys.THEME_SEED] ?: AppSettings.DEFAULT_SEED,
+    )
 
 internal fun MutablePreferences.writeWidgetTheme(settings: AppSettings) {
     this[WidgetKeys.THEME_MODE] = settings.themeMode.name
@@ -171,26 +190,37 @@ internal fun MutablePreferences.writeWidgetTheme(settings: AppSettings) {
     this[WidgetKeys.THEME_SEED] = settings.seedColor
 }
 
-internal fun Preferences.readWidgetConfig(): WidgetConfig = WidgetConfig(
-    chart = this[WidgetKeys.STYLE]
-        ?.let { runCatching { WidgetChart.valueOf(it) }.getOrNull() } ?: WidgetChart.Wave,
-    font = this[WidgetKeys.FONT]
-        ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() } ?: WidgetFont.Flex,
-    dimension = this[WidgetKeys.DIMENSION]
-        ?.let { runCatching { StatsDim.valueOf(it) }.getOrNull() } ?: StatsDim.Browser,
-    metric = this[WidgetKeys.METRIC]
-        ?.let { runCatching { StatsMetric.valueOf(it) }.getOrNull() } ?: StatsMetric.Clicks,
-    scope = this[WidgetKeys.SCOPE],
-    filters = this[WidgetKeys.FILTERS].orEmpty().split('\n').mapNotNull { line ->
-        val eq = line.indexOf('=')
-        if (eq <= 0) return@mapNotNull null
-        val dim = runCatching { StatsDim.valueOf(line.substring(0, eq)) }.getOrNull()
-            ?: return@mapNotNull null
-        dim to line.substring(eq + 1)
-    }.toMap(),
-    rangeDays = this[WidgetKeys.RANGE_DAYS]?.takeIf { it > 0 }
-        ?: if (WidgetKeys.RANGE_DAYS in this) null else 30,
-)
+internal fun Preferences.readWidgetConfig(): WidgetConfig =
+    WidgetConfig(
+        chart =
+            this[WidgetKeys.STYLE]
+                ?.let { runCatching { WidgetChart.valueOf(it) }.getOrNull() } ?: WidgetChart.Wave,
+        font =
+            this[WidgetKeys.FONT]
+                ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() } ?: WidgetFont.Flex,
+        dimension =
+            this[WidgetKeys.DIMENSION]
+                ?.let { runCatching { StatsDim.valueOf(it) }.getOrNull() } ?: StatsDim.Browser,
+        metric =
+            this[WidgetKeys.METRIC]
+                ?.let { runCatching { StatsMetric.valueOf(it) }.getOrNull() } ?: StatsMetric.Clicks,
+        scope = this[WidgetKeys.SCOPE],
+        filters =
+            this[WidgetKeys.FILTERS]
+                .orEmpty()
+                .split('\n')
+                .mapNotNull { line ->
+                    val eq = line.indexOf('=')
+                    if (eq <= 0) return@mapNotNull null
+                    val dim =
+                        runCatching { StatsDim.valueOf(line.substring(0, eq)) }.getOrNull()
+                            ?: return@mapNotNull null
+                    dim to line.substring(eq + 1)
+                }.toMap(),
+        rangeDays =
+            this[WidgetKeys.RANGE_DAYS]?.takeIf { it > 0 }
+                ?: if (WidgetKeys.RANGE_DAYS in this) null else 30,
+    )
 
 internal fun MutablePreferences.writeWidgetConfig(config: WidgetConfig) {
     this[WidgetKeys.STYLE] = config.chart.name
@@ -218,9 +248,13 @@ internal fun MutablePreferences.writeWidgetData(data: WidgetData) {
     this[WidgetKeys.CACHED_SLICES] = data.encodeSlices()
 }
 
-internal fun Preferences.readWidgetData() = WidgetData(
-    total = this[WidgetKeys.CACHED_TOTAL] ?: 0L,
-    series = this[WidgetKeys.CACHED_SERIES]?.split(',')
-        ?.mapNotNull(String::toIntOrNull).orEmpty(),
-    slices = WidgetData.decodeSlices(this[WidgetKeys.CACHED_SLICES]),
-)
+internal fun Preferences.readWidgetData() =
+    WidgetData(
+        total = this[WidgetKeys.CACHED_TOTAL] ?: 0L,
+        series =
+            this[WidgetKeys.CACHED_SERIES]
+                ?.split(',')
+                ?.mapNotNull(String::toIntOrNull)
+                .orEmpty(),
+        slices = WidgetData.decodeSlices(this[WidgetKeys.CACHED_SLICES]),
+    )

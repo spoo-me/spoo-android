@@ -52,12 +52,13 @@ data class LinksFilter(
     val createdRange: Pair<Long, Long>? = null,
 ) {
     val count: Int
-        get() = listOf(
-            status != null,
-            passwordProtected,
-            clickLimited,
-            createdRange != null,
-        ).count { it }
+        get() =
+            listOf(
+                status != null,
+                passwordProtected,
+                clickLimited,
+                createdRange != null,
+            ).count { it }
 
     fun matches(link: SpooLink): Boolean =
         (status == null || link.status == status) &&
@@ -66,7 +67,7 @@ data class LinksFilter(
             (
                 createdRange == null || link.createdAtMillis == null ||
                     link.createdAtMillis in createdRange.first..(createdRange.second + 86_399_999)
-                )
+            )
 }
 
 data class CreateLinkRequest(
@@ -143,5 +144,8 @@ data class LinkStats(
     val os: List<Slice>,
     val referrers: List<Slice>,
 ) {
-    data class Slice(val label: String, val count: Int)
+    data class Slice(
+        val label: String,
+        val count: Int,
+    )
 }

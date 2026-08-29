@@ -6,8 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,9 +40,9 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -74,7 +74,6 @@ import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
-import java.text.NumberFormat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.spoo.android.SpooApp
@@ -90,6 +89,7 @@ import me.spoo.android.ui.components.countryDisplayName
 import me.spoo.android.ui.components.faviconHost
 import me.spoo.android.ui.theme.SpooTheme
 import me.spoo.android.ui.theme.spooColorScheme
+import java.text.NumberFormat
 
 /**
  * The widget builder: launched by the launcher when a shell is placed
@@ -97,15 +97,15 @@ import me.spoo.android.ui.theme.spooColorScheme
  * Saves into the instance's Glance state and triggers a render.
  */
 class WidgetConfigActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val appWidgetId = intent?.getIntExtra(
-            AppWidgetManager.EXTRA_APPWIDGET_ID,
-            AppWidgetManager.INVALID_APPWIDGET_ID,
-        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        val appWidgetId =
+            intent?.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID,
+            ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
         // Backing out must cancel the placement, per the widget contract.
         setResult(
@@ -117,10 +117,14 @@ class WidgetConfigActivity : ComponentActivity() {
             return
         }
 
-        val preset = WidgetConfig.presetFor(
-            AppWidgetManager.getInstance(this)
-                .getAppWidgetInfo(appWidgetId)?.provider?.className,
-        )
+        val preset =
+            WidgetConfig.presetFor(
+                AppWidgetManager
+                    .getInstance(this)
+                    .getAppWidgetInfo(appWidgetId)
+                    ?.provider
+                    ?.className,
+            )
 
         setContent {
             val settings by SpooApp.graph.settingsRepository.settings
@@ -135,21 +139,32 @@ class WidgetConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun save(appWidgetId: Int, config: WidgetConfig) {
+    private fun save(
+        appWidgetId: Int,
+        config: WidgetConfig,
+    ) {
         lifecycleScope.launch {
             val graph = SpooApp.graph
-            val glanceId = GlanceAppWidgetManager(this@WidgetConfigActivity)
-                .getGlanceIdBy(appWidgetId)
+            val glanceId =
+                GlanceAppWidgetManager(this@WidgetConfigActivity)
+                    .getGlanceIdBy(appWidgetId)
             // Fetch here so the widget lands populated, not blank-then-fill.
             val data = fetchWidgetData(graph, config)
             if (data != null && !config.chart.timeChart) {
                 WidgetIconCache.prefetch(
-                    this@WidgetConfigActivity, config.effectiveDimension,
-                    data.slices.sortedByDescending { it.count }.take(9).map { it.label },
+                    this@WidgetConfigActivity,
+                    config.effectiveDimension,
+                    data.slices
+                        .sortedByDescending { it.count }
+                        .take(9)
+                        .map { it.label },
                 )
             }
-            val signedIn = graph.tokenStore.read() != null ||
-                graph.settingsRepository.settings.first().mockData
+            val signedIn =
+                graph.tokenStore.read() != null ||
+                    graph.settingsRepository.settings
+                        .first()
+                        .mockData
             updateAppWidgetState(this@WidgetConfigActivity, glanceId) {
                 it.writeWidgetConfig(config)
                 it[WidgetKeys.SIGNED_IN] = signedIn
@@ -198,13 +213,15 @@ private fun ConfigScreen(
             StatsDim.Referrer to fetched.referrers,
         ).forEach { (dim, slices) ->
             WidgetIconCache.prefetch(
-                context, dim,
+                context,
+                dim,
                 slices.sortedByDescending { it.count }.take(9).map { it.label },
             )
         }
         stats = fetched
     }
-    val links by SpooApp.graph.linksRepository.links.collectAsState()
+    val links by SpooApp.graph.linksRepository.links
+        .collectAsState()
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
@@ -225,7 +242,10 @@ private fun ConfigScreen(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             ) {
                 Button(
-                    onClick = { saving = true; onSave(config) },
+                    onClick = {
+                        saving = true
+                        onSave(config)
+                    },
                     enabled = !saving,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -246,11 +266,12 @@ private fun ConfigScreen(
             item { SectionLabel("Chart") }
             item {
                 ToggleRow(
-                    options = listOf(
-                        Triple(WidgetChart.Wave, "Wave", Icons.Outlined.ShowChart),
-                        Triple(WidgetChart.Bars, "Bars", Icons.Outlined.BarChart),
-                        Triple(WidgetChart.Number, "Number", Icons.Outlined.Numbers),
-                    ),
+                    options =
+                        listOf(
+                            Triple(WidgetChart.Wave, "Wave", Icons.Outlined.ShowChart),
+                            Triple(WidgetChart.Bars, "Bars", Icons.Outlined.BarChart),
+                            Triple(WidgetChart.Number, "Number", Icons.Outlined.Numbers),
+                        ),
                     selected = config.chart,
                     onSelect = { config = config.copy(chart = it) },
                 )
@@ -258,11 +279,12 @@ private fun ConfigScreen(
             item { Spacer(Modifier.height(6.dp)) }
             item {
                 ToggleRow(
-                    options = listOf(
-                        Triple(WidgetChart.Treemap, "Treemap", Icons.Outlined.GridView),
-                        Triple(WidgetChart.Bubbles, "Bubbles", Icons.Outlined.BubbleChart),
-                        Triple(WidgetChart.Map, "Map", Icons.Outlined.Public),
-                    ),
+                    options =
+                        listOf(
+                            Triple(WidgetChart.Treemap, "Treemap", Icons.Outlined.GridView),
+                            Triple(WidgetChart.Bubbles, "Bubbles", Icons.Outlined.BubbleChart),
+                            Triple(WidgetChart.Map, "Map", Icons.Outlined.Public),
+                        ),
                     selected = config.chart,
                     onSelect = { config = config.copy(chart = it) },
                 )
@@ -271,11 +293,12 @@ private fun ConfigScreen(
                 item { SectionLabel("Type") }
                 item {
                     ToggleRow(
-                        options = listOf(
-                            Triple<WidgetFont, String, ImageVector?>(WidgetFont.Flex, "Flex", null),
-                            Triple<WidgetFont, String, ImageVector?>(WidgetFont.Serif, "Serif", null),
-                            Triple<WidgetFont, String, ImageVector?>(WidgetFont.Mono, "Mono", null),
-                        ),
+                        options =
+                            listOf(
+                                Triple<WidgetFont, String, ImageVector?>(WidgetFont.Flex, "Flex", null),
+                                Triple<WidgetFont, String, ImageVector?>(WidgetFont.Serif, "Serif", null),
+                                Triple<WidgetFont, String, ImageVector?>(WidgetFont.Mono, "Mono", null),
+                            ),
                         selected = config.font,
                         onSelect = { config = config.copy(font = it) },
                     )
@@ -285,12 +308,13 @@ private fun ConfigScreen(
                 item { SectionLabel("Dimension") }
                 item {
                     ToggleRow(
-                        options = listOf(
-                            Triple<StatsDim, String, ImageVector?>(StatsDim.Browser, "Browser", null),
-                            Triple<StatsDim, String, ImageVector?>(StatsDim.Os, "OS", null),
-                            Triple<StatsDim, String, ImageVector?>(StatsDim.Referrer, "Referrer", null),
-                            Triple<StatsDim, String, ImageVector?>(StatsDim.Country, "Country", null),
-                        ),
+                        options =
+                            listOf(
+                                Triple<StatsDim, String, ImageVector?>(StatsDim.Browser, "Browser", null),
+                                Triple<StatsDim, String, ImageVector?>(StatsDim.Os, "OS", null),
+                                Triple<StatsDim, String, ImageVector?>(StatsDim.Referrer, "Referrer", null),
+                                Triple<StatsDim, String, ImageVector?>(StatsDim.Country, "Country", null),
+                            ),
                         selected = config.dimension,
                         onSelect = { config = config.copy(dimension = it) },
                     )
@@ -299,10 +323,11 @@ private fun ConfigScreen(
             item { SectionLabel("Metric") }
             item {
                 ToggleRow(
-                    options = listOf(
-                        Triple<StatsMetric, String, ImageVector?>(StatsMetric.Clicks, "Clicks", null),
-                        Triple<StatsMetric, String, ImageVector?>(StatsMetric.UniqueClicks, "Unique clicks", null),
-                    ),
+                    options =
+                        listOf(
+                            Triple<StatsMetric, String, ImageVector?>(StatsMetric.Clicks, "Clicks", null),
+                            Triple<StatsMetric, String, ImageVector?>(StatsMetric.UniqueClicks, "Unique clicks", null),
+                        ),
                     selected = config.metric,
                     onSelect = { config = config.copy(metric = it) },
                 )
@@ -310,12 +335,13 @@ private fun ConfigScreen(
             item { SectionLabel("Time range") }
             item {
                 ToggleRow(
-                    options = listOf(
-                        Triple<Int?, String, ImageVector?>(7, "7d", null),
-                        Triple<Int?, String, ImageVector?>(30, "30d", null),
-                        Triple<Int?, String, ImageVector?>(90, "90d", null),
-                        Triple<Int?, String, ImageVector?>(null, "All", null),
-                    ),
+                    options =
+                        listOf(
+                            Triple<Int?, String, ImageVector?>(7, "7d", null),
+                            Triple<Int?, String, ImageVector?>(30, "30d", null),
+                            Triple<Int?, String, ImageVector?>(90, "90d", null),
+                            Triple<Int?, String, ImageVector?>(null, "All", null),
+                        ),
                     selected = config.rangeDays,
                     onSelect = { config = config.copy(rangeDays = it) },
                 )
@@ -352,7 +378,10 @@ private fun ConfigScreen(
             item { SectionLabel("Filters") }
             item {
                 FilterGroup(
-                    "Country", stats?.countries, StatsDim.Country, config,
+                    "Country",
+                    stats?.countries,
+                    StatsDim.Country,
+                    config,
                     onConfigChange = { config = it },
                     labelFor = ::countryDisplayName,
                     icon = { CountryFlag(it, size = 18.dp) },
@@ -360,7 +389,10 @@ private fun ConfigScreen(
             }
             item {
                 FilterGroup(
-                    "Browser", stats?.browsers, StatsDim.Browser, config,
+                    "Browser",
+                    stats?.browsers,
+                    StatsDim.Browser,
+                    config,
                     onConfigChange = { config = it },
                     labelFor = { it },
                     icon = { BrandIcon(it, size = 18.dp) },
@@ -368,7 +400,10 @@ private fun ConfigScreen(
             }
             item {
                 FilterGroup(
-                    "Operating system", stats?.os, StatsDim.Os, config,
+                    "Operating system",
+                    stats?.os,
+                    StatsDim.Os,
+                    config,
                     onConfigChange = { config = it },
                     labelFor = { it },
                     icon = { BrandIcon(it, size = 18.dp) },
@@ -376,7 +411,10 @@ private fun ConfigScreen(
             }
             item {
                 FilterGroup(
-                    "Referrer", stats?.referrers, StatsDim.Referrer, config,
+                    "Referrer",
+                    stats?.referrers,
+                    StatsDim.Referrer,
+                    config,
                     onConfigChange = { config = it },
                     labelFor = { it },
                     icon = { value ->
@@ -392,7 +430,10 @@ private fun ConfigScreen(
 /** The widget, verbatim: same renderer, same layout grammar, real data. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
+private fun WidgetPreview(
+    config: WidgetConfig,
+    data: WidgetData?,
+) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
     // The widget's OWN scheme, not the app theme's: same palette pass the
@@ -401,36 +442,40 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
     val settings by SpooApp.graph.settingsRepository.settings
         .collectAsState(initial = AppSettings())
     val systemDark = isSystemInDarkTheme()
-    val widgetScheme = remember(settings, systemDark) {
-        spooColorScheme(context, settings, darkTheme = systemDark, cleanGround = false)
-    }
-    val palette = ChartPalette(
-        accent = widgetScheme.primary.toArgb(),
-        onSurface = widgetScheme.onSurface.toArgb(),
-        onSurfaceVariant = widgetScheme.onSurfaceVariant.toArgb(),
-        surface = widgetScheme.surface.toArgb(),
-        surfaceVariant = widgetScheme.surfaceVariant.toArgb(),
-        accentContainer = widgetScheme.primaryContainer.toArgb(),
-    )
+    val widgetScheme =
+        remember(settings, systemDark) {
+            spooColorScheme(context, settings, darkTheme = systemDark, cleanGround = false)
+        }
+    val palette =
+        ChartPalette(
+            accent = widgetScheme.primary.toArgb(),
+            onSurface = widgetScheme.onSurface.toArgb(),
+            onSurfaceVariant = widgetScheme.onSurfaceVariant.toArgb(),
+            surface = widgetScheme.surface.toArgb(),
+            surfaceVariant = widgetScheme.surfaceVariant.toArgb(),
+            accentContainer = widgetScheme.primaryContainer.toArgb(),
+        )
 
     BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .aspectRatio(1.85f) // a real 4x2 slot is taller than it looks
-            .clip(RoundedCornerShape(24.dp))
-            .background(widgetScheme.surface)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(24.dp),
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .aspectRatio(1.85f) // a real 4x2 slot is taller than it looks
+                .clip(RoundedCornerShape(24.dp))
+                .background(widgetScheme.surface)
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant,
+                    RoundedCornerShape(24.dp),
+                ),
     ) {
         val widthDp = maxWidth
         val heightDp = maxHeight
         val chartHeight = if (config.chart.timeChart) heightDp * 0.68f else heightDp
-        val hasChart = data != null && config.chart != WidgetChart.Number &&
-            (if (config.chart.timeChart) data.series.size >= 2 else data.slices.isNotEmpty())
+        val hasChart =
+            data != null && config.chart != WidgetChart.Number &&
+                (if (config.chart.timeChart) data.series.size >= 2 else data.slices.isNotEmpty())
 
         if (data == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -439,38 +484,42 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
             return@BoxWithConstraints
         }
         if (hasChart) {
-            val bitmap = remember(config, data, widthDp, chartHeight) {
-                WidgetChartRenderer.render(
-                    context = context,
-                    config = config,
-                    data = data,
-                    width = (widthDp.value * density).toInt(),
-                    height = (chartHeight.value * density).toInt(),
-                    density = density,
-                    palette = palette,
-                )
-            }
+            val bitmap =
+                remember(config, data, widthDp, chartHeight) {
+                    WidgetChartRenderer.render(
+                        context = context,
+                        config = config,
+                        data = data,
+                        width = (widthDp.value * density).toInt(),
+                        height = (chartHeight.value * density).toInt(),
+                        density = density,
+                        palette = palette,
+                    )
+                }
             androidx.compose.foundation.Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(chartHeight)
-                    .align(Alignment.BottomStart),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(chartHeight)
+                        .align(Alignment.BottomStart),
                 contentScale = ContentScale.FillBounds,
             )
         }
         if (config.chart.timeChart) {
             Column(
-                modifier = Modifier
-                    .padding(horizontal = 18.dp)
-                    .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
-                    .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
-                verticalArrangement = if (config.chart == WidgetChart.Number) {
-                    Arrangement.Center
-                } else {
-                    Arrangement.Top
-                },
+                modifier =
+                    Modifier
+                        .padding(horizontal = 18.dp)
+                        .padding(vertical = if (config.chart == WidgetChart.Number) 12.dp else 10.dp)
+                        .let { if (config.chart == WidgetChart.Number) it.fillMaxSize() else it },
+                verticalArrangement =
+                    if (config.chart == WidgetChart.Number) {
+                        Arrangement.Center
+                    } else {
+                        Arrangement.Top
+                    },
             ) {
                 Text(
                     config.label,
@@ -484,29 +533,34 @@ private fun WidgetPreview(config: WidgetConfig, data: WidgetData?) {
                 // preview is honest about the type.
                 val label = NumberFormat.getIntegerInstance().format(data.total)
                 val solo = config.chart == WidgetChart.Number
-                val heroSp = if (solo) {
-                    72f
-                } else {
-                    when {
-                        label.length <= 7 -> 44f
-                        label.length <= 10 -> 36f
-                        else -> 28f
+                val heroSp =
+                    if (solo) {
+                        72f
+                    } else {
+                        when {
+                            label.length <= 7 -> 44f
+                            label.length <= 10 -> 36f
+                            else -> 28f
+                        }
                     }
-                }
-                val heroBitmap = remember(label, heroSp, solo, widthDp, config.font) {
-                    WidgetChartRenderer.renderHeroText(
-                        context, label, heroSp * density,
-                        emphatic = solo,
-                        maxWidthPx = ((widthDp.value - 36f) * density).toInt(),
-                        font = if (solo) config.font else WidgetFont.Flex,
-                    )
-                }
+                val heroBitmap =
+                    remember(label, heroSp, solo, widthDp, config.font) {
+                        WidgetChartRenderer.renderHeroText(
+                            context,
+                            label,
+                            heroSp * density,
+                            emphatic = solo,
+                            maxWidthPx = ((widthDp.value - 36f) * density).toInt(),
+                            font = if (solo) config.font else WidgetFont.Flex,
+                        )
+                    }
                 androidx.compose.foundation.Image(
                     bitmap = heroBitmap.asImageBitmap(),
                     contentDescription = label,
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                        widgetScheme.onSurface,
-                    ),
+                    colorFilter =
+                        androidx.compose.ui.graphics.ColorFilter.tint(
+                            widgetScheme.onSurface,
+                        ),
                 )
             }
         } else if (!hasChart) {
@@ -539,9 +593,10 @@ private fun <T> ToggleRow(
     onSelect: (T) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEachIndexed { i, (value, label, icon) ->
@@ -549,11 +604,12 @@ private fun <T> ToggleRow(
                 checked = selected == value,
                 onCheckedChange = { onSelect(value) },
                 modifier = Modifier.weight(1f),
-                shapes = when (i) {
-                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                },
+                shapes =
+                    when (i) {
+                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                        options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                    },
             ) {
                 if (icon != null) {
                     Icon(icon, contentDescription = null)
@@ -572,10 +628,11 @@ private fun ScopeRow(
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, onClick = onClick)
+                .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)
@@ -610,11 +667,12 @@ private fun FilterGroup(
                 FilterChip(
                     selected = selectedValue,
                     onClick = {
-                        val filters = if (selectedValue) {
-                            config.filters - dim
-                        } else {
-                            config.filters + (dim to slice.label)
-                        }
+                        val filters =
+                            if (selectedValue) {
+                                config.filters - dim
+                            } else {
+                                config.filters + (dim to slice.label)
+                            }
                         onConfigChange(config.copy(filters = filters))
                     },
                     leadingIcon = { icon(slice.label) },

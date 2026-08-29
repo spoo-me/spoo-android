@@ -26,7 +26,11 @@ import coil3.compose.SubcomposeAsyncImage
  * the handful Fluent models as multi-codepoint sequences.
  */
 @Composable
-fun FluentEmoji(char: String, size: Dp, modifier: Modifier = Modifier) {
+fun FluentEmoji(
+    char: String,
+    size: Dp,
+    modifier: Modifier = Modifier,
+) {
     val hex = char.codePointAt(0).toString(16)
     SubcomposeAsyncImage(
         model = "file:///android_asset/emoji/$hex.webp",
@@ -66,31 +70,33 @@ fun EmojiText(
         return
     }
     val inline = mutableMapOf<String, InlineTextContent>()
-    val annotated = buildAnnotatedString {
-        var i = 0
-        while (i < text.length) {
-            val cp = text.codePointAt(i)
-            val count = Character.charCount(cp)
-            val piece = text.substring(i, i + count)
-            if (cp < 128) {
-                append(piece)
-            } else {
-                val id = cp.toString(16)
-                appendInlineContent(id, piece)
-                inline[id] = InlineTextContent(
-                    Placeholder(1.15.em, 1.15.em, PlaceholderVerticalAlign.TextCenter),
-                ) {
-                    SubcomposeAsyncImage(
-                        model = "file:///android_asset/emoji/$id.webp",
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        error = { Text(piece.emojiPresentation()) },
-                    )
+    val annotated =
+        buildAnnotatedString {
+            var i = 0
+            while (i < text.length) {
+                val cp = text.codePointAt(i)
+                val count = Character.charCount(cp)
+                val piece = text.substring(i, i + count)
+                if (cp < 128) {
+                    append(piece)
+                } else {
+                    val id = cp.toString(16)
+                    appendInlineContent(id, piece)
+                    inline[id] =
+                        InlineTextContent(
+                            Placeholder(1.15.em, 1.15.em, PlaceholderVerticalAlign.TextCenter),
+                        ) {
+                            SubcomposeAsyncImage(
+                                model = "file:///android_asset/emoji/$id.webp",
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                error = { Text(piece.emojiPresentation()) },
+                            )
+                        }
                 }
+                i += count
             }
-            i += count
         }
-    }
     Text(
         annotated,
         modifier = modifier,

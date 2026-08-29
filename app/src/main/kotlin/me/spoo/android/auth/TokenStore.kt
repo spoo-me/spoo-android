@@ -13,9 +13,13 @@ private val Context.authDataStore by preferencesDataStore(name = "auth")
  * Token persistence. App-private DataStore under FBE; if we ever store more
  * than bearer tokens, revisit with a Keystore-wrapped layer.
  */
-class TokenStore(private val context: Context) {
-
-    data class Persisted(val tokens: TokenPair, val username: String)
+class TokenStore(
+    private val context: Context,
+) {
+    data class Persisted(
+        val tokens: TokenPair,
+        val username: String,
+    )
 
     suspend fun read(): Persisted? {
         val prefs = context.authDataStore.data.first()
@@ -25,7 +29,10 @@ class TokenStore(private val context: Context) {
         return Persisted(TokenPair(access, refresh), username)
     }
 
-    suspend fun write(tokens: TokenPair, username: String) {
+    suspend fun write(
+        tokens: TokenPair,
+        username: String,
+    ) {
         context.authDataStore.edit {
             it[ACCESS] = tokens.accessToken
             it[REFRESH] = tokens.refreshToken
@@ -46,9 +53,15 @@ class TokenStore(private val context: Context) {
 
     // The in-flight PKCE handshake survives process death during the
     // browser round-trip ("don't keep activities" is a real setting).
-    data class Pending(val state: String, val verifier: String)
+    data class Pending(
+        val state: String,
+        val verifier: String,
+    )
 
-    suspend fun writePending(state: String, verifier: String) {
+    suspend fun writePending(
+        state: String,
+        verifier: String,
+    ) {
         context.authDataStore.edit {
             it[PENDING_STATE] = state
             it[PENDING_VERIFIER] = verifier

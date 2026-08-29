@@ -59,9 +59,10 @@ fun ExpiryField(
         }
     }
     OutlinedTextField(
-        value = millis?.let {
-            SimpleDateFormat("MMM d, yyyy, h:mm a", Locale.US).format(Date(it))
-        } ?: "",
+        value =
+            millis?.let {
+                SimpleDateFormat("MMM d, yyyy, h:mm a", Locale.US).format(Date(it))
+            } ?: "",
         onValueChange = {},
         modifier = modifier,
         readOnly = true,
@@ -106,10 +107,11 @@ fun ExpiryField(
 
     if (showTime) {
         val existing = millis?.let { Calendar.getInstance().apply { timeInMillis = it } }
-        val timeState = rememberTimePickerState(
-            initialHour = existing?.get(Calendar.HOUR_OF_DAY) ?: 23,
-            initialMinute = existing?.get(Calendar.MINUTE) ?: 59,
-        )
+        val timeState =
+            rememberTimePickerState(
+                initialHour = existing?.get(Calendar.HOUR_OF_DAY) ?: 23,
+                initialMinute = existing?.get(Calendar.MINUTE) ?: 59,
+            )
         TimePickerDialog(
             onDismissRequest = { showTime = false },
             title = { Text("Expiry time") },
@@ -137,18 +139,25 @@ fun ExpiryField(
  * wall-clock time means that day in the USER'S timezone, so recombine the
  * calendar fields locally.
  */
-private fun combineLocal(dateUtcMillis: Long, hour: Int, minute: Int): Long {
-    val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-        timeInMillis = dateUtcMillis
-    }
-    return Calendar.getInstance().apply {
-        clear()
-        set(
-            utc.get(Calendar.YEAR),
-            utc.get(Calendar.MONTH),
-            utc.get(Calendar.DAY_OF_MONTH),
-            hour,
-            minute,
-        )
-    }.timeInMillis
+private fun combineLocal(
+    dateUtcMillis: Long,
+    hour: Int,
+    minute: Int,
+): Long {
+    val utc =
+        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            timeInMillis = dateUtcMillis
+        }
+    return Calendar
+        .getInstance()
+        .apply {
+            clear()
+            set(
+                utc.get(Calendar.YEAR),
+                utc.get(Calendar.MONTH),
+                utc.get(Calendar.DAY_OF_MONTH),
+                hour,
+                minute,
+            )
+        }.timeInMillis
 }

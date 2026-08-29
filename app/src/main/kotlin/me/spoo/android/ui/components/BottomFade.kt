@@ -22,14 +22,15 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BoxScope.BottomFade(height: Dp = 28.dp) {
     Box(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .fillMaxWidth()
-            .height(height)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+        modifier =
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(height)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                    ),
                 ),
-            ),
     )
 }

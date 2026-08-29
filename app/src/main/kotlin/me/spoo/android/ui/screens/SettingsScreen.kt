@@ -25,12 +25,12 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.QrCode
-import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SwipeLeft
@@ -41,8 +41,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -67,8 +67,8 @@ import androidx.compose.ui.unit.dp
 import me.spoo.android.BuildConfig
 import me.spoo.android.data.AppSettings
 import me.spoo.android.data.SwipeAction
-import me.spoo.android.ui.components.BottomFade
 import me.spoo.android.data.ThemeMode
+import me.spoo.android.ui.components.BottomFade
 
 /**
  * Settings, in the M3E grouped-list idiom: section labels outside, groups
@@ -102,177 +102,183 @@ fun SettingsScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            Group("Appearance") {
-                GroupRow(0, rowCountAppearance(settings)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Outlined.DarkMode,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Text(
-                            "Theme",
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            ThemeMode.entries.forEachIndexed { i, mode ->
-                                ToggleButton(
-                                    checked = settings.themeMode == mode,
-                                    onCheckedChange = { onSetThemeMode(mode) },
-                                    colors = ToggleButtonDefaults.toggleButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    ),
-                                    shapes = when (i) {
-                                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                        ThemeMode.entries.lastIndex ->
-                                            ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                                    },
-                                ) {
-                                    Icon(
-                                        when (mode) {
-                                            ThemeMode.System -> Icons.Outlined.BrightnessAuto
-                                            ThemeMode.Light -> Icons.Outlined.LightMode
-                                            ThemeMode.Dark -> Icons.Outlined.DarkMode
-                                        },
-                                        contentDescription = mode.name,
-                                    )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                Group("Appearance") {
+                    GroupRow(0, rowCountAppearance(settings)) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Outlined.DarkMode,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Text(
+                                "Theme",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                ThemeMode.entries.forEachIndexed { i, mode ->
+                                    ToggleButton(
+                                        checked = settings.themeMode == mode,
+                                        onCheckedChange = { onSetThemeMode(mode) },
+                                        colors =
+                                            ToggleButtonDefaults.toggleButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                            ),
+                                        shapes =
+                                            when (i) {
+                                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                                ThemeMode.entries.lastIndex ->
+                                                    ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                            },
+                                    ) {
+                                        Icon(
+                                            when (mode) {
+                                                ThemeMode.System -> Icons.Outlined.BrightnessAuto
+                                                ThemeMode.Light -> Icons.Outlined.LightMode
+                                                ThemeMode.Dark -> Icons.Outlined.DarkMode
+                                            },
+                                            contentDescription = mode.name,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                GroupRow(1, rowCountAppearance(settings)) {
-                    SwitchRow(
-                        icon = Icons.Outlined.Wallpaper,
-                        title = "Device colors",
-                        subtitle = "Follow your wallpaper's palette",
-                        checked = settings.useDeviceColors,
-                        onChecked = onSetUseDeviceColors,
-                    )
-                }
-                if (!settings.useDeviceColors) {
-                    GroupRow(2, rowCountAppearance(settings)) {
-                        RowScaffold(Icons.Outlined.Palette, "Accent color") {
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                AppSettings.SEED_CHOICES.forEach { seed ->
-                                    Swatch(
-                                        color = Color(seed),
-                                        selected = settings.seedColor == seed,
-                                        onClick = { onSetSeedColor(seed) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Group("Behavior") {
-                GroupRow(0, 3) {
-                    SwitchRow(
-                        icon = Icons.Outlined.Share,
-                        title = "Share in link menu",
-                        subtitle = "Show a Share action on every link",
-                        checked = settings.showShareInMenu,
-                        onChecked = onSetShowShare,
-                    )
-                }
-                GroupRow(1, 3) {
-                    SwipeActionRow(
-                        icon = Icons.Outlined.SwipeRight,
-                        title = "Swipe right on a link",
-                        current = settings.swipeRight,
-                        enabled = settings.swipeRightEnabled,
-                        onSelect = onSetSwipeRight,
-                        onEnabled = onSetSwipeRightEnabled,
-                    )
-                }
-                GroupRow(2, 3) {
-                    SwipeActionRow(
-                        icon = Icons.Outlined.SwipeLeft,
-                        title = "Swipe left on a link",
-                        current = settings.swipeLeft,
-                        enabled = settings.swipeLeftEnabled,
-                        onSelect = onSetSwipeLeft,
-                        onEnabled = onSetSwipeLeftEnabled,
-                    )
-                }
-            }
-
-            Group("Account") {
-                GroupRow(0, 2) {
-                    RowScaffold(
-                        Icons.Outlined.AccountCircle,
-                        username,
-                        subtitle = "Signed in with spoo.me",
-                    )
-                }
-                GroupRow(1, 2) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onSignOut)
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.Logout,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Text(
-                            "Sign out",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            }
-
-            if (BuildConfig.DEBUG) {
-                Group("Developer") {
-                    GroupRow(0, 1) {
+                    GroupRow(1, rowCountAppearance(settings)) {
                         SwitchRow(
-                            icon = Icons.Outlined.Science,
-                            title = "Mock data",
-                            subtitle = "Fixture links and stats, no backend",
-                            checked = settings.mockData,
-                            onChecked = onSetMockData,
+                            icon = Icons.Outlined.Wallpaper,
+                            title = "Device colors",
+                            subtitle = "Follow your wallpaper's palette",
+                            checked = settings.useDeviceColors,
+                            onChecked = onSetUseDeviceColors,
+                        )
+                    }
+                    if (!settings.useDeviceColors) {
+                        GroupRow(2, rowCountAppearance(settings)) {
+                            RowScaffold(Icons.Outlined.Palette, "Accent color") {
+                                Spacer(Modifier.height(12.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    AppSettings.SEED_CHOICES.forEach { seed ->
+                                        Swatch(
+                                            color = Color(seed),
+                                            selected = settings.seedColor == seed,
+                                            onClick = { onSetSeedColor(seed) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Group("Behavior") {
+                    GroupRow(0, 3) {
+                        SwitchRow(
+                            icon = Icons.Outlined.Share,
+                            title = "Share in link menu",
+                            subtitle = "Show a Share action on every link",
+                            checked = settings.showShareInMenu,
+                            onChecked = onSetShowShare,
+                        )
+                    }
+                    GroupRow(1, 3) {
+                        SwipeActionRow(
+                            icon = Icons.Outlined.SwipeRight,
+                            title = "Swipe right on a link",
+                            current = settings.swipeRight,
+                            enabled = settings.swipeRightEnabled,
+                            onSelect = onSetSwipeRight,
+                            onEnabled = onSetSwipeRightEnabled,
+                        )
+                    }
+                    GroupRow(2, 3) {
+                        SwipeActionRow(
+                            icon = Icons.Outlined.SwipeLeft,
+                            title = "Swipe left on a link",
+                            current = settings.swipeLeft,
+                            enabled = settings.swipeLeftEnabled,
+                            onSelect = onSetSwipeLeft,
+                            onEnabled = onSetSwipeLeftEnabled,
                         )
                     }
                 }
-            }
 
-            Text(
-                "spoo.me for Android ${BuildConfig.VERSION_NAME}\n" +
-                    "World map: Simple World Map by Fritz Lekschas, CC BY-SA 3.0",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        BottomFade()
+                Group("Account") {
+                    GroupRow(0, 2) {
+                        RowScaffold(
+                            Icons.Outlined.AccountCircle,
+                            username,
+                            subtitle = "Signed in with spoo.me",
+                        )
+                    }
+                    GroupRow(1, 2) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onSignOut)
+                                    .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.Logout,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Text(
+                                "Sign out",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+
+                if (BuildConfig.DEBUG) {
+                    Group("Developer") {
+                        GroupRow(0, 1) {
+                            SwitchRow(
+                                icon = Icons.Outlined.Science,
+                                title = "Mock data",
+                                subtitle = "Fixture links and stats, no backend",
+                                checked = settings.mockData,
+                                onChecked = onSetMockData,
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    "spoo.me for Android ${BuildConfig.VERSION_NAME}\n" +
+                        "World map: Simple World Map by Fritz Lekschas, CC BY-SA 3.0",
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            BottomFade()
         }
     }
 }
@@ -280,7 +286,10 @@ fun SettingsScreen(
 private fun rowCountAppearance(settings: AppSettings) = if (settings.useDeviceColors) 2 else 3
 
 @Composable
-private fun Group(label: String, content: @Composable () -> Unit) {
+private fun Group(
+    label: String,
+    content: @Composable () -> Unit,
+) {
     Column {
         Text(
             label,
@@ -294,7 +303,11 @@ private fun Group(label: String, content: @Composable () -> Unit) {
 
 /** Split-corner group row: big radius on the group's outer edges. */
 @Composable
-private fun GroupRow(index: Int, count: Int, content: @Composable () -> Unit) {
+private fun GroupRow(
+    index: Int,
+    count: Int,
+    content: @Composable () -> Unit,
+) {
     Surface(
         shape = groupShape(index, count),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -302,7 +315,10 @@ private fun GroupRow(index: Int, count: Int, content: @Composable () -> Unit) {
     ) { content() }
 }
 
-private fun groupShape(index: Int, count: Int): Shape {
+private fun groupShape(
+    index: Int,
+    count: Int,
+): Shape {
     val big = 20.dp
     val small = 5.dp
     return RoundedCornerShape(
@@ -327,10 +343,11 @@ private fun SwipeActionRow(
         // Same anatomy as SwitchRow so the group's rows stay equal-height;
         // the switch gates the gesture, the row picks its action.
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled) { open = true }
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = enabled) { open = true }
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -357,26 +374,30 @@ private fun SwipeActionRow(
             SwipeAction.entries
                 .filterNot { it == SwipeAction.Qr || it == SwipeAction.None }
                 .forEach { action ->
-                DropdownMenuItem(
-                    text = { Text(action.label) },
-                    leadingIcon = {
-                        Icon(action.menuIcon(), contentDescription = null)
-                    },
-                    onClick = { open = false; onSelect(action) },
-                )
-            }
+                    DropdownMenuItem(
+                        text = { Text(action.label) },
+                        leadingIcon = {
+                            Icon(action.menuIcon(), contentDescription = null)
+                        },
+                        onClick = {
+                            open = false
+                            onSelect(action)
+                        },
+                    )
+                }
         }
     }
 }
 
-private fun SwipeAction.menuIcon() = when (this) {
-    SwipeAction.None -> Icons.Outlined.Block
-    SwipeAction.Copy -> Icons.Outlined.ContentCopy
-    SwipeAction.Share -> Icons.Outlined.Share
-    SwipeAction.Edit -> Icons.Outlined.Edit
-    SwipeAction.Qr -> Icons.Outlined.QrCode
-    SwipeAction.Delete -> Icons.Outlined.Delete
-}
+private fun SwipeAction.menuIcon() =
+    when (this) {
+        SwipeAction.None -> Icons.Outlined.Block
+        SwipeAction.Copy -> Icons.Outlined.ContentCopy
+        SwipeAction.Share -> Icons.Outlined.Share
+        SwipeAction.Edit -> Icons.Outlined.Edit
+        SwipeAction.Qr -> Icons.Outlined.QrCode
+        SwipeAction.Delete -> Icons.Outlined.Delete
+    }
 
 @Composable
 private fun RowScaffold(
@@ -415,10 +436,11 @@ private fun SwitchRow(
     onChecked: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onChecked(!checked) }
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onChecked(!checked) }
+                .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -441,20 +463,24 @@ private fun SwitchRow(
 }
 
 @Composable
-private fun Swatch(color: Color, selected: Boolean, onClick: () -> Unit) {
+private fun Swatch(
+    color: Color,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(color)
-            .then(
-                if (selected) {
-                    Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                } else {
-                    Modifier
-                },
-            )
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(color)
+                .then(
+                    if (selected) {
+                        Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                    } else {
+                        Modifier
+                    },
+                ).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {

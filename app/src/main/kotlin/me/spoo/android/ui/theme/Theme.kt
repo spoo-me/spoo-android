@@ -33,19 +33,20 @@ fun spooColorScheme(
     cleanGround: Boolean = true,
 ): ColorScheme {
     val useDevice = settings.useDeviceColors && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val colorScheme = if (useDevice) {
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        // TonalSpot, not Expressive: a user-picked accent must keep its hue
-        // (Expressive's rotations turn "emerald" into peach).
-        dynamicColorScheme(
-            seedColor = Color(settings.seedColor),
-            isDark = darkTheme,
-            style = PaletteStyle.TonalSpot,
-            // Medium contrast: deeper accents and text per zingzy's call.
-            contrastLevel = 0.5,
-        )
-    }
+    val colorScheme =
+        if (useDevice) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            // TonalSpot, not Expressive: a user-picked accent must keep its hue
+            // (Expressive's rotations turn "emerald" into peach).
+            dynamicColorScheme(
+                seedColor = Color(settings.seedColor),
+                isDark = darkTheme,
+                style = PaletteStyle.TonalSpot,
+                // Medium contrast: deeper accents and text per zingzy's call.
+                contrastLevel = 0.5,
+            )
+        }
 
     if (!cleanGround) return colorScheme
 
@@ -79,7 +80,10 @@ fun spooColorScheme(
 }
 
 /** Whether [settings] resolve to dark, given the system state. */
-fun resolvesDark(settings: AppSettings, systemDark: Boolean): Boolean =
+fun resolvesDark(
+    settings: AppSettings,
+    systemDark: Boolean,
+): Boolean =
     when (settings.themeMode) {
         ThemeMode.System -> systemDark
         ThemeMode.Light -> false
@@ -93,9 +97,10 @@ fun SpooTheme(
 ) {
     val darkTheme = resolvesDark(settings, isSystemInDarkTheme())
     val context = LocalContext.current
-    val colorScheme = remember(settings, darkTheme) {
-        spooColorScheme(context, settings, darkTheme)
-    }
+    val colorScheme =
+        remember(settings, darkTheme) {
+            spooColorScheme(context, settings, darkTheme)
+        }
 
     MaterialExpressiveTheme(
         colorScheme = colorScheme,

@@ -16,10 +16,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val prefillText = when (intent?.action) {
-            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
-            else -> intent?.getStringExtra(AppIntents.EXTRA_PREFILL_URL)
-        }
+        val prefillText =
+            when (intent?.action) {
+                Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+                else -> intent?.getStringExtra(AppIntents.EXTRA_PREFILL_URL)
+            }
         val startInCreate = prefillText != null || intent?.action == AppIntents.ACTION_SHORTEN
 
         val authManager = SpooApp.graph.authManager

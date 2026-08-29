@@ -26,19 +26,25 @@ val TextStyle.tabular: TextStyle
  * are kept equal so no fake-bold synthesis creeps in.
  */
 @OptIn(ExperimentalTextApi::class)
-private fun flex(weight: Int, width: Float) = FontFamily(
+private fun flex(
+    weight: Int,
+    width: Float,
+) = FontFamily(
     Font(
         R.font.roboto_flex,
         weight = FontWeight(weight),
-        variationSettings = FontVariation.Settings(
-            FontVariation.weight(weight),
-            FontVariation.width(width),
-        ),
+        variationSettings =
+            FontVariation.Settings(
+                FontVariation.weight(weight),
+                FontVariation.width(width),
+            ),
     ),
 )
 
-private fun TextStyle.brand(weight: Int, width: Float = 104f) =
-    copy(fontFamily = flex(weight, width), fontWeight = FontWeight(weight))
+private fun TextStyle.brand(
+    weight: Int,
+    width: Float = 104f,
+) = copy(fontFamily = flex(weight, width), fontWeight = FontWeight(weight))
 
 /**
  * The M3 brand/plain typeface split: Roboto Flex carries the expressive
@@ -47,24 +53,25 @@ private fun TextStyle.brand(weight: Int, width: Float = 104f) =
  * as pairs — emphasized is consistently heavier AND wider than baseline.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-fun spooTypography(base: Typography = Typography()) = base.copy(
-    displayLarge = base.displayLarge.brand(550, 104f),
-    displayMedium = base.displayMedium.brand(550, 104f),
-    displaySmall = base.displaySmall.brand(540, 104f),
-    headlineLarge = base.headlineLarge.brand(550, 104f),
-    headlineMedium = base.headlineMedium.brand(550, 104f),
-    headlineSmall = base.headlineSmall.brand(540, 104f),
-    titleLarge = base.titleLarge.brand(550, 103f),
-    titleMedium = base.titleMedium.brand(560, 103f),
-    displayLargeEmphasized = base.displayLargeEmphasized.brand(760, 108f),
-    displayMediumEmphasized = base.displayMediumEmphasized.brand(760, 108f),
-    displaySmallEmphasized = base.displaySmallEmphasized.brand(740, 108f),
-    headlineLargeEmphasized = base.headlineLargeEmphasized.brand(700, 106f),
-    headlineMediumEmphasized = base.headlineMediumEmphasized.brand(700, 106f),
-    headlineSmallEmphasized = base.headlineSmallEmphasized.brand(680, 106f),
-    titleLargeEmphasized = base.titleLargeEmphasized.brand(660, 105f),
-    titleMediumEmphasized = base.titleMediumEmphasized.brand(650, 105f),
-)
+fun spooTypography(base: Typography = Typography()) =
+    base.copy(
+        displayLarge = base.displayLarge.brand(550, 104f),
+        displayMedium = base.displayMedium.brand(550, 104f),
+        displaySmall = base.displaySmall.brand(540, 104f),
+        headlineLarge = base.headlineLarge.brand(550, 104f),
+        headlineMedium = base.headlineMedium.brand(550, 104f),
+        headlineSmall = base.headlineSmall.brand(540, 104f),
+        titleLarge = base.titleLarge.brand(550, 103f),
+        titleMedium = base.titleMedium.brand(560, 103f),
+        displayLargeEmphasized = base.displayLargeEmphasized.brand(760, 108f),
+        displayMediumEmphasized = base.displayMediumEmphasized.brand(760, 108f),
+        displaySmallEmphasized = base.displaySmallEmphasized.brand(740, 108f),
+        headlineLargeEmphasized = base.headlineLargeEmphasized.brand(700, 106f),
+        headlineMediumEmphasized = base.headlineMediumEmphasized.brand(700, 106f),
+        headlineSmallEmphasized = base.headlineSmallEmphasized.brand(680, 106f),
+        titleLargeEmphasized = base.titleLargeEmphasized.brand(660, 105f),
+        titleMediumEmphasized = base.titleMediumEmphasized.brand(650, 105f),
+    )
 
 private fun heroFamily(weight: Int) = flex(weight, 112f)
 

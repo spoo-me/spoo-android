@@ -10,7 +10,6 @@ import androidx.activity.ComponentActivity
  * forwards into the create sheet. The Android 13+ paste toast is expected.
  */
 class ClipboardTrampolineActivity : ComponentActivity() {
-
     private var handled = false
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -18,9 +17,13 @@ class ClipboardTrampolineActivity : ComponentActivity() {
         if (!hasFocus || handled) return
         handled = true
 
-        val clipText = getSystemService(ClipboardManager::class.java)
-            ?.primaryClip?.takeIf { it.itemCount > 0 }
-            ?.getItemAt(0)?.coerceToText(this)?.toString()
+        val clipText =
+            getSystemService(ClipboardManager::class.java)
+                ?.primaryClip
+                ?.takeIf { it.itemCount > 0 }
+                ?.getItemAt(0)
+                ?.coerceToText(this)
+                ?.toString()
         val url = clipText?.let { Regex("""https?://\S+""").find(it)?.value }
 
         startActivity(

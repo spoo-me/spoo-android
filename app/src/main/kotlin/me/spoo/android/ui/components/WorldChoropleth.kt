@@ -47,11 +47,12 @@ fun WorldChoropleth(
             translate(-world.minX, -world.minY) {
                 world.countries.forEach { country ->
                     val clicks = countries[country.iso] ?: 0
-                    val fill = if (clicks == 0) {
-                        sea
-                    } else {
-                        lerp(cold, hot, clicks / max.toFloat())
-                    }
+                    val fill =
+                        if (clicks == 0) {
+                            sea
+                        } else {
+                            lerp(cold, hot, clicks / max.toFloat())
+                        }
                     drawPath(country.path, fill)
                 }
             }
@@ -59,7 +60,10 @@ fun WorldChoropleth(
     }
 }
 
-data class CountryPath(val iso: String, val path: Path)
+data class CountryPath(
+    val iso: String,
+    val path: Path,
+)
 
 data class WorldMap(
     val minX: Float,
@@ -89,31 +93,37 @@ object WorldMapCache {
             var groupIso: String? = null
             while (parser.eventType != XmlPullParser.END_DOCUMENT) {
                 when (parser.eventType) {
-                    XmlPullParser.START_TAG -> when (parser.name) {
-                        "svg" -> parser.getAttributeValue(null, "viewBox")
-                            ?.split(" ")
-                            ?.mapNotNull { it.toFloatOrNull() }
-                            ?.takeIf { it.size == 4 }
-                            ?.let { viewBox = it.toFloatArray() }
+                    XmlPullParser.START_TAG ->
+                        when (parser.name) {
+                            "svg" ->
+                                parser
+                                    .getAttributeValue(null, "viewBox")
+                                    ?.split(" ")
+                                    ?.mapNotNull { it.toFloatOrNull() }
+                                    ?.takeIf { it.size == 4 }
+                                    ?.let { viewBox = it.toFloatArray() }
 
-                        "g" -> parser.getAttributeValue(null, "id")
-                            ?.takeIf { it.length == 2 }
-                            ?.let { groupIso = it }
+                            "g" ->
+                                parser
+                                    .getAttributeValue(null, "id")
+                                    ?.takeIf { it.length == 2 }
+                                    ?.let { groupIso = it }
 
-                        "path" -> {
-                            val own = parser.getAttributeValue(null, "id")?.takeIf { it.length == 2 }
-                            val iso = own ?: groupIso
-                            val d = parser.getAttributeValue(null, "d")
-                            if (iso != null && d != null) {
-                                runCatching {
-                                    countries += CountryPath(
-                                        iso = iso.lowercase(),
-                                        path = PathParser().parsePathString(d).toPath(),
-                                    )
+                            "path" -> {
+                                val own = parser.getAttributeValue(null, "id")?.takeIf { it.length == 2 }
+                                val iso = own ?: groupIso
+                                val d = parser.getAttributeValue(null, "d")
+                                if (iso != null && d != null) {
+                                    runCatching {
+                                        countries +=
+                                            CountryPath(
+                                                iso = iso.lowercase(),
+                                                path = PathParser().parsePathString(d).toPath(),
+                                            )
+                                    }
                                 }
                             }
                         }
-                    }
 
                     XmlPullParser.END_TAG -> if (parser.name == "g") groupIso = null
                 }

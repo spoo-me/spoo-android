@@ -43,20 +43,26 @@ fun StatsSkeleton(contentPadding: PaddingValues) {
     val tone = MaterialTheme.colorScheme.surfaceContainerHigh
 
     @Composable
-    fun block(width: Dp?, height: Dp, radius: Dp = 16.dp) {
+    fun block(
+        width: Dp?,
+        height: Dp,
+        radius: Dp = 16.dp,
+    ) {
         Box(
-            modifier = Modifier
-                .let { if (width != null) it.width(width) else it.fillMaxWidth() }
-                .height(height)
-                .alpha(pulse)
-                .background(tone, RoundedCornerShape(radius)),
+            modifier =
+                Modifier
+                    .let { if (width != null) it.width(width) else it.fillMaxWidth() }
+                    .height(height)
+                    .alpha(pulse)
+                    .background(tone, RoundedCornerShape(radius)),
         )
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(contentPadding),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         block(width = 220.dp, height = 64.dp)

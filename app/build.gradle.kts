@@ -28,6 +28,15 @@ android {
 
     defaultConfig.buildConfigField("String", "SPOO_APP_ID", "\"spoo-mobile\"")
 
+    lint {
+        warningsAsErrors = true
+        // Pre-existing warnings live in the baseline; new ones fail CI.
+        baseline = file("lint-baseline.xml")
+        // Dependency freshness is Dependabot's job. These checks query the
+        // network, so they turn any upstream release into a red build.
+        disable += setOf("AndroidGradlePluginVersion", "GradleDependency", "NewerVersionAvailable")
+    }
+
     buildTypes {
         debug {
             // Local backend over the Mac's tailnet IP: reachable from the

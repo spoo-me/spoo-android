@@ -21,12 +21,12 @@ import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,10 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import me.spoo.android.data.LinkStats
 import me.spoo.android.data.StatsDim
 import me.spoo.android.data.StatsParams
@@ -56,6 +52,10 @@ import me.spoo.android.ui.theme.cardContainerColor
 import me.spoo.android.ui.theme.hero
 import me.spoo.android.ui.theme.railIconColors
 import me.spoo.android.ui.theme.tabular
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val RANGES = listOf(7 to "7d", 30 to "30d", 90 to "90d", null to "All")
 private const val TOP_N = 6
@@ -79,13 +79,14 @@ fun StatsContent(
     val numbers = NumberFormat.getIntegerInstance()
     var showRangePicker by remember { mutableStateOf(false) }
 
-    val rangeLabel = params.customRange?.let { (from, to) ->
-        val fmt = SimpleDateFormat("MMM d", Locale.US)
-        "${fmt.format(Date(from))} – ${fmt.format(Date(to))}"
-    } ?: when (params.days) {
-        null -> "all time"
-        else -> "past ${params.days} days"
-    }
+    val rangeLabel =
+        params.customRange?.let { (from, to) ->
+            val fmt = SimpleDateFormat("MMM d", Locale.US)
+            "${fmt.format(Date(from))} – ${fmt.format(Date(to))}"
+        } ?: when (params.days) {
+            null -> "all time"
+            else -> "past ${params.days} days"
+        }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -127,10 +128,11 @@ fun StatsContent(
                             onCheckedChange = {
                                 onParamsChange(params.copy(days = days, customRange = null))
                             },
-                            shapes = when (i) {
-                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                            },
+                            shapes =
+                                when (i) {
+                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                },
                         ) { Text(label) }
                     }
                     ToggleButton(
@@ -175,9 +177,10 @@ fun StatsContent(
                 } else {
                     WavyClicksChart(
                         dailyClicks = stats.dailyClicks,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(210.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(210.dp),
                     )
                 }
             }
@@ -190,11 +193,12 @@ fun StatsContent(
                 activeValues = params.filters[StatsDim.Browser].orEmpty(),
                 labelFor = { it },
                 icon = { BrandIcon(it) },
-                onToggle = if (filterable) {
-                    { onParamsChange(params.toggling(StatsDim.Browser, it)) }
-                } else {
-                    null
-                },
+                onToggle =
+                    if (filterable) {
+                        { onParamsChange(params.toggling(StatsDim.Browser, it)) }
+                    } else {
+                        null
+                    },
             )
         }
         item(key = "os") {
@@ -204,11 +208,12 @@ fun StatsContent(
                 activeValues = params.filters[StatsDim.Os].orEmpty(),
                 labelFor = { it },
                 icon = { BrandIcon(it) },
-                onToggle = if (filterable) {
-                    { onParamsChange(params.toggling(StatsDim.Os, it)) }
-                } else {
-                    null
-                },
+                onToggle =
+                    if (filterable) {
+                        { onParamsChange(params.toggling(StatsDim.Os, it)) }
+                    } else {
+                        null
+                    },
             )
         }
         item(key = "referrers") {
@@ -220,11 +225,12 @@ fun StatsContent(
                 icon = { value ->
                     if (value.contains('.')) Favicon(value) else Monogram(value)
                 },
-                onToggle = if (filterable) {
-                    { onParamsChange(params.toggling(StatsDim.Referrer, it)) }
-                } else {
-                    null
-                },
+                onToggle =
+                    if (filterable) {
+                        { onParamsChange(params.toggling(StatsDim.Referrer, it)) }
+                    } else {
+                        null
+                    },
             )
         }
         item(key = "countries") {
@@ -234,22 +240,24 @@ fun StatsContent(
                 activeValues = params.filters[StatsDim.Country].orEmpty(),
                 labelFor = ::countryDisplayName,
                 icon = { CountryFlag(it) },
-                onToggle = if (filterable) {
-                    { onParamsChange(params.toggling(StatsDim.Country, it)) }
-                } else {
-                    null
-                },
-                header = if (stats.countries.isNotEmpty()) {
-                    {
-                        WorldChoropleth(
-                            countries = stats.countries.associate { it.label.lowercase() to it.count },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                    }
-                } else {
-                    null
-                },
+                onToggle =
+                    if (filterable) {
+                        { onParamsChange(params.toggling(StatsDim.Country, it)) }
+                    } else {
+                        null
+                    },
+                header =
+                    if (stats.countries.isNotEmpty()) {
+                        {
+                            WorldChoropleth(
+                                countries = stats.countries.associate { it.label.lowercase() to it.count },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    } else {
+                        null
+                    },
             )
         }
     }
@@ -262,7 +270,10 @@ fun StatsContent(
     }
 }
 
-fun StatsParams.toggling(dim: StatsDim, value: String): StatsParams {
+fun StatsParams.toggling(
+    dim: StatsDim,
+    value: String,
+): StatsParams {
     val current = filters[dim].orEmpty()
     val next = if (value in current) current - value else current + value
     return copy(filters = if (next.isEmpty()) filters - dim else filters + (dim to next))
@@ -279,9 +290,10 @@ private fun StatsCard(
     content: @Composable () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .cardChrome(RoundedCornerShape(20.dp)),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .cardChrome(RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         color = cardContainerColor(),
     ) {
@@ -309,9 +321,10 @@ private fun StatsCard(
 @Composable
 private fun EmptyBody(height: androidx.compose.ui.unit.Dp) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -350,18 +363,20 @@ private fun Breakdown(
                     onClick = { onToggle?.invoke(slice.label) },
                     enabled = onToggle != null,
                     shape = MaterialTheme.shapes.medium,
-                    color = if (active) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        Color.Transparent
-                    },
+                    color =
+                        if (active) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            Color.Transparent
+                        },
                 ) {
                     val content = LocalContentColor.current
                     Row(
-                        modifier = Modifier.padding(
-                            horizontal = if (active) 12.dp else 4.dp,
-                            vertical = 8.dp,
-                        ),
+                        modifier =
+                            Modifier.padding(
+                                horizontal = if (active) 12.dp else 4.dp,
+                                vertical = 8.dp,
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         icon(slice.label)
@@ -385,26 +400,28 @@ private fun Breakdown(
                             // hero chart's signature — 24 squiggles per page
                             // would spend it (tried, rejected).
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(5.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (active) {
-                                            content.copy(alpha = 0.15f) // state-layer alpha
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceContainerHigh
-                                        },
-                                    ),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(slice.count / max.toFloat())
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
                                         .height(5.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (active) content else MaterialTheme.colorScheme.primary,
+                                            if (active) {
+                                                content.copy(alpha = 0.15f) // state-layer alpha
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceContainerHigh
+                                            },
                                         ),
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth(slice.count / max.toFloat())
+                                            .height(5.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (active) content else MaterialTheme.colorScheme.primary,
+                                            ),
                                 )
                             }
                         }

@@ -24,7 +24,8 @@ fun cardContainerColor(): Color = MaterialTheme.colorScheme.surfaceContainerLow
  */
 @Composable
 fun loaderContainerColor(): Color =
-    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+    MaterialTheme.colorScheme.primary
+        .copy(alpha = 0.22f)
         .compositeOver(MaterialTheme.colorScheme.surface)
 
 /**
