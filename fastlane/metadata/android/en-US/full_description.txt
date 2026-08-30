@@ -1,0 +1,18 @@
+The official spoo.me app: shorten, manage, and analyze your links from your pocket, built end to end in Material 3 Expressive.
+
+<b>Features</b>
+
+<ul>
+<li><b>Share to shorten.</b> Send any link from any app's share sheet and it lands in the create sheet, ready to go.</li>
+<li><b>Quick Settings tile.</b> Shorten whatever is on your clipboard without opening the app.</li>
+<li><b>Emoji aliases.</b> Pick from the server's emoji set with a built-in picker, rendered in Fluent 3D.</li>
+<li><b>Link management.</b> Passwords, click limits, expiry, private stats, and bot blocking, all editable after the fact.</li>
+<li><b>Analytics.</b> Clicks over time, plus breakdowns by country, browser, OS, and referrer, filterable and scoped per link.</li>
+<li><b>Home-screen widgets.</b> Six chart styles, configured per instance, cached so they render stale data instead of spinners.</li>
+<li><b>Styled QR codes.</b> Circle-module QR with the spoo mark in the middle, shareable or saved to your gallery.</li>
+<li><b>Material 3 Expressive.</b> Motion is springs, not tweens. Dynamic color from your wallpaper or a seed of your choosing, across the app and its widgets. Dark mode everywhere, even the widgets.</li>
+</ul>
+
+You need a free spoo.me account. The app signs in through your browser, so there are no API keys to paste.
+
+spoo.me is an open source URL shortener with advanced analytics. The whole stack, this app included, is AGPL and on GitHub.
