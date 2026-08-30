@@ -1,0 +1,68 @@
+name: Feature request
+description: Suggest something for the spoo.me Android app
+title: "[FEAT] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repo is the spoo.me **Android app**. New API endpoints, redirect behaviour or backend capabilities belong in [spoo-me/spoo](https://github.com/spoo-me/spoo/issues).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do today, and where does the app get in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+      description: Describe the behaviour, not the implementation.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface
+      options:
+        - Links list, search, filters
+        - Creating or editing a link
+        - Analytics, charts, breakdowns
+        - Home-screen widgets
+        - Share sheet or Quick Settings tile
+        - Sign in and account
+        - Settings and theming
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Does this need backend work
+      options:
+        - No, it can be built with the API that exists
+        - Yes, it needs a new or changed endpoint
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including workarounds you are using now.
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Mockups, references, anything else
+      description: Screenshots of how other apps solve it are welcome.
+    validations:
+      required: false

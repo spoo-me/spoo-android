@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Backend, API or redirect issue
+    url: https://github.com/spoo-me/spoo/issues/new/choose
+    about: Anything server-side belongs in the main spoo.me repository.
+  - name: Web app issue
+    url: https://github.com/spoo-me/frontend/issues/new/choose
+    about: The spoo.me website and dashboard live in their own repository.
+  - name: Question or support
+    url: https://spoo.me/discord
+    about: Ask on Discord, it is usually faster than an issue.
+  - name: Report a malicious short link
+    url: https://spoo.me/report
+    about: Abuse reports go through the report form, not GitHub.
+  - name: Security vulnerability
+    url: https://github.com/spoo-me/spoo-android/blob/main/.github/SECURITY.md
+    about: Email security@spoo.me instead of opening a public issue.
