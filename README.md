@@ -1,20 +1,46 @@
-<h3 align="center">spoo.me for Android</h3>
-<p align="center">Shorten, manage, and analyze your spoo.me links from your pocket 🚀</p>
+<div align="center">
 
-<p align="center">
-    <a href="#-features"><kbd>🔥 Features</kbd></a>
-    <a href="#-getting-started"><kbd>🚀 Getting Started</kbd></a>
-    <a href="#-widgets"><kbd>📊 Widgets</kbd></a>
-    <a href="#-development"><kbd>🛠️ Development</kbd></a>
-    <a href="#-contributing"><kbd>🤝 Contributing</kbd></a>
-</p>
+<img src=".github/assets/icon.png" width="140" alt="spoo.me for Android icon">
 
-<p align="center">
-<a href="https://spoo.me"><img src="https://img.shields.io/badge/spoo.me-6a5cf4?logo=https://spoo.me/static/images/favicon.png" alt="spoo.me"></a>
-<a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.4-6a5cf4?logo=kotlin&logoColor=white" alt="Kotlin"></a>
-<a href="https://spoo.me/discord"><img src="https://img.shields.io/discord/1192388005206433892?logo=discord" alt="Discord"></a>
-<a href="https://github.com/spoo-me/spoo-android/blob/main/LICENSE"><img src="https://img.shields.io/static/v1.svg?style=flat&label=License&message=AGPL-3.0&colorA=363a4f&colorB=b7bdf8" alt="License"></a>
-</p>
+# spoo.me for Android
+
+### Shorten, manage, and analyze your spoo.me links from your pocket 🚀
+
+Built end to end in [Material 3 Expressive](https://m3.material.io/blog/building-with-m3-expressive), springs and all.
+
+<a href="#-download"><kbd>⬇️ Download</kbd></a>&nbsp;
+<a href="#-features"><kbd>🔥 Features</kbd></a>&nbsp;
+<a href="#-screenshots"><kbd>📸 Screenshots</kbd></a>&nbsp;
+<a href="#-widgets"><kbd>📊 Widgets</kbd></a>&nbsp;
+<a href="#%EF%B8%8F-development"><kbd>🛠️ Development</kbd></a>&nbsp;
+<a href="#-contributing"><kbd>🤝 Contributing</kbd></a>
+
+[![Release](https://img.shields.io/github/v/release/spoo-me/spoo-android?label=Release&logo=github&colorA=363a4f&colorB=b7bdf8)](https://github.com/spoo-me/spoo-android/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/spoo-me/spoo-android/total?label=Downloads&logo=github&colorA=363a4f&colorB=b7bdf8)](https://github.com/spoo-me/spoo-android/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/spoo-me/spoo-android/ci.yml?label=CI&logo=githubactions&logoColor=white&colorA=363a4f&colorB=b7bdf8)](https://github.com/spoo-me/spoo-android/actions)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-b7bdf8?logo=kotlin&logoColor=white&colorA=363a4f)](https://kotlinlang.org)
+[![Discord](https://img.shields.io/discord/1192388005206433892?label=Discord&logo=discord&logoColor=white&colorA=363a4f&colorB=b7bdf8)](https://spoo.me/discord)
+[![License](https://img.shields.io/static/v1.svg?label=License&message=AGPL-3.0&colorA=363a4f&colorB=b7bdf8)](LICENSE)
+
+<img src=".github/assets/hero.webp" width="100%" alt="The links list mid-swipe, revealing the edit action">
+
+</div>
+
+# ⬇️ Download
+
+<div align="center">
+
+[<img src=".github/assets/badge-github.png" alt="Get it on GitHub" height="70">](https://github.com/spoo-me/spoo-android/releases/latest)
+&nbsp;
+[<img src=".github/assets/badge-obtainium.png" alt="Get it on Obtainium" height="70">](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/spoo-me/spoo-android)
+
+or just open **[spoo.me/android](https://spoo.me/android)** on your phone. Yes, the download link is a spoo link.
+
+</div>
+
+1. Tap Download. If Chrome warns the file might be harmful, choose **Download anyway**. That warning is standard for apps installed from outside the Play Store.
+2. Open the downloaded file and allow installing from your browser when asked.
+3. For automatic updates, use the Obtainium badge above instead.
 
 # 🔥 Features
 
@@ -25,37 +51,31 @@
 - `Analytics` - Clicks over time, plus breakdowns by country, browser, OS, and referrer, filterable and scoped per link 📈
 - `Home-screen Widgets` - Six chart styles, configured per instance, cached so they render stale data instead of spinners 📊
 - `Styled QR Codes` - Circle-module QR with the spoo mark in the middle, shareable as an image or saved to your gallery 🔳
-- `Material You` - Dynamic color from your wallpaper, or a seed color of your choosing, across the app and its widgets 🎭
-- `Linked App Auth` - Sign in through your browser with PKCE. No API keys to paste 🔑
+- `Material 3 Expressive` - Motion is springs, not tweens. Dynamic color from your wallpaper, or a seed color of your choosing, across the app and its widgets 🎭
+- `Dark Mode` - Of course. Everywhere, even the widgets 🌙
 
-# 🚀 Getting Started
+# 📸 Screenshots
 
-Grab the APK from [the latest release](https://github.com/spoo-me/spoo-android/releases/latest),
-or add this repository to [Obtainium](https://github.com/ImranR98/Obtainium)
-and updates arrive on their own. Verify what you downloaded first:
+<div align="center">
 
-```bash
-sha256sum -c spoo-v0.1.0.apk.sha256
-```
+<img src=".github/assets/analytics.webp" width="24%" alt="Account analytics">
+<img src=".github/assets/link-stats.webp" width="24%" alt="Per-link analytics">
+<img src=".github/assets/widget.webp" width="24%" alt="Clicks wave widget on the homescreen">
+<img src=".github/assets/emoji.webp" width="24%" alt="Emoji alias picker">
 
-> [!NOTE]
-> Not on the Play Store yet, so Android will ask you to allow installs from
-> your browser or file manager the first time.
+<br><br>
 
-Prefer to build it yourself:
+<img src=".github/assets/links.webp" width="100%" alt="All your links, swipe to edit or delete, edit everything in place, act on links in bulk">
 
-```bash
-git clone https://github.com/spoo-me/spoo-android.git
-cd spoo-android
-./gradlew installDebug
-```
+<br><br>
 
-You need JDK 21 and an Android device or emulator running API 26 or newer.
+<img src=".github/assets/share.webp" width="100%" alt="Share from any app, lands ready to shorten">
 
-> [!NOTE]
-> Debug builds point at a local backend. To run against production, change `SPOO_BASE_URL` in `app/build.gradle.kts` or install a release build.
+<br><br>
 
-Sign in from the Links tab. The app opens a Custom Tab, you approve there, and the session comes back to the app and refreshes itself from then on.
+<img src=".github/assets/dark.webp" width="100%" alt="Dark mode, of course. Everywhere, even the widget.">
+
+</div>
 
 # 📊 Widgets
 
@@ -78,16 +98,29 @@ Three shells show up in the widget picker, and each one opens a configuration sc
 Kotlin and Jetpack Compose, with Material 3 Expressive. The API layer is the [official Kotlin SDK](https://central.sonatype.com/artifact/me.spoo/spoo), so nothing in this repo hand-rolls HTTP.
 
 ```bash
+git clone https://github.com/spoo-me/spoo-android.git
+cd spoo-android
 ./gradlew installDebug          # build and install the debug variant
 ./gradlew lintDebug             # Android Lint, warnings fail the build
 ./gradlew testDebugUnitTest     # unit tests
 pre-commit run --all-files      # ktlint, autofix on
 ```
 
-Releases are automatic: conventional commits on `main` decide the version,
-and CI signs and publishes the APK. See [docs/releasing.md](docs/releasing.md).
+You need JDK 21 and an Android device or emulator running API 26 or newer. To use the app itself you need a [spoo.me](https://spoo.me) account; sign-in happens in your browser with PKCE, so there are no API keys to paste.
+
+Every release ships a checksum next to the APK if you want to verify a download:
+
+```bash
+sha256sum -c spoo.apk.sha256
+```
+
+> [!NOTE]
+> Debug builds point at a local backend. To run against production, change `SPOO_BASE_URL` in `app/build.gradle.kts` or install a release build.
 
 Settings has a mock-data switch in debug builds. Turn it on to browse a generated set of links and stats with no backend at all, which is the fastest way to work on UI.
+
+Releases are automatic: conventional commits on `main` decide the version,
+and CI signs and publishes the APK. See [docs/releasing.md](docs/releasing.md).
 
 > [!IMPORTANT]
 > Widget code runs in a different process than the app and stays frozen while cached, so anything a widget renders has to come from its own Glance state rather than from values captured when it was created.

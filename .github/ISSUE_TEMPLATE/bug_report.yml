@@ -1,0 +1,92 @@
+name: Bug report
+description: Something in the spoo.me Android app is broken
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repo is the spoo.me **Android app**. If the problem is with the API, a redirect, or your account, open it in [spoo-me/spoo](https://github.com/spoo-me/spoo/issues) instead.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a link's stats
+        2. Change the range to 7d
+        3. The chart stays empty
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings shows it at the bottom.
+      placeholder: 0.1.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: How did you install it
+      options:
+        - GitHub release APK
+        - Obtainium
+        - Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: Pixel 8, Android 16
+    validations:
+      required: true
+
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Dark
+        - Light
+        - Both
+        - Not theme related
+    validations:
+      required: false
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where in the app
+      options:
+        - Links list, search, filters
+        - Creating or editing a link
+        - Analytics, charts, breakdowns
+        - Home-screen widgets
+        - Share sheet or Quick Settings tile
+        - Sign in
+        - Settings
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, logcat, anything else
+      description: Screenshots and short clips help a lot for visual bugs. For crashes, `adb logcat` output around the crash is gold.
+    validations:
+      required: false
