@@ -17,10 +17,25 @@ android {
     namespace = "me.spoo.android"
     compileSdk = 37
 
-    // The git tag is the version: CI passes it in, and local or PR builds
-    // fall back to the dev value below. The code is derived from the name
-    // so it can only ever go up.
-    val appVersionName = System.getenv("SPOO_VERSION_NAME")?.removePrefix("v") ?: "0.1.0"
+    // The git tag is the version: CI passes it in before the tag exists,
+    // and any tagged checkout (F-Droid builders included) learns it from
+    // git describe, so nothing is ever committed back. The code is derived
+    // from the name so it can only ever go up.
+    val describedVersion =
+        providers
+            .exec {
+                commandLine("git", "describe", "--tags", "--match", "v*")
+                isIgnoreExitValue = true
+            }.standardOutput.asText
+            .map { it.trim().removePrefix("v").substringBefore("-") }
+            .orNull
+            ?.takeIf { it.isNotEmpty() }
+    val appVersionName =
+        System.getenv("SPOO_VERSION_NAME")?.removePrefix("v")
+            ?: describedVersion
+            // Positive versionCode floor: CI PR checkouts are shallow and
+            // tagless, so describe can come up empty there.
+            ?: "0.0.1"
 
     defaultConfig {
         applicationId = "me.spoo.android"
