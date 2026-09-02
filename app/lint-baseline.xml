@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 9.1.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.1.0)" variant="all" version="9.1.0">
+<issues format="6" by="lint 9.4.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.4.0)" variant="all" version="9.4.0">
 
     <issue
         id="OldTargetApi"
@@ -8,7 +8,7 @@
         errorLine2="        ~~~~~~~~~~~~~~">
         <location
             file="build.gradle.kts"
-            line="14"
+            line="43"
             column="9"/>
     </issue>
 
@@ -19,7 +19,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="11"
+            line="14"
             column="9"/>
     </issue>
 
@@ -162,7 +162,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="34"
+            line="38"
             column="5"/>
     </issue>
 
@@ -173,7 +173,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="65"
+            line="69"
             column="5"/>
     </issue>
 
@@ -184,7 +184,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="90"
+            line="94"
             column="5"/>
     </issue>
 
@@ -195,7 +195,7 @@
         errorLine2="    ~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/components/DimIcon.kt"
-            line="142"
+            line="166"
             column="5"/>
     </issue>
 
@@ -213,7 +213,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/screens/AnalyticsScreen.kt"
-            line="84"
+            line="85"
             column="31"/>
     </issue>
 
@@ -224,7 +224,7 @@
         errorLine2="                                              ~~~~~~~~~~~~~~">
         <location
             file="src/main/kotlin/me/spoo/android/ui/screens/LinksScreen.kt"
-            line="510"
+            line="516"
             column="47"/>
     </issue>
 
@@ -240,10 +240,14 @@
     </issue>
 
     <issue
-        id="IconLauncherShape"
-        message="Launcher icons should not fill every pixel of their square region; see the design guide for details">
+        id="NotShrinkingResources"
+        message="If enabling minification, also set isShrinkResources = true"
+        errorLine1="            isMinifyEnabled = true"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/res/drawable-nodpi/ic_launcher_full.png"/>
+            file="build.gradle.kts"
+            line="97"
+            column="13"/>
     </issue>
 
     <issue
