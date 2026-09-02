@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.0"
+agp = "9.4.0"
 kotlin = "2.4.10"
 composeBom = "2026.08.00"
 # M3 Expressive lives only in the 1.5.0 alphas; pinned over the BOM on purpose.
