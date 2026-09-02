@@ -125,6 +125,13 @@ jobs:
           NAME="spoo-${VERSION}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$NAME"
           sha256sum "$NAME" > "${NAME}.sha256"
+          # F-Droid's update checker reads this from releases/latest; it
+          # cannot parse the computed versionCode out of gradle.
+          BARE="${VERSION#v}"
+          IFS=. read -r MA MI PA <<< "$BARE"
+          printf 'versionName=%s
+versionCode=%s
+' "$BARE" "$((MA*10000+MI*100+PA))" > version.txt
           # Stable-named twin: releases/latest/download/spoo.apk is the
           # public download URL, and it only resolves if every release
           # carries an asset with this exact name.
@@ -143,7 +150,8 @@ jobs:
             "${{ steps.package.outputs.name }}" \
             "${{ steps.package.outputs.name }}.sha256" \
             spoo.apk \
-            spoo.apk.sha256
+            spoo.apk.sha256 \
+            version.txt
 
       - name: Shred the key
         if: always()
